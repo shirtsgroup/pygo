@@ -1,7 +1,8 @@
 from numpy import *
 from random import *
 
-def crankshaft(mpos): #moleculeposition, will need bonds later
+def crankshaft(mpos123): #moleculeposition, will need bonds later
+    mpos=mpos123.copy()
     m=randint(1,6) #random molecule, not end ones
 
     posb=mpos[m][:] # middle molecule, will get crankshafted
@@ -36,7 +37,8 @@ def crankshaft(mpos): #moleculeposition, will need bonds later
     mpos[m][:]=posa+AB
     return mpos
 
-def reptation(mpos):
+def reptation(mpos123):
+    mpos=mpos123.copy()
     theta=pi*random()
     phi=2*pi*random()
     rho=1.53710311951 #unhardcode this later
