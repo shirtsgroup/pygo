@@ -21,7 +21,7 @@ def crankshaft(mpos): #moleculeposition, will need bonds later
     untransform=[[dot(x,x1),dot(x,y1),dot(x,z1)],[dot(y,x1),dot(y,y1),dot(y,z1)],[dot(z,x1),dot(z,y1),dot(z,z1)]]    
     transform=transpose(untransform)
     AB1=dot(transform,AB.transpose())
-    print(AB1)
+    #print(AB1)
     if randint(1,3) ==1:    
 	#180 deg crank
         AB1[1]=-AB1[1]

@@ -23,10 +23,17 @@ while 1:
         i=i+1
     k=k+1
 
+u0=energy(coord)
+print(u0)
 
 for move in range(1):
-	if random() < .5:
-		coord=crankshaft(coord)
-	else:	
-		coord=reptation(coord)
-	writepdb(coord,wtemp,hetatm,move)
+    print(move)
+    if random() < .5:
+    	coord=crankshaft(coord)
+    	print('crank')
+    else:
+        coord=reptation(coord)
+        print('reptation')
+    writepdb(coord,wtemp,hetatm,move)
+    u1=energy(coord)
+    print(u1)
