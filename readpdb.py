@@ -1,6 +1,8 @@
 from numpy import *
 from crank import *
 
+T=1000 #Kelvin
+
 openfile=open('polyethConly.pdb','r')
 i=0 # index for coordinate matrix
 k=0 # index for line number
@@ -29,12 +31,26 @@ writepdb(coord,wtemp,hetatm,0)
 
 for move in range(1,10):
     print(move)
-    if random() < .5:
-    	coord=crankshaft(coord)
-    	print('crank')
-    else:
-        coord=reptation(coord)
-        print('reptation')
-    writepdb(coord,wtemp,hetatm,move)
-    u1=energy(coord)
-    print(u1)
+    while(1):        
+        if random() < .5:
+            newcoord=crankshaft(coord)
+            print('crank')
+        else:
+            newcoord=reptation(coord)
+            print('reptation')
+        u1=energy(newcoord)
+        if u1< u0:
+            break
+        kb=0.0019872041 #in kcal/mol
+        boltz=exp(-u1/(kb*T))
+        print(boltz)
+        if random()<boltz:
+            break
+    writepdb(newcoord,wtemp,hetatm,move)
+    coord=newcoord
+    u0=u1
+    print(u0)
+
+
+
+    
