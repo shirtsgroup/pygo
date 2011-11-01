@@ -68,9 +68,16 @@ def writepdb(mpos,text,posline,move):
     f.close
 
 def energy(mpos): #need bond for more complex molecules
-    pass
-
-
-
-
+    energy=0.0; #potential energy
+    sig=4.6 #angstroms for polyethylene
+    e= .42 #kcal/mol for polyethylene
+    index=arange(len(mpos))
+    for i in index:
+        low=index[index<i-2]
+        high=index[index>i+2]
+        vdw=append(low,high) #index of beads excluding 12 and 13 neighbors
+        for j in vdw:
+            r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
+            energy=energy+4*e*((sig/r)**12-(sig/r)**6)
+    return energy/2
 
