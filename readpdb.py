@@ -25,8 +25,9 @@ while 1:
 
 u0=energy(coord)
 print(u0)
+writepdb(coord,wtemp,hetatm,0)
 
-for move in range(1):
+for move in range(1,10):
     print(move)
     if random() < .5:
     	coord=crankshaft(coord)

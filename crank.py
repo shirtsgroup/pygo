@@ -22,10 +22,11 @@ def crankshaft(mpos): #moleculeposition, will need bonds later
     transform=transpose(untransform)
     AB1=dot(transform,AB.transpose())
     #print(AB1)
-    if randint(1,3) ==1:    
+    a=randint(1,3)
+    if a ==1:    
 	#180 deg crank
         AB1[1]=-AB1[1]
-    elif randint(1,3)==2:
+    elif a==2:
 	#90 deg crank
 	AB1[1],AB1[2]=AB1[2],AB1[1]
     else:
@@ -65,6 +66,7 @@ def writepdb(mpos,text,posline,move):
     for k in range(len(text)):
         write=write+text[k]
     f.write(write)
+    print('Wrote '+str(move)+'.pdb')
     f.close
 
 def energy(mpos): #need bond for more complex molecules
