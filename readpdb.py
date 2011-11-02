@@ -1,7 +1,7 @@
 from numpy import *
 from crank import *
 
-T=10000 #Kelvin
+T=1000 #Kelvin
 
 openfile=open('polyethConly.pdb','r')
 i=0 # index for coordinate matrix
@@ -29,7 +29,7 @@ u0=energy(coord)
 print(u0)
 writepdb(coord,wtemp,hetatm,0)
 
-for move in range(0):
+for move in range(1,50):
     print(move)
     while(1):        
         if random() < .5:
@@ -41,7 +41,6 @@ for move in range(0):
             break
         kb=0.0019872041 #in kcal/mol
         boltz=exp(-u1/(kb*T))
-        #print(boltz)
         if random()<boltz:
             break
     writepdb(newcoord,wtemp,hetatm,move)

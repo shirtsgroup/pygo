@@ -11,19 +11,26 @@ def crankshaft(mpos123): #moleculeposition, will need bonds later
 
     AB=posb-posa
     AC=posc-posa
-
+    
+    x=[1,0,0]
+    y=[0,1,0]
+    z=[0,0,1]
     x1=AC/dot(AC,AC)**.5
-    y=array([0,1,0])
-    z=array([0,0,1])
-    transform=array([x1,y,z])
-    untransform=transpose(transform)
+    y1=AB-dot(AB,AC)/dot(AC,AC)*AC
+    y1=y1/dot(y1,y1)**.5
+    z1=cross(x1,y1)
+    untransform=[[dot(x,x1),dot(x,y1),dot(x,z1)],[dot(y,x1),dot(y,y1),dot(y,z1)],[dot(z,x1),dot(z,y1),dot(z,z1)]]
+    transform=transpose(untransform)
+    
+    
     theta=2*pi*random()
     rotate=array([[1,0,0],[0,cos(theta),sin(theta)],[0,-sin(theta),cos(theta)]])
 
     AB1=dot(transform,AB.transpose())
-    AB1=dot(rotate,AB1)
-    AB=dot(untransform,AB1)
-    mpos[m][:]=posa+AB
+    AB2=dot(rotate,AB1)
+    AB=dot(untransform,AB2)
+    print('AB length is '+str(dot(AB,AB)**.5))
+    mpos[m][:]=posa+AB.transpose()
     return mpos
 
 def reptation(mpos123):
