@@ -71,10 +71,11 @@ def writepdb(mpos,text,posline,move):
     print('Wrote '+str(move)+'.pdb')
     f.close
 
-def energy(mpos): #need bond for more complex molecules
+def energy(mpos):
     energy=0.0; #potential energy
     sig=4.6 #angstroms for polyethylene
     e= .42 #kcal/mol for polyethylene
+    ktheta= .82 #kcal/mol 
     index=arange(len(mpos))
     for i in index:
         low=index[index<i-2]
@@ -83,5 +84,10 @@ def energy(mpos): #need bond for more complex molecules
         for j in vdw:
             r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
             energy=energy+4*e*((sig/r)**12-(sig/r)**6)
+    for i in range(1,len(mpos)-1):
+        BA=mpos[:][i-1]-mpos[:][i]
+        BC=mpos[:][i+1]-mpos[:][i]
+        angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
+        energy=energy+ktheta/2*(angle-pi)**2
     return energy/2
 

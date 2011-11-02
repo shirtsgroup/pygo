@@ -29,7 +29,7 @@ u0=energy(coord)
 print(u0)
 writepdb(coord,wtemp,hetatm,0)
 
-for move in range(1,10):
+for move in range(0):
     print(move)
     while(1):        
         if random() < .5:
