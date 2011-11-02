@@ -29,7 +29,6 @@ def crankshaft(mpos123): #moleculeposition, will need bonds later
     AB1=dot(transform,AB.transpose())
     AB2=dot(rotate,AB1)
     AB=dot(untransform,AB2)
-    print('AB length is '+str(dot(AB,AB)**.5))
     mpos[m][:]=posa+AB.transpose()
     return mpos
 
@@ -49,16 +48,35 @@ def reptation(mpos123):
 	     mpos[i][:]=mpos[i-1][:]
 	mpos[0][:]=mpos[1][:]+vec
     return mpos
-    
+
+def torsion(mpos123):
+	mpos=mpos123.copy()
+	dtheta=pi*random()
+	dphi=2*pi*random()
+	m=randint(1,6)
+	for i in range(m,len(mpos)-1):
+		BC=mpos123[:][i+1]-mpos123[:][i]
+        	r=dot(BC,BC)**.5
+		theta=arccos(BC[2]/r)+dtheta #new theta
+		phi=arctan(BC[1]/BC[0])+dphi #new phi
+		BC[0]=r*sin(theta)*cos(phi)
+		BC[1]=r*sin(theta)*sin(phi)
+		BC[2]=r*cos(theta)
+		mpos[:][i+1]=mpos[:][i]+BC
+	return mpos
+	
 def writepdb(mpos,text,posline,move):
     j=0
     for i in posline:
-        words=text[i].split('  ')
-        words[len(words)-3]=str('%6.3f') % mpos[j][0]
-        words[len(words)-2]=str('%6.3f') % mpos[j][1]
-        words[len(words)-1]=str('%6.3f') % mpos[j][2]+'\r\n'
+        words=text[i][0:30]
+	coordstrmatch=text[i][30:-1]
+	coordstr=''
+	coordstr=coordstr+str('%8.3f') % mpos[j][0]
+	coordstr=coordstr+str('%8.3f') % mpos[j][1]
+	coordstr=coordstr+str('%8.3f') % mpos[j][2]
+	coordstr=coordstr+'\r\n'
         j=j+1
-        text[i]='  '.join(words)
+        text[i]=words+coordstr
     f=file(str(move)+'.pdb','w')
     write=''
     for k in range(len(text)):

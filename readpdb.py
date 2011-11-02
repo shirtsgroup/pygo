@@ -2,6 +2,8 @@ from numpy import *
 from crank import *
 
 T=1000 #Kelvin
+totmoves=500
+energyarray=zeros(totmoves)
 
 openfile=open('polyethConly.pdb','r')
 i=0 # index for coordinate matrix
@@ -26,16 +28,20 @@ while 1:
     k=k+1
 
 u0=energy(coord)
-print(u0)
+#print(u0)
 writepdb(coord,wtemp,hetatm,0)
+energyarray[0]=u0
 
-for move in range(1,50):
-    print(move)
+for move in range(1,totmoves):
+    #print(move)
     while(1):        
-        if random() < .5:
-            newcoord=crankshaft(coord)
-        else:
+        rand=random()
+	if rand < .333:
+            newcoord=torsion(coord)
+        elif rand < .666:
             newcoord=reptation(coord)
+	else:
+	    newcoord=crankshaft(coord)
 	u1=energy(newcoord)
         if u1< u0:
             break
@@ -46,8 +52,12 @@ for move in range(1,50):
     writepdb(newcoord,wtemp,hetatm,move)
     coord=newcoord
     u0=u1
-    print(u0)
+    #print(u0)
+    energyarray[move]=u0
 
-
-
-    
+import matplotlib.pyplot as plt
+plt.plot(range(totmoves),energyarray)
+plt.xlabel('moves')
+plt.ylabel('energy (kcal/mol)')
+plt.title('8 monomer polyethylene monte carlo simulation')
+plt.show()
