@@ -1,7 +1,7 @@
 from numpy import *
 from crank import *
 
-T=1000 #Kelvin
+T=300 #Kelvin
 totmoves=500
 energyarray=zeros(totmoves)
 
@@ -36,9 +36,9 @@ for move in range(1,totmoves):
     #print(move)
     while(1):        
         rand=random()
-	if rand < .333:
+	if rand < .3333333:
             newcoord=torsion(coord)
-        elif rand < .666:
+        elif rand < .6666667:
             newcoord=reptation(coord)
 	else:
 	    newcoord=crankshaft(coord)
@@ -59,5 +59,5 @@ import matplotlib.pyplot as plt
 plt.plot(range(totmoves),energyarray)
 plt.xlabel('moves')
 plt.ylabel('energy (kcal/mol)')
-plt.title('8 monomer polyethylene monte carlo simulation')
+plt.title('8 monomer polyethylene monte carlo simulation at '+str(T)+' K')
 plt.show()
