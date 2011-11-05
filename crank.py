@@ -65,11 +65,10 @@ def torsion(mpos123):
 		mpos[:][i+1]=mpos[:][i]+BC
 	return mpos
 	
-def writepdb(mpos,text,posline,move):
+def writepdb(mpos,text,posline,move,filename):
     j=0
     for i in posline:
         words=text[i][0:30]
-	coordstrmatch=text[i][30:-1]
 	coordstr=''
 	coordstr=coordstr+str('%8.3f') % mpos[j][0]
 	coordstr=coordstr+str('%8.3f') % mpos[j][1]
@@ -77,12 +76,29 @@ def writepdb(mpos,text,posline,move):
 	coordstr=coordstr+'\r\n'
         j=j+1
         text[i]=words+coordstr
-    f=file(str(move)+'.pdb','w')
-    write=''
+    f=file('simulate.pdb','w')
+    write='MODEL        '+str(move)+'\r\n' #check moves here
     for k in range(len(text)):
         write=write+text[k]
     f.write(write)
-    print('Wrote '+str(move)+'.pdb')
+    f.write('ENDMDL\r\n')
+    f.close
+
+def addtopdb(mpos,coordtext,move,filename):
+    write='MODEL        '+str(move)+'\r\n'
+    for i in range(len(coordtext)):
+        words=coordtext[i][0:30]
+        coordstr=''
+        coordstr=coordstr+str('%8.3f') % mpos[i][0]
+	coordstr=coordstr+str('%8.3f') % mpos[i][1]
+	coordstr=coordstr+str('%8.3f') % mpos[i][2]
+	coordstr=coordstr+'\r\n'
+        coordtext[i]=words+coordstr
+    f=file('simulate.pdb','a')
+    for k in range(len(coordtext)):
+        write=write+coordtext[k]
+    f.write(write)
+    f.write('ENDMDL\r\n')
     f.close
 
 def energy(mpos):
