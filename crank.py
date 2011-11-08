@@ -78,7 +78,7 @@ def writepdb(mpos,text,posline,move,filename):
         text[i]=words+coordstr
     f=file('simulate.pdb','w')
     write='MODEL        '+str(move)+'\r\n' #check moves here
-    for k in range(len(text)):
+    for k in range(len(text)-1): #dont want 'END'
         write=write+text[k]
     f.write(write)
     f.write('ENDMDL\r\n')
@@ -120,4 +120,8 @@ def energy(mpos):
         angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
         energy=energy+ktheta/2*(angle-pi)**2
     return energy/2
+
+def enddist(mpos):
+    distvec=mpos[:][0]-mpos[:][7] #this is hardcoded
+    return dot(distvec,distvec)**.5
 
