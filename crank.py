@@ -3,7 +3,7 @@ from random import *
 
 def crankshaft(mpos123): #moleculeposition, will need bonds later
     mpos=mpos123.copy()
-    m=randint(1,6) #random molecule, not end ones
+    m=randint(1,len(mpos)-2) #random molecule, not end ones
 
     posb=mpos[m][:] # middle molecule, will get crankshafted
     posa=mpos[m-1][:] #one 'before' it
@@ -36,7 +36,7 @@ def reptation(mpos123):
     mpos=mpos123.copy()
     theta=pi*random()
     phi=2*pi*random()
-    rho=1.53710311951 #unhardcode this later
+    rho=3.79967064407 #unhardcode this later
     vec=[rho*sin(theta)*cos(phi),rho*sin(theta)*sin(phi),rho*cos(theta)]    
     n=len(mpos)
     if random() < .5:    
@@ -64,8 +64,29 @@ def torsion(mpos123):
 		BC[2]=r*cos(theta)
 		mpos[:][i+1]=mpos[:][i]+BC
 	return mpos
-	
+
+def writeseqpdb(mpos,text,posline,move):
+    # multi file pdb output
+    j=0
+    write=''
+    for i in posline:
+        words=text[i][0:30]
+        coordstr=''
+        coordstr=coordstr+str('%8.3f') % mpos[j][0]
+        coordstr=coordstr+str('%8.3f') % mpos[j][1]
+        coordstr=coordstr+str('%8.3f') % mpos[j][2]
+        coordstr=coordstr+'\r\n'
+        j=j+1
+        text[i]=words+coordstr
+    f=file(str(move)+'.pdb','w')
+    for k in range(len(text)): #don't want 'END'
+        write=write+text[k]
+    f.write(write)
+    f.close
+
+
 def writepdb(mpos,text,posline,move,filename):
+    # 1 file pdb output
     j=0
     for i in posline:
         words=text[i][0:30]
@@ -85,6 +106,7 @@ def writepdb(mpos,text,posline,move,filename):
     f.close
 
 def addtopdb(mpos,coordtext,move,filename):
+    # 1 file pdb output
     write='MODEL        '+str(move)+'\r\n'
     for i in range(len(coordtext)):
         words=coordtext[i][0:30]
@@ -106,30 +128,32 @@ def energy(mpos):
     sig=4.6 #angstroms for polyethylene
     e= .42 #kcal/mol for polyethylene
     ktheta= .82 #kcal/mol
-    A=5.22
-    B=2.88
-    C=1.95
+    A=5.22 #torsional parameter
+    B=2.88 #torsional parameter
+    C=1.95 #torsional parameter
     index=arange(len(mpos))
+    # 6-12 LJ potential 
     for i in index:
         low=index[index<i-2]
         high=index[index>i+2]
         vdw=append(low,high) #index of beads excluding 12 and 13 neighbors
         for j in vdw:
             r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
-            energy=energy+2*e*((sig/r)**12-(sig/r)**6) #divide by two since count each interaction twice
+            energy=energy+2*e*((sig/r)**12-(sig/r)**6) #divided by two since count each interaction twice
+    # angle potential
     for i in range(1,len(mpos)-1):
         BA=mpos[:][i-1]-mpos[:][i]
         BC=mpos[:][i+1]-mpos[:][i]
         angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
         energy=energy+ktheta/2*(angle-pi)**2
+    # torsional potential
     for i in range(0,len(mpos)-3):
         AB=mpos[:][i+1]-mpos[:][i]
         BC=mpos[:][i+2]-mpos[:][i+1]
         CD=mpos[:][i+3]-mpos[:][i+2]
         plane1=cross(BC,AB)
-        plane2=crosS(CD,BC)
+        plane2=cross(CD,BC)
         dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
-        print(dihedral)
         energy=energy+A+B*cos(dihedral)+C*cos(3*dihedral)
     return energy
 
