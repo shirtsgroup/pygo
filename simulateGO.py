@@ -5,10 +5,10 @@ T=300 #Kelvin
 totmoves=10
 energyarray=zeros(totmoves)
 
-openfile=open('halfGO_testgo.pdb','r')
+openfile=open('GO_protein.pdb','r')
 i=0 # index for coordinate matrix
 k=0 # index for line number
-coord=zeros((374,3))#unhardcode this later
+coord=zeros((57,3))#unhardcode this later
 wtemp=[] #template of all words
 ptemp=[] #template of position lines
 hetatm=[]
@@ -51,8 +51,6 @@ for move in range(1,totmoves):
 	print(u1)
         if u1< u0:
             break
-	if u1> u0:
-	    break # temporary, curious
         kb=0.0019872041 #in kcal/mol
         boltz=exp(-u1/(kb*T))
         if random()<boltz:
