@@ -1,17 +1,20 @@
 from numpy import *
-from crank import *
+from writetopdb import *
+from moveset import *
+from energyfunc import *
 
 T=300 #Kelvin
-totmoves=10
+totmoves=100
 energyarray=zeros(totmoves)
 
 openfile=open('GO_protein.pdb','r')
 i=0 # index for coordinate matrix
 k=0 # index for line number
-coord=zeros((57,3))#unhardcode this later
+numbeads=57
+coord=zeros((numbeads,3))# unhardcode this later
 wtemp=[] #template of all words
 ptemp=[] #template of position lines
-hetatm=[]
+hetatm=[] # array of location of ATOM lines, used to be HETATM
 while 1:
     line = openfile.readline()
     if not line:#checks for end of file
@@ -28,6 +31,17 @@ while 1:
         i=i+1
     k=k+1
 
+#Get parameters from GO_protein.param
+file="GO_protein.param"
+angleparam=getangleparam(file,numbeads)
+torsparam=gettorsionparam(file,numbeads)
+LJparam=getLJparam(file,numbeads)
+nativeparam=getnativefix(file)
+
+def energy(mpos):
+	energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy(mpos,LJparam,nativeparam)
+	return energy
+
 u0=energy(coord)
 print('0')
 print(u0)
@@ -40,15 +54,11 @@ for move in range(1,totmoves):
         rand=random()
 	if rand < .3333333:
             newcoord=torsion(coord)
-            print('torsion')
 	elif rand < .6666667:
             newcoord=reptation(coord)
-	    print('snake')
 	else:
 	    newcoord=crankshaft(coord)
-	    print('crank')
 	u1=energy(newcoord)
-	print(u1)
         if u1< u0:
             break
         kb=0.0019872041 #in kcal/mol
@@ -58,6 +68,7 @@ for move in range(1,totmoves):
     #addtopdb(newcoord,ptemp,move,filename)
     writeseqpdb(newcoord,wtemp,hetatm,move)
     coord=newcoord
+    print(u1)
     u0=u1
     energyarray[move]=u0
 
