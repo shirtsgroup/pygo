@@ -1,5 +1,7 @@
 from numpy import *
-from crank import *
+from writetopdb import *
+from moveset import *
+from energyfunc import *
 
 T=300 #Kelvin
 totmoves=100
@@ -38,7 +40,7 @@ for move in range(2,totmoves+1):
     print(move)
     while(1):        
         rand=random()
-	if rand < .3333333:
+	if rand < 1:#.3333333:
             newcoord=torsion(coord)
         elif rand < .6666667:
             newcoord=reptation(coord)
