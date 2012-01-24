@@ -40,14 +40,16 @@ for move in range(2,totmoves+1):
     print(move)
     while(1):        
         rand=random()
-	if rand < 1:#.3333333:
-            newcoord=torsion(coord)
-        elif rand < .6666667:
+	if rand < .25:
+            newcoord=axistorsion(coord)
+        elif rand < .5:
             newcoord=reptation(coord)
+	elif rand < .75:
+	    newcoord=torsion(coord)
 	else:
 	    newcoord=crankshaft(coord)
 	u1=energy(newcoord)
-        if u1< u0:
+	if u1< u0:
             break
         kb=0.0019872041 #in kcal/mol
         boltz=exp(-u1/(kb*T))
@@ -63,12 +65,12 @@ f.write('END\r\n')
 f.close
 
 
-import matplotlib.pyplot as plt
-plt.plot(range(totmoves),energyarray)
-plt.xlabel('moves')
-plt.ylabel('energy (kcal/mol)')
-plt.title('8 monomer polyethylene monte carlo simulation at '+str(T)+' K')
-plt.show()
+#import matplotlib.pyplot as plt
+#plt.plot(range(totmoves),energyarray)
+#plt.xlabel('moves')
+#plt.ylabel('energy (kcal/mol)')
+#plt.title('8 monomer polyethylene monte carlo simulation at '+str(T)+' K')
+#plt.show()
 #plt.hist(randcoildist,500,normed=1)
 #plt.show()
 

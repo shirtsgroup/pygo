@@ -41,8 +41,8 @@ def getLJparam(paramfile,numbeads):
 	    break
     for i in range(numbeads): # param for each bead, use combining rules for interaction
 	line=f.readline()
-	param[i][0]=float(line[14:23]) #somewhat hardcoded
-	param[i][1]=float(line[25:33])
+	param[i,0]=float(line[14:23]) #somewhat hardcoded
+	param[i,1]=float(line[25:33])
     f.close()
     return param
 
@@ -63,7 +63,7 @@ def getnativefix(paramfile):
     f.close()
     return param
 
-def LJenergy(mpos, param,paramnative):
+def LJenergy(mpos, param, paramnative):
     energy=0.0
     index=arange(len(mpos))
     for i in index: #from 0 to numbeads-1
@@ -73,13 +73,15 @@ def LJenergy(mpos, param,paramnative):
 	    epsil=0.0
 	    k=isNative(i,j,paramnative) #returns row index of native parameters or -1 if not native
 	    if isNative(i,j,paramnative)==-1: #not native
-		    sigma=(param[i][1]+param[j][1]) #average of the two, but parameter is sigma/2 already
-		    epsil=-1*(param[i][0]+param[j][0])/2
+		    sigma=(param[i,1]+param[j,1]) #average of the two, but parameter is sigma/2 already
+		    epsil=(param[i,0]*param[j,0])**.5
 	    else:
-		    sigma=paramnative[k][3]
-		    epsil=-1*paramnative[k][2]
-	    r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
-            energy=energy+epsil*(13*(sigma/r)**12-18*(sigma/r)**10+4*(sigma/r)**6)
+		    sigma=paramnative[k,3]
+		    epsil=-1*paramnative[k,2]
+	    r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+	    energy=energy+epsil*(13*(sigma/r)**12-18*(sigma/r)**10+4*(sigma/r)**6)
+	    #energy=energy+epsil*((
+    print('LJ: '+str(energy))
     return energy
 
 def isNative(i,j,nativeloc):
@@ -97,8 +99,45 @@ def isNative(i,j,nativeloc):
 		index=i
 	return index
 
-def repulsiver(mpos,param,paramnative):
-	pass
+def calcrepulsiver(mpos,paramnative): 
+	# calculates the repulsive radius as defined as the shortest distance to a nonnative residue
+	n=len(mpos)
+	radii=zeros(n)
+	r=10000*ones((n,n));
+	for i in range(n):
+		rmin=10000 #meh, is 10,000 good enough?
+		for j in range(i+1,n):
+			if isNative(i,j,paramnative) == -1:
+				r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+				if r[i,j]<rmin:
+					rmin=r[i,j]
+			else:
+				pass
+		for k in range(i-1,-1,-1):
+			if r[k,i]<rmin:
+				rmin=r[k,i]
+		radii[i]=rmin
+	return radii
+	
+def calcrepulsiver2(mpos,paramnative): 
+	# calculates the repulsive radius as defined as the shortest distance to a nonnative residue
+	n=len(mpos)
+	radii=zeros(n)
+	r=10000*ones((n,n));
+	for i in range(n):
+		rmin=10000 #meh, is 10,000 good enough?
+		for j in range(n):
+			if isNative(i,j,paramnative) != -1 or i==j:
+				pass
+			elif j > i:
+				r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+				if r[i,j] < rmin:
+					rmin = r[i,j]
+			else: #i < j
+				if r[j,i]< rmin: # has already been calculated, note r[j,i]=r[i,j]
+					rmin = r[j,i]
+		radii[i]=rmin
+	return radii
 
 def angleenergy(mpos, param):
     energy=0.0
@@ -106,11 +145,12 @@ def angleenergy(mpos, param):
     optangle=0.0
     for i in range(1,len(mpos)-1):
         ktheta=param[i-1][0] # param file goes from 0 to len(mpos)-2
-	optangle=pi/180*param[i-1][1]
-	BA=mpos[:][i-1]-mpos[:][i]
-        BC=mpos[:][i+1]-mpos[:][i]
+	optangle=pi/180*param[i-1,1]
+	BA=mpos[i-1,:]-mpos[i,:]
+        BC=mpos[i+1,:]-mpos[i,:]
         angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
         energy=energy+ktheta*(angle-optangle)**2
+    print('angle energy: '+str(energy))
     return energy
 
 def torsionenergy(mpos, param):
@@ -127,8 +167,10 @@ def torsionenergy(mpos, param):
 	energy3=param[4*i+2,0]*(1+cos(param[4*i+2,1]*dihedral-pi/180*param[4*i+2,2]))
 	energy4=param[4*i+3,0]*(1+cos(param[4*i+3,1]*dihedral-pi/180*param[4*i+3,2]))
 	energy=energy+energy1+energy2+energy3+energy4
+    print('torsion energy: '+str(energy))
     return energy
 
+#used in simulatepolymer (no amino acid interactions)
 #def energy(mpos):
     #energy=0.0 #potential energy
     #sig=4.6 #angstroms for polyethylene
