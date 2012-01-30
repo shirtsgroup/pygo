@@ -2,6 +2,8 @@ from numpy import *
 from writetopdb import *
 from moveset import *
 from energyfunc import *
+from datetime import datetime
+t1=datetime.now()
 
 T=250 #Kelvin
 totmoves=100
@@ -23,7 +25,7 @@ while 1:
         break
     wtemp.append(line)
     splitline=line.split('  ')
-    if splitline[0]=='ATOM':
+    if splitline[0]=='ATOM': #too hard coded?
         ptemp.append(line)
         hetatm.append(k)
         n=len(splitline)
@@ -41,7 +43,8 @@ LJparam=getLJparam(file,numbeads)
 nativeparam=getnativefix(file)
 
 def energy(mpos):
-	energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy(mpos,LJparam,nativeparam)
+	radii=calcrepulsiver(mpos,nativeparam)
+	energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy(mpos,LJparam,nativeparam,radii)
 	return energy
 
 u0=energy(coord)
@@ -64,15 +67,15 @@ for move in range(1,totmoves):
     print(move)
     while(1):        
         rand=random()
-	if rand < .25:
+	if rand < .01:
             newcoord=torsion(coord)
 	    torsmoves += 1
 	    movetype='t'
-	elif rand < .5:
+	elif rand < 0:
             newcoord=reptation(coord)
 	    reptmoves += 1
 	    movetype='r'
-	elif rand < .75:
+	elif rand < .85:
 	    newcoord=axistorsion(coord)
 	    movetype='at'
 	    atormoves += 1
@@ -84,8 +87,9 @@ for move in range(1,totmoves):
         if u1< u0:
             accepted += 1
 	    break
-        kb=0.0019872041 #in kcal/mol
+        kb=0.0019872041 #in kcal/mol/K
         boltz=exp(-u1/(kb*T))
+	print(boltz)
         if random()<boltz:
             accepted += 1
 	    break
@@ -123,4 +127,5 @@ print('rejected: '+str(rejected))
 #plt.hist(randcoildist,500,normed=1)
 #plt.show()
 
-
+t2=datetime.now()
+print(t2-t1)

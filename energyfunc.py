@@ -63,7 +63,7 @@ def getnativefix(paramfile):
     f.close()
     return param
 
-def LJenergy(mpos, param, paramnative):
+def LJenergy(mpos, param, paramnative,radii):
     energy=0.0
     index=arange(len(mpos))
     for i in index: #from 0 to numbeads-1
@@ -72,16 +72,38 @@ def LJenergy(mpos, param, paramnative):
             sigma=0.0
 	    epsil=0.0
 	    k=isNative(i,j,paramnative) #returns row index of native parameters or -1 if not native
-	    if isNative(i,j,paramnative)==-1: #not native
+	    r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+	    if k==-1: #not native
 		    sigma=(param[i,1]+param[j,1]) #average of the two, but parameter is sigma/2 already
 		    epsil=(param[i,0]*param[j,0])**.5
+		    term=epsil*((radii[i]+radii[j])*.5/r)**12
+		    energy=energy+term
+		    #print(term)
 	    else:
 		    sigma=paramnative[k,3]
 		    epsil=-1*paramnative[k,2]
-	    r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
 	    energy=energy+epsil*(13*(sigma/r)**12-18*(sigma/r)**10+4*(sigma/r)**6)
-	    #energy=energy+epsil*((
-    print('LJ: '+str(energy))
+    #calculate repulsive radius term for 12 and 13 neighbor in one direction
+    for i in range(len(mpos)-2):
+	for m in range(2):
+		j=i+m+1
+		k=isNative(i,j,paramnative)
+		if k==-1:
+			epsil=1*(param[i,0]*param[j,0])**.5
+			r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+		    	term=epsil*((radii[i]+radii[j])*.5/r)**12
+			energy += term
+			#print(term)
+    # calculate 12 neighbor for last two beads
+    i=len(mpos)-2
+    j=len(mpos)-1
+    k=isNative(i,j,paramnative)
+    if k==-1:
+	epsil=1*(param[i,0]*param[j,0])**.5
+	r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+	term=epsil*((radii[i]+radii[j])*.5/r)**12
+	energy += term
+    #print('LJ: '+str(energy))
     return energy
 
 def isNative(i,j,nativeloc):
@@ -118,26 +140,27 @@ def calcrepulsiver(mpos,paramnative):
 				rmin=r[k,i]
 		radii[i]=rmin
 	return radii
-	
-def calcrepulsiver2(mpos,paramnative): 
-	# calculates the repulsive radius as defined as the shortest distance to a nonnative residue
-	n=len(mpos)
-	radii=zeros(n)
-	r=10000*ones((n,n));
-	for i in range(n):
-		rmin=10000 #meh, is 10,000 good enough?
-		for j in range(n):
-			if isNative(i,j,paramnative) != -1 or i==j:
-				pass
-			elif j > i:
-				r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-				if r[i,j] < rmin:
-					rmin = r[i,j]
-			else: #i < j
-				if r[j,i]< rmin: # has already been calculated, note r[j,i]=r[i,j]
-					rmin = r[j,i]
-		radii[i]=rmin
-	return radii
+
+# this one is slower
+#def calcrepulsiver2(mpos,paramnative): 
+	## calculates the repulsive radius as defined as the shortest distance to a nonnative residue
+	#n=len(mpos)
+	#radii=zeros(n)
+	#r=10000*ones((n,n));
+	#for i in range(n):
+		#rmin=10000 #meh, is 10,000 good enough?
+		#for j in range(n):
+			#if isNative(i,j,paramnative) != -1 or i==j:
+				#pass
+			#elif j > i:
+				#r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+				#if r[i,j] < rmin:
+					#rmin = r[i,j]
+			#else: #i < j
+				#if r[j,i]< rmin: # has already been calculated, note r[j,i]=r[i,j]
+					#rmin = r[j,i]
+		#radii[i]=rmin
+	#return radii
 
 def angleenergy(mpos, param):
     energy=0.0
@@ -150,7 +173,7 @@ def angleenergy(mpos, param):
         BC=mpos[i+1,:]-mpos[i,:]
         angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
         energy=energy+ktheta*(angle-optangle)**2
-    print('angle energy: '+str(energy))
+    #print('angle energy: '+str(energy))
     return energy
 
 def torsionenergy(mpos, param):
@@ -167,7 +190,7 @@ def torsionenergy(mpos, param):
 	energy3=param[4*i+2,0]*(1+cos(param[4*i+2,1]*dihedral-pi/180*param[4*i+2,2]))
 	energy4=param[4*i+3,0]*(1+cos(param[4*i+3,1]*dihedral-pi/180*param[4*i+3,2]))
 	energy=energy+energy1+energy2+energy3+energy4
-    print('torsion energy: '+str(energy))
+    #print('torsion energy: '+str(energy))
     return energy
 
 #used in simulatepolymer (no amino acid interactions)
