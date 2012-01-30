@@ -116,53 +116,6 @@ def axistorsion(mpos123):
 		   bond=dot(untransform,bond)
 		   mpos[i-1,:]=mpos[i,:]+bond
 	return mpos 
-	    
-	    
-	    
-	    
-	    
-	    
-	    #BC1=dot(transform,BC.transpose())
-  	    #BC2=dot(rotate,BC1)
-    	    #BCnew=dot(untransform,BC2)
-	    #now find dphi and dtheta in spherical coordinates
-	    #r=dot(BCnew,BCnew)**.5
-	    #dphi=arctan(BCnew[1]/BCnew[0])-arctan(BC[1]/BC[0])
-	    #dtheta=arccos(BCnew[2]/r)-arccos(BC[2]/r)
-	    #mpos[m+1,:]=posb+BCnew
-	    #for i in range(m+1,len(mpos)-1):
-		#bond=mpos123[i+1,:]-mpos123[i,:]
-        	#r=dot(bond,bond)**.5
-		#theta=arccos(bond[2]/r)+dtheta #new theta
-		#phi=arctan(bond[1]/bond[0])+dphi #new phi
-		#bond[0]=r*sin(theta)*cos(phi)
-		#bond[1]=r*sin(theta)*sin(phi)
-		#bond[2]=r*cos(theta)
-		#mpos[i+1,:]=mpos[i,:]+bond
-	#else:
-            #x1=BC/dot(BC,BC)**.5
-            #y1=AB-dot(AB,BC)/dot(BC,BC)*BC
-            #y1=y1/dot(y1,y1)**.5
-            #z1=cross(x1,y1)
-            #untransform=[[dot(x,x1),dot(x,y1),dot(x,z1)],[dot(y,x1),dot(y,y1),dot(y,z1)],[dot(z,x1),dot(z,y1),dot(z,z1)]]
-            #transform=transpose(untransform)
-	    #AB1=dot(transform,AB.transpose())
-  	    #AB2=dot(rotate,AB1)
-    	    #ABnew=dot(untransform,AB2)
-	    #now find dphi and dtheta in spherical coordinates
-	    #r=dot(AB,AB)**.5
-	    #dphi=arctan(ABnew[1]/ABnew[0])-arctan(AB[1]/AB[0])
-	    #dtheta=arccos(ABnew[2]/r)-arccos(AB[2]/r)
-	    #for i in range(m,0,-1):
-                #AB=mpos123[:][i-1]-mpos123[:][i]
-                #r=dot(AB,AB)**.5
-                #theta=arccos(AB[2]/r)+dtheta #new theta
-                #phi=arctan(AB[1]/AB[0])+dphi #new phi
-                #AB[0]=r*sin(theta)*cos(phi)
-                #AB[1]=r*sin(theta)*sin(phi)
-                #AB[2]=r*cos(theta)
-                #mpos[:][i-1]=mpos[:][i]+AB
-	#return mpos
 
 def enddist(mpos):
     distvec=mpos[:][0]-mpos[:][7] #this is hardcoded

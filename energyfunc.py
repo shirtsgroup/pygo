@@ -63,46 +63,43 @@ def getnativefix(paramfile):
     f.close()
     return param
 
-def LJenergy(mpos, param, paramnative,radii):
+def LJenergy(mpos, param, paramnative):
     energy=0.0
     index=arange(len(mpos))
     for i in index: #from 0 to numbeads-1
     	vdw=index[index>i+2] #index of beads excluding 12 and 13 neighbors in one direction (don't want to overcount)
         for j in vdw:
-            sigma=0.0
-	    epsil=0.0
-	    k=isNative(i,j,paramnative) #returns row index of native parameters or -1 if not native
+            k=isNative(i+1,j+1,paramnative) #returns row index of native parameters or -1 if not native
 	    r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
 	    if k==-1: #not native
 		    sigma=(param[i,1]+param[j,1]) #average of the two, but parameter is sigma/2 already
 		    epsil=(param[i,0]*param[j,0])**.5
-		    term=epsil*((radii[i]+radii[j])*.5/r)**12
-		    energy=energy+term
+		    energy += epsil*(sigma/r)**12
 		    #print(term)
 	    else:
 		    sigma=paramnative[k,3]
 		    epsil=-1*paramnative[k,2]
-	    energy=energy+epsil*(13*(sigma/r)**12-18*(sigma/r)**10+4*(sigma/r)**6)
-    #calculate repulsive radius term for 12 and 13 neighbor in one direction
-    for i in range(len(mpos)-2):
-	for m in range(2):
-		j=i+m+1
-		k=isNative(i,j,paramnative)
-		if k==-1:
-			epsil=1*(param[i,0]*param[j,0])**.5
-			r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-		    	term=epsil*((radii[i]+radii[j])*.5/r)**12
-			energy += term
-			#print(term)
-    # calculate 12 neighbor for last two beads
-    i=len(mpos)-2
-    j=len(mpos)-1
-    k=isNative(i,j,paramnative)
-    if k==-1:
-	epsil=1*(param[i,0]*param[j,0])**.5
-	r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-	term=epsil*((radii[i]+radii[j])*.5/r)**12
-	energy += term
+	    	    energy += epsil*(13*(sigma/r)**12-18*(sigma/r)**10+4*(sigma/r)**6)
+    ##calculate repulsive radius term for 12 and 13 neighbor in one direction
+    #for i in range(len(mpos)-2):
+	#for m in range(2):
+		#j=i+m+1
+		#k=isNative(i,j,paramnative)
+		#if k==-1:
+			#epsil=1*(param[i,0]*param[j,0])**.5
+			#r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+		    	#term=epsil*((radii[i]+radii[j])*.5/r)**12
+			#energy += term
+			##print(term)
+    ## calculate 12 neighbor for last two beads
+    #i=len(mpos)-2
+    #j=len(mpos)-1
+    #k=isNative(i,j,paramnative)
+    #if k==-1:
+	#epsil=1*(param[i,0]*param[j,0])**.5
+	#r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+	#term=epsil*((radii[i]+radii[j])*.5/r)**12
+	#energy += term
     #print('LJ: '+str(energy))
     return energy
 
@@ -121,25 +118,25 @@ def isNative(i,j,nativeloc):
 		index=i
 	return index
 
-def calcrepulsiver(mpos,paramnative): 
-	# calculates the repulsive radius as defined as the shortest distance to a nonnative residue
-	n=len(mpos)
-	radii=zeros(n)
-	r=10000*ones((n,n));
-	for i in range(n):
-		rmin=10000 #meh, is 10,000 good enough?
-		for j in range(i+1,n):
-			if isNative(i,j,paramnative) == -1:
-				r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-				if r[i,j]<rmin:
-					rmin=r[i,j]
-			else:
-				pass
-		for k in range(i-1,-1,-1):
-			if r[k,i]<rmin:
-				rmin=r[k,i]
-		radii[i]=rmin
-	return radii
+#def calcrepulsiver(mpos,paramnative): 
+	## calculates the repulsive radius as defined as the shortest distance to a nonnative residue
+	#n=len(mpos)
+	#radii=zeros(n)
+	#r=10000*ones((n,n));
+	#for i in range(n):
+		#rmin=10000 #meh, is 10,000 good enough?
+		#for j in range(i+1,n):
+			#if isNative(i,j,paramnative) == -1:
+				#r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
+				#if r[i,j]<rmin:
+					#rmin=r[i,j]
+			#else:
+				#pass
+		#for k in range(i-1,-1,-1):
+			#if r[k,i]<rmin:
+				#rmin=r[k,i]
+		#radii[i]=rmin
+	#return radii
 
 # this one is slower
 #def calcrepulsiver2(mpos,paramnative): 
