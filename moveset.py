@@ -23,7 +23,7 @@ def crankshaft(mpos123): #moleculeposition, will need bonds later
     transform=transpose(untransform)
     
     
-    theta=2*pi*random()
+    theta=40./180*pi-random()*40.*pi/180*2 
     rotate=array([[1,0,0],[0,cos(theta),sin(theta)],[0,-sin(theta),cos(theta)]])
 
     AB1=dot(transform,AB.transpose())
@@ -51,34 +51,78 @@ def reptation(mpos123):
 
 def torsion(mpos123):
 	mpos=mpos123.copy()
-	dtheta=arccos(1-2*random())
-	dphi=2*pi*random()
+	theta=2*pi*random()
+	phi=3./180*pi*random()
+	x=[1,0,0]
+        y=[0,1,0]
+        z=[0,0,1]
 	m=randint(1,len(mpos)-2)
 	if random() <.5:
-	    for i in range(m,len(mpos)-1):
-		BC=mpos123[i+1,:]-mpos123[i,:]
-        	r=dot(BC,BC)**.5
-		theta=arccos(BC[2]/r)+dtheta #new theta
-		phi=arctan(BC[1]/BC[0])+dphi #new phi
-		BC[0]=r*sin(theta)*cos(phi)
-		BC[1]=r*sin(theta)*sin(phi)
-		BC[2]=r*cos(theta)
-		mpos[i+1,:]=mpos[i,:]+BC
+		BC=mpos123[m+1,:]-mpos123[m,:]
+        	z1=BC/dot(BC,BC)**.5
+		AB=[random(),random(),random()]
+    		y1=AB-dot(AB,BC)/dot(BC,BC)*BC
+    		y1=y1/dot(y1,y1)**.5
+    		x1=cross(z1,y1)
+    		untransform=[[dot(x,x1),dot(x,y1),dot(x,z1)],[dot(y,x1),dot(y,y1),dot(y,z1)],[dot(z,x1),dot(z,y1),dot(z,z1)]]
+    		transform=transpose(untransform)
+		BC_polar=dot(transform,BC)
+		rho=BC_polar[2]
+		BC_polar[0]=rho*cos(theta)*sin(phi)
+		BC_polar[1]=rho*sin(theta)*sin(phi)
+		BC_polar[2]=rho*cos(phi)
+		BC_new=dot(untransform,BC_polar)
+		r=dot(BC,BC)**.5
+		dtheta=arctan(BC_new[1]/BC_new[0])-arctan(BC[1]/BC[0])
+		dphi=arccos(BC_new[2]/r)-arccos(BC[2]/r)
+		mpos[m+1,:]=mpos[m,:]+BC_new
+		for i in range(m+1,len(mpos)-1):
+			BC=mpos123[i+1,:]-mpos123[i,:]
+			r=dot(BC,BC)**.5
+			phi=arccos(BC[2]/r) + dphi
+			theta=arctan(BC[1]/BC[0])+ dtheta
+			if BC[0]<0:
+				theta += pi
+                	BC[0]=r*cos(theta)*sin(phi)
+                	BC[1]=r*sin(theta)*sin(phi)
+                	BC[2]=r*cos(phi)
+			mpos[i+1,:]=mpos[i,:]+BC
 	else:
-	    for i in range(m,0,-1):
-                BC=mpos123[i-1,:]-mpos123[i,:]
-                r=dot(BC,BC)**.5
-                theta=arccos(BC[2]/r)+dtheta #new theta
-                phi=arctan(BC[1]/BC[0])+dphi #new phi
-                BC[0]=r*sin(theta)*cos(phi)
-                BC[1]=r*sin(theta)*sin(phi)
-                BC[2]=r*cos(theta)
-                mpos[i-1,:]=mpos[i,:]+BC
+	    	BC=mpos123[m-1,:]-mpos123[m,:]
+        	z1=BC/dot(BC,BC)**.5
+		AB=[random(),random(),random()]
+    		y1=AB-dot(AB,BC)/dot(BC,BC)*BC
+    		y1=y1/dot(y1,y1)**.5
+    		x1=cross(z1,y1)
+    		untransform=[[dot(x,x1),dot(x,y1),dot(x,z1)],[dot(y,x1),dot(y,y1),dot(y,z1)],[dot(z,x1),dot(z,y1),dot(z,z1)]]
+    		transform=transpose(untransform)
+		BC_polar=dot(transform,BC)
+		rho=BC_polar[2]
+		BC_polar[0]=rho*cos(theta)*sin(phi)
+		BC_polar[1]=rho*sin(theta)*sin(phi)
+		BC_polar[2]=rho*cos(phi)
+		BC_new=dot(untransform,BC_polar)
+		r=dot(BC,BC)**.5
+		dtheta=arctan(BC_new[1]/BC_new[0])-arctan(BC[1]/BC[0])
+		dphi=arccos(BC_new[2]/r)-arccos(BC[2]/r)
+		mpos[m-1,:]=mpos[m,:]+BC_new
+	    	for i in range(m-1,0,-1):
+                	BC=mpos123[i-1,:]-mpos123[i,:]
+                	r=dot(BC,BC)**.5
+			phi=arccos(BC[2]/r)+dphi #new theta
+			theta=arctan(BC[1]/BC[0])+dtheta #new phi
+			if BC[0]<0:
+				theta+=pi
+                	BC[0]=r*cos(theta)*sin(phi)
+                	BC[1]=r*sin(theta)*sin(phi)
+                	BC[2]=r*cos(phi)
+                	mpos[i-1,:]=mpos[i,:]+BC
 	return mpos
 
-def axistorsion(mpos123):
+def axistorsion(mpos123,theta):
 	mpos=mpos123.copy()
-	theta=2*pi*random() #not spherical coord theta, just arbitrary angle
+	#theta=90./180*pi-random()*pi*90./180*2 #not spherical coord theta, just arbitrary angle
+	theta=theta
 	rotate=array([[1,0,0],[0,cos(theta),sin(theta)],[0,-sin(theta),cos(theta)]])
 	m=randint(1,len(mpos)-2)
 	posb=mpos[m,:] # position of randomly chosen bead

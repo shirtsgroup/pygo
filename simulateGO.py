@@ -12,6 +12,7 @@ from energyfunc import *
 from optparse import OptionParser
 import matplotlib.pyplot as plt
 from sys import stdout
+from random import *
 
 parser=OptionParser()
 parser.add_option("-f", "--files", dest="datafiles", help="protein .pdb file")
@@ -54,10 +55,10 @@ while 1:
 	splitline=line.split('  ')
 	if splitline[0]=='ATOM':
 		numbeads += 1
-file.close()
+
 
 # gets bead coordinates from .pdb file
-file=open(filename,'r')
+file.seek(0)
 coord=zeros((numbeads,3)) #3 dimensional
 i=0 # index for coordinate matrix
 k=0 # index for line number
@@ -120,10 +121,11 @@ rejected=0
 movetype=''
 
 move=0
-
+theta=0. #for histogramming accepted torsion angles
+accepted_angle=[]
 while move<totmoves:
         rand=random()
-	if rand < .01:
+	if rand < .33:
             newcoord=torsion(coord)
 	    torsmoves += 1
 	    movetype='t'
@@ -131,8 +133,9 @@ while move<totmoves:
             newcoord=reptation(coord)
 	    reptmoves += 1
 	    movetype='r'
-	elif rand < .86:
-	    newcoord=axistorsion(coord)
+	elif rand < .66:
+	    theta=45./180*pi-random()*pi*45./180*2 
+	    newcoord=axistorsion(coord,theta)
 	    movetype='at'
 	    atormoves += 1
 	else:
@@ -143,8 +146,6 @@ while move<totmoves:
         move += 1
 	stdout.write(str(move)+'\r')
 	stdout.flush()
-	if move%step==0:
-	    energyarray[move/step]=u1
 	kb=0.0019872041 #kcal/mol/K
         boltz=exp(-u1/(kb*T))
 	if u1< u0 or random() < boltz:
@@ -155,6 +156,7 @@ while move<totmoves:
 			acceptedr += 1
     		elif movetype=='at':
 			acceptedat +=1
+			accepted_angle.append(theta)
     		else: 
         		acceptedc += 1
     		if (writepdb):
@@ -164,6 +166,8 @@ while move<totmoves:
     		accepted_energy.append(u0)
 	else:
 	    rejected += 1
+	if move%step==0:
+	    energyarray[move/step]=u0
 t2=datetime.now()
 #========================================================================================================
 # OUTPUT
@@ -175,6 +179,10 @@ print 'wrote accepted energies to %s' %(acceptfile)
 energyfile=outputfiles[1]
 savetxt(energyfile,energyarray)
 print 'wrote every %d conformation energies to %s' %(step,energyfile)
+
+savetxt('anglefile.txt',accepted_angle)
+print 'wrote accepted torsion angles to anglefile.txt'
+
 
 if plotname != '':
 	print 'generating accepted energy plot...'
