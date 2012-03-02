@@ -38,6 +38,7 @@ T=options.T #Kelvin
 totmoves=options.totmoves
 step=options.step
 energyarray=zeros(totmoves/step+1)
+rmsd_array=zeros(totmoves/step+1)
 filename=options.datafile_directory + '/' + options.datafiles
 paramfile=options.datafile_directory + '/' + options.paramfiles
 outputfiles=array(options.outputfiles)
@@ -81,6 +82,10 @@ while 1:
     k=k+1
 file.close()
 
+#Get native conformation
+coord_nat=coord.copy()
+
+
 #Get parameters from .param file
 angleparam=getangleparam(paramfile,numbeads)
 torsparam=gettorsionparam(paramfile,numbeads)
@@ -100,12 +105,22 @@ if (verbose):
 
 def energy(mpos):
 	energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy(mpos,LJparam,nativeparam)
+	#energy=LJenergy(mpos,LJparam,nativeparam)
 	return energy
 
 u0=energy(coord)
-writeseqpdb(coord,wordtemplate,ATOMlinenum,0)
 accepted_energy=[u0]
 energyarray[0]=u0
+rmsd_array[0]=rmsd(coord_nat,coord)
+
+if(writepdb):
+	a=getmovietransform(coord)
+	untransform=dot(a,eye(3))
+	transform=transpose(untransform)
+	print transform
+	
+	mcoord=moviecoord(coord,transform)
+	writeseqpdb(mcoord,wordtemplate,ATOMlinenum,0)
 
 # constants for move stats
 torsmoves=0
@@ -125,7 +140,7 @@ theta=0. #for histogramming accepted torsion angles
 accepted_angle=[]
 while move<totmoves:
         rand=random()
-	if rand < .33:
+	if rand < .7:
             newcoord=torsion(coord)
 	    torsmoves += 1
 	    movetype='t'
@@ -133,7 +148,7 @@ while move<totmoves:
             newcoord=reptation(coord)
 	    reptmoves += 1
 	    movetype='r'
-	elif rand < .66:
+	elif rand < .85:
 	    theta=45./180*pi-random()*pi*45./180*2 
 	    newcoord=axistorsion(coord,theta)
 	    movetype='at'
@@ -147,7 +162,7 @@ while move<totmoves:
 	stdout.write(str(move)+'\r')
 	stdout.flush()
 	kb=0.0019872041 #kcal/mol/K
-        boltz=exp(-u1/(kb*T))
+        boltz=exp(-(u1-u0)/(kb*T))
 	if u1< u0 or random() < boltz:
         	accepted += 1
 		if movetype=='t':
@@ -160,7 +175,9 @@ while move<totmoves:
     		else: 
         		acceptedc += 1
     		if (writepdb):
-			writeseqpdb(newcoord,wordtemplate,ATOMlinenum,accepted)
+			mcoord=moviecoord(newcoord,transform)
+			#mcoord=moviecoord(newcoord)
+			writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
     		coord=newcoord
     		u0=u1
     		accepted_energy.append(u0)
@@ -168,31 +185,39 @@ while move<totmoves:
 	    rejected += 1
 	if move%step==0:
 	    energyarray[move/step]=u0
+	    rmsd_array[move/step]=rmsd(coord_nat,coord)
 t2=datetime.now()
 #========================================================================================================
 # OUTPUT
 #========================================================================================================
-acceptfile=outputfiles[0]
-savetxt(acceptfile,accepted_energy)
-print 'wrote accepted energies to %s' %(acceptfile)
+#acceptfile=outputfiles[0]
+#savetxt(acceptfile,accepted_energy)
+#print 'wrote accepted energies to %s' %(acceptfile)
 
 energyfile=outputfiles[1]
 savetxt(energyfile,energyarray)
 print 'wrote every %d conformation energies to %s' %(step,energyfile)
 
-savetxt('anglefile.txt',accepted_angle)
-print 'wrote accepted torsion angles to anglefile.txt'
+#savetxt('anglefile.txt',accepted_angle)
+#print 'wrote accepted torsion angles to anglefile.txt'
 
+savetxt('rmsd.txt',rmsd_array)
+print 'wrote rmsd array to rmsd.txt'
 
 if plotname != '':
-	print 'generating accepted energy plot...'
+	print 'generating conformational energy plot...'
 	plt.figure(1)
-	plt.plot(range(accepted+1),accepted_energy)
-	plt.xlabel('accepted move')
+	plt.plot(range(len(energyarray)),energyarray)
+	plt.xlabel('move/%d' %(step))
 	plt.ylabel('energy (kcal/mol)')
 	plt.title('Go-like model monte carlo simulation at '+str(T)+' K')
 	plt.savefig(plotname)
-	print 'accepted energy plot saved to %s' %(plotname)
+	print 'conformational energy plot saved to %s' %(plotname)
+
+#if rmsdname != '':
+	#print 'generating rmsd plot...'
+	#plt.figure(3)
+	#plt.plot(range(len(rmsdname)),rmsd)
 
 if histname != '':
 	print 'generating conformation energy histogram'
@@ -212,3 +237,9 @@ if(verbose):
 	print 'twist/torsion: %d moves accepted out of %d tries' %(acceptedat,atormoves)
 	print('Simulation time: '+str(t2-t1))
 
+#x=range(len(rmsd_array))
+#plt.plot(x,rmsd_array)
+#plt.ylabel('RMSD')
+#plt.xlabel('move/100')
+#plt.title('RMSD from native conformation at %f Kelvin taken every %d moves' %(T,step))
+#plt.savefig(rmsdname)

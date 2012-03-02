@@ -1,5 +1,7 @@
 from numpy import *
+import numpy
 from random import *
+
 
 def getangleparam(paramfile,numbeads):
     f=open(paramfile,'r')
@@ -80,27 +82,7 @@ def LJenergy(mpos, param, paramnative):
 		    sigma=paramnative[k,3]
 		    epsil=-1*paramnative[k,2]
 	    	    energy += epsil*(13*(sigma/r)**12-18*(sigma/r)**10+4*(sigma/r)**6)
-    ##calculate repulsive radius term for 12 and 13 neighbor in one direction
-    #for i in range(len(mpos)-2):
-	#for m in range(2):
-		#j=i+m+1
-		#k=isNative(i,j,paramnative)
-		#if k==-1:
-			#epsil=1*(param[i,0]*param[j,0])**.5
-			#r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-		    	#term=epsil*((radii[i]+radii[j])*.5/r)**12
-			#energy += term
-			##print(term)
-    ## calculate 12 neighbor for last two beads
-    #i=len(mpos)-2
-    #j=len(mpos)-1
-    #k=isNative(i,j,paramnative)
-    #if k==-1:
-	#epsil=1*(param[i,0]*param[j,0])**.5
-	#r=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-	#term=epsil*((radii[i]+radii[j])*.5/r)**12
-	#energy += term
-    #print('LJ: '+str(energy))
+
     return energy
 
 def isNative(i,j,nativeloc):
@@ -118,58 +100,16 @@ def isNative(i,j,nativeloc):
 		index=i
 	return index
 
-#def calcrepulsiver(mpos,paramnative): 
-	## calculates the repulsive radius as defined as the shortest distance to a nonnative residue
-	#n=len(mpos)
-	#radii=zeros(n)
-	#r=10000*ones((n,n));
-	#for i in range(n):
-		#rmin=10000 #meh, is 10,000 good enough?
-		#for j in range(i+1,n):
-			#if isNative(i,j,paramnative) == -1:
-				#r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-				#if r[i,j]<rmin:
-					#rmin=r[i,j]
-			#else:
-				#pass
-		#for k in range(i-1,-1,-1):
-			#if r[k,i]<rmin:
-				#rmin=r[k,i]
-		#radii[i]=rmin
-	#return radii
-
-# this one is slower
-#def calcrepulsiver2(mpos,paramnative): 
-	## calculates the repulsive radius as defined as the shortest distance to a nonnative residue
-	#n=len(mpos)
-	#radii=zeros(n)
-	#r=10000*ones((n,n));
-	#for i in range(n):
-		#rmin=10000 #meh, is 10,000 good enough?
-		#for j in range(n):
-			#if isNative(i,j,paramnative) != -1 or i==j:
-				#pass
-			#elif j > i:
-				#r[i,j]=((mpos[i,0]-mpos[j,0])**2+(mpos[i,1]-mpos[j,1])**2+(mpos[i,2]-mpos[j,2])**2)**.5
-				#if r[i,j] < rmin:
-					#rmin = r[i,j]
-			#else: #i < j
-				#if r[j,i]< rmin: # has already been calculated, note r[j,i]=r[i,j]
-					#rmin = r[j,i]
-		#radii[i]=rmin
-	#return radii
 
 def angleenergy(mpos, param):
     energy=0.0
-    ktheta=0.0
-    optangle=0.0
     for i in range(1,len(mpos)-1):
-        ktheta=param[i-1][0] # param file goes from 0 to len(mpos)-2
+        ktheta=param[i-1,0] # param file goes from 0 to len(mpos)-2
 	optangle=pi/180*param[i-1,1]
 	BA=mpos[i-1,:]-mpos[i,:]
         BC=mpos[i+1,:]-mpos[i,:]
         angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
-        energy=energy+ktheta*(angle-optangle)**2
+        energy+=ktheta*(angle-optangle)**2
     #print('angle energy: '+str(energy))
     return energy
 
@@ -186,42 +126,58 @@ def torsionenergy(mpos, param):
 	energy2=param[4*i+1,0]*(1+cos(param[4*i+1,1]*dihedral-pi/180*param[4*i+1,2]))
 	energy3=param[4*i+2,0]*(1+cos(param[4*i+2,1]*dihedral-pi/180*param[4*i+2,2]))
 	energy4=param[4*i+3,0]*(1+cos(param[4*i+3,1]*dihedral-pi/180*param[4*i+3,2]))
-	energy=energy+energy1+energy2+energy3+energy4
+	energy += energy1+energy2+energy3+energy4
     #print('torsion energy: '+str(energy))
     return energy
 
 #used in simulatepolymer (no amino acid interactions)
-def energy(mpos):
-    energy=0.0 #potential energy
-    sig=4.6 #angstroms for polyethylene
-    e= .42 #kcal/mol for polyethylene
-    ktheta= .82 #kcal/mol
-    A=5.22 #torsional parameter
-    B=2.88 #torsional parameter
-    C=1.95 #torsional parameter
-    index=arange(len(mpos))
-    # 6-12 LJ potential 
-    for i in index:
-        low=index[index<i-2]
-        high=index[index>i+2]
-        vdw=append(low,high) #index of beads excluding 12 and 13 neighbors
-        for j in vdw:
-            r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
-            energy=energy+2*e*((sig/r)**12-(sig/r)**6) #divided by two since count each interaction twice
-    # angle potential
-    for i in range(1,len(mpos)-1):
-        BA=mpos[:][i-1]-mpos[:][i]
-        BC=mpos[:][i+1]-mpos[:][i]
-        angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
-        energy=energy+ktheta/2*(angle-pi)**2
-    # torsional potential
-    for i in range(0,len(mpos)-3):
-        AB=mpos[:][i+1]-mpos[:][i]
-        BC=mpos[:][i+2]-mpos[:][i+1]
-        CD=mpos[:][i+3]-mpos[:][i+2]
-        plane1=cross(BC,AB)
-        plane2=cross(CD,BC)
-        dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
-        energy=energy+A+B*cos(dihedral)+C*cos(3*dihedral)
-    return energy
+#def energy(mpos):
+    #energy=0.0 #potential energy
+    #sig=4.6 #angstroms for polyethylene
+    #e= .42 #kcal/mol for polyethylene
+    #ktheta= .82 #kcal/mol
+    #A=5.22 #torsional parameter
+    #B=2.88 #torsional parameter
+    #C=1.95 #torsional parameter
+    #index=arange(len(mpos))
+    ## 6-12 LJ potential 
+    #for i in index:
+        #low=index[index<i-2]
+        #high=index[index>i+2]
+        #vdw=append(low,high) #index of beads excluding 12 and 13 neighbors
+        #for j in vdw:
+            #r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
+            #energy=energy+2*e*((sig/r)**12-(sig/r)**6) #divided by two since count each interaction twice
+    ## angle potential
+    #for i in range(1,len(mpos)-1):
+        #BA=mpos[:][i-1]-mpos[:][i]
+        #BC=mpos[:][i+1]-mpos[:][i]
+        #angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
+        #energy=energy+ktheta/2*(angle-pi)**2
+    ## torsional potential
+    #for i in range(0,len(mpos)-3):
+        #AB=mpos[:][i+1]-mpos[:][i]
+        #BC=mpos[:][i+2]-mpos[:][i+1]
+        #CD=mpos[:][i+3]-mpos[:][i+2]
+        #plane1=cross(BC,AB)
+        #plane2=cross(CD,BC)
+        #dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+        #energy=energy+A+B*cos(dihedral)+C*cos(3*dihedral)
+    #return energy
+    
+def rmsd(crds1, crds2):
+  	"""Returns RMSD between 2 sets of [nx3] numpy array"""
+ 	assert(crds1.shape[1] == 3)
+ 	assert(crds1.shape == crds2.shape)
+ 	n_vec = numpy.shape(crds1)[0]
+ 	correlation_matrix = numpy.dot(numpy.transpose(crds1), crds2)
+ 	v, s, w_tr = numpy.linalg.svd(correlation_matrix)
+ 	is_reflection = (numpy.linalg.det(v) * numpy.linalg.det(w_tr)) < 0.0
+ 	if is_reflection:
+  		s[-1] = - s[-1]
+  	E0 = sum(sum(crds1 * crds1)) + sum(sum(crds2 * crds2))
+  	rmsd_sq = (E0 - 2.0*sum(s)) / float(n_vec)
+  	rmsd_sq = max([rmsd_sq, 0.0])
+ 	return numpy.sqrt(rmsd_sq)
+
 
