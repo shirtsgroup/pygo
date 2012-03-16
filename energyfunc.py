@@ -5,7 +5,7 @@ from random import *
 
 def getangleparam(paramfile,numbeads):
     f=open(paramfile,'r')
-    param=zeros((numbeads-2,2))
+    param=empty((numbeads-2,2))
     while 1:
 	line=f.readline()
         if "ANGLE" in line:
@@ -19,7 +19,7 @@ def getangleparam(paramfile,numbeads):
 
 def gettorsionparam(paramfile, numbeads):
     f=open(paramfile,'r')
-    param=zeros((4*(numbeads-3),3)) #4 torsional potentials per 4 molecules
+    param=empty((4*(numbeads-3),3)) #4 torsional potentials per 4 molecules
     while 1:
 	line=f.readline()
         if "DIHEDRAL" in line:
@@ -34,7 +34,7 @@ def gettorsionparam(paramfile, numbeads):
 
 def getLJparam(paramfile,numbeads):
     f=open(paramfile,'r')
-    param=zeros((numbeads,2)) #two nonzero parameters, ignored first column (all 0)
+    param=empty((numbeads,2)) #two nonzero parameters, ignored first column (all 0)
     while 1:
 	line=f.readline()
         if "NONBONDED" in line:
@@ -64,6 +64,76 @@ def getnativefix(paramfile):
 		param=vstack((param,currentparam))
     f.close()
     return param
+	
+# speed up version
+def getLJparam_n(paramfile,numbeads,numint):
+	f=open(paramfile,'r')
+    	param=empty(numbeads) #two nonzero parameters, ignored first column (all 0)
+    	while 1:
+		line=f.readline()
+        	if "NONBONDED" in line:
+            		f.readline() # two lines between header and parameters
+	    		f.readline()
+	    		break
+    	for i in range(numbeads): # param for each bead, use combining rules for interaction
+		line=f.readline()
+		epsil=float(line[14:23]) #somewhat hardcoded
+		param[i]=float(line[25:33])
+    	f.close()
+	sigarray=zeros(numint)
+	index=arange(numbeads)
+	k=0
+	for i in index:
+		vdw=index[index>i+2]
+		for j in vdw:
+			sigarray[k]=param[i]+param[j]
+			k += 1
+	sigarray=append(sigarray,epsil)
+    	return sigarray
+
+#speed up version
+def getnativefix_n(paramfile,numint,numbeads):
+	param=zeros((numint,3))
+	f=open(paramfile,'r')
+    	while 1:
+		line=f.readline()
+        	if "NBFIX" in line:
+            		break
+    	while 1:
+		line=f.readline()
+		if not line:
+			break
+		if "G" in line:
+			[i,j,ep,sig]=[int(line[1:3]),int(line[9:11]),float(line[19:28]),float(line[32:-1])]
+			intindex=sum(numbeads-arange(1,i))+(j-i)-1-2*i
+			param[intindex,:]=[1,-ep,sig]
+	return param
+
+#speed up version
+def getLJr2(mpos,numint,numbeads):
+	r2array=empty(numint)
+	index=arange(numbeads)
+	k=0
+	for i in index:
+		vdw=index[index>i+2]
+		for j in vdw:
+			BC=mpos[i,:]-mpos[j,:]
+			r2array[k]=dot(BC,BC)
+			k += 1
+	return r2array #r^2 values for every interaction
+
+#speed up version
+def LJenergy_n(r2,natparam,nonnatparam,nnepsil):
+	#native calculation
+	nE=natparam[:,0]*natparam[:,2]**2/r2 #sigma2/r2
+	nE6=nE*nE*nE
+	nE=natparam[:,1]*(13*nE6*nE6-18*nE6*nE*nE+4*nE6)
+	#nonnative calculation
+	nnE=nonnatparam[:,0]*nonnatparam[:,1]**2/r2 #simga2/r2
+	nnE=nnE*nnE #sigma4/r4
+	nnE=nnepsil*nnE*nnE*nnE
+	energy=sum(nE)+sum(nnE)
+	return energy
 
 def LJenergy(mpos, param, paramnative):
     energy=0.0
