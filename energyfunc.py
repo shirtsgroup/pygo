@@ -1,7 +1,7 @@
 from numpy import *
 import numpy
 from random import *
-
+import pdb
 
 def getangleparam(paramfile,numbeads):
     f=open(paramfile,'r')
@@ -115,11 +115,10 @@ def getLJr2(mpos,numint,numbeads):
 	index=arange(numbeads)
 	k=0
 	for i in index:
-		vdw=index[index>i+2]
-		for j in vdw:
-			BC=mpos[i,:]-mpos[j,:]
-			r2array[k]=dot(BC,BC)
-			k += 1
+            BC = mpos[i,:]-mpos[i+3:numbeads,:]
+            knew = k + numbeads-(i+3)
+            r2array[k:knew] = sum(BC**2,axis=1)
+            k = knew
 	return r2array #r^2 values for every interaction
 
 #speed up version
