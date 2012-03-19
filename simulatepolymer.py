@@ -3,10 +3,10 @@ from writetopdb import *
 from moveset import *
 from energyfunc import *
 
-T=300 #Kelvin
+T=300000 #Kelvin
 totmoves=100
 energyarray=zeros(totmoves)
-filename='simulate.pdb'
+filename='simulate1.pdb'
 
 openfile=open('polyethConly.pdb','r')
 i=0 # index for coordinate matrix
@@ -32,7 +32,7 @@ while 1:
         i=i+1
     k=k+1
 
-u0=energy(coord)
+u0=polymerenergy(coord)
 writepdb(coord,wtemp,hetatm,1,filename)
 energyarray[0]=u0
 
@@ -40,21 +40,23 @@ for move in range(2,totmoves+1):
     print(move)
     while(1):        
         rand=random()
-	if rand < .25:
+	if rand < 0:
             newcoord=axistorsion(coord)
-        elif rand < .5:
+        elif rand < 0:
             newcoord=reptation(coord)
-	elif rand < .75:
+	elif rand < 1:
 	    newcoord=torsion(coord)
 	else:
 	    newcoord=crankshaft(coord)
-	u1=energy(newcoord)
+	u1=polymerenergy(newcoord)
 	if u1< u0:
             break
         kb=0.0019872041 #in kcal/mol
         boltz=exp(-u1/(kb*T))
         if random()<boltz:
             break
+	else: #no energy function
+		break
     addtopdb(newcoord,ptemp,move,filename)
     coord=newcoord
     u0=u1

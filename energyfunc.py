@@ -1,7 +1,7 @@
 from numpy import *
 import numpy
 from random import *
-import pdb
+
 
 def getangleparam(paramfile,numbeads):
     f=open(paramfile,'r')
@@ -31,6 +31,34 @@ def gettorsionparam(paramfile, numbeads):
 	param[i][2]=float(line[35:45])
     f.close()
     return param
+
+def gettorsionparam_n(paramfile, numbeads):
+    f=open(paramfile,'r')
+    param=empty((numbeads-3,12)) #4 torsional potentials per 4 molecules
+    while 1:
+	line=f.readline()
+        if "DIHEDRAL" in line:
+            break
+    for i in range(numbeads-3):
+	line1=f.readline()
+	line2=f.readline()
+	line3=f.readline()
+	line4=f.readline()
+	param[i][0]=float(line1[22:30]) #somewhat hardcoded
+	param[i][1]=float(line1[32:33])
+	param[i][2]=float(line1[35:45])
+	param[i][3]=float(line2[22:30]) #somewhat hardcoded
+	param[i][4]=float(line2[32:33])
+	param[i][5]=float(line2[35:45])
+	param[i][6]=float(line3[22:30]) #somewhat hardcoded
+	param[i][7]=float(line3[32:33])
+	param[i][8]=float(line3[35:45])
+	param[i][9]=float(line4[22:30]) #somewhat hardcoded
+	param[i][10]=float(line4[32:33])
+	param[i][11]=float(line4[35:45])    
+    f.close()
+    return param
+
 
 def getLJparam(paramfile,numbeads):
     f=open(paramfile,'r')
@@ -112,14 +140,15 @@ def getnativefix_n(paramfile,numint,numbeads):
 #speed up version
 def getLJr2(mpos,numint,numbeads):
 	r2array=empty(numint)
-	index=arange(numbeads)
 	k=0
-	for i in index:
-            BC = mpos[i,:]-mpos[i+3:numbeads,:]
-            knew = k + numbeads-(i+3)
-            r2array[k:knew] = sum(BC**2,axis=1)
-            k = knew
+	for i in range(numbeads):
+		BC=mpos[i,:]-mpos[i+3:numbeads,:]
+		knew=k+numbeads-(i+3)
+		r2array[k:knew]=sum(BC**2,axis=1)
+		k=knew
 	return r2array #r^2 values for every interaction
+
+
 
 #speed up version
 def LJenergy_n(r2,natparam,nonnatparam,nnepsil):
@@ -199,40 +228,68 @@ def torsionenergy(mpos, param):
     #print('torsion energy: '+str(energy))
     return energy
 
+def dihedral(mpos,numbeads):
+	dihedral=empty(numbeads-3)
+	for i in range(0,numbeads-3):
+		AB=mpos[:][i+1]-mpos[:][i]
+        	BC=mpos[:][i+2]-mpos[:][i+1]
+        	CD=mpos[:][i+3]-mpos[:][i+2]
+        	plane1=cross(BC,AB)
+        	plane2=cross(CD,BC)
+        	dihedral[i]=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+	return dihedral
+
+def torsionenergy_n(mpos, param, torschange):
+    energy=0.0
+    for i in range(0,len(mpos)-3):
+        AB=mpos[:][i+1]-mpos[:][i]
+        BC=mpos[:][i+2]-mpos[:][i+1]
+        CD=mpos[:][i+3]-mpos[:][i+2]
+        plane1=cross(BC,AB)
+        plane2=cross(CD,BC)
+        dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+        energy1=param[4*i,0]*(1+cos(param[4*i,1]*dihedral-pi/180*param[4*i,2]))
+	energy2=param[4*i+1,0]*(1+cos(param[4*i+1,1]*dihedral-pi/180*param[4*i+1,2]))
+	energy3=param[4*i+2,0]*(1+cos(param[4*i+2,1]*dihedral-pi/180*param[4*i+2,2]))
+	energy4=param[4*i+3,0]*(1+cos(param[4*i+3,1]*dihedral-pi/180*param[4*i+3,2]))
+	energy += energy1+energy2+energy3+energy4
+    #print('torsion energy: '+str(energy))
+    return energy
+
 #used in simulatepolymer (no amino acid interactions)
-#def energy(mpos):
-    #energy=0.0 #potential energy
-    #sig=4.6 #angstroms for polyethylene
-    #e= .42 #kcal/mol for polyethylene
-    #ktheta= .82 #kcal/mol
-    #A=5.22 #torsional parameter
-    #B=2.88 #torsional parameter
-    #C=1.95 #torsional parameter
-    #index=arange(len(mpos))
-    ## 6-12 LJ potential 
-    #for i in index:
-        #low=index[index<i-2]
-        #high=index[index>i+2]
-        #vdw=append(low,high) #index of beads excluding 12 and 13 neighbors
-        #for j in vdw:
-            #r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
-            #energy=energy+2*e*((sig/r)**12-(sig/r)**6) #divided by two since count each interaction twice
-    ## angle potential
-    #for i in range(1,len(mpos)-1):
-        #BA=mpos[:][i-1]-mpos[:][i]
-        #BC=mpos[:][i+1]-mpos[:][i]
-        #angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
-        #energy=energy+ktheta/2*(angle-pi)**2
-    ## torsional potential
-    #for i in range(0,len(mpos)-3):
-        #AB=mpos[:][i+1]-mpos[:][i]
-        #BC=mpos[:][i+2]-mpos[:][i+1]
-        #CD=mpos[:][i+3]-mpos[:][i+2]
-        #plane1=cross(BC,AB)
-        #plane2=cross(CD,BC)
-        #dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
-        #energy=energy+A+B*cos(dihedral)+C*cos(3*dihedral)
-    #return energy
+def polymerenergy(mpos):
+    energy=0.0 #potential energy
+    sig=4.6 #angstroms for polyethylene
+    e= .42 #kcal/mol for polyethylene
+    ktheta= .82 #kcal/mol
+    A=5.22 #torsional parameter
+    B=2.88 #torsional parameter
+    C=1.95 #torsional parameter
+    index=arange(len(mpos))
+    # 6-12 LJ potential 
+    for i in index:
+        low=index[index<i-2]
+        high=index[index>i+2]
+        vdw=append(low,high) #index of beads excluding 12 and 13 neighbors
+        for j in vdw:
+            r=((mpos[i][0]-mpos[j][0])**2+(mpos[i][1]-mpos[j][1])**2+(mpos[i][2]-mpos[j][2])**2)**.5
+            energy=energy+2*e*((sig/r)**12-(sig/r)**6) #divided by two since count each interaction twice
+    # angle potential
+    for i in range(1,len(mpos)-1):
+        BA=mpos[:][i-1]-mpos[:][i]
+        BC=mpos[:][i+1]-mpos[:][i]
+        angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
+        energy=energy+ktheta/2*(angle-pi)**2
+    # torsional potential
+    for i in range(0,len(mpos)-3):
+        AB=mpos[:][i+1]-mpos[:][i]
+        BC=mpos[:][i+2]-mpos[:][i+1]
+        CD=mpos[:][i+3]-mpos[:][i+2]
+        plane1=cross(BC,AB)
+        plane2=cross(CD,BC)
+        dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+        energy=energy+A+B*cos(dihedral)+C*cos(3*dihedral)
+    return energy
     
 def rmsd(crds1, crds2):
   	"""Returns RMSD between 2 sets of [nx3] numpy array"""
