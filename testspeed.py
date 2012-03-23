@@ -119,10 +119,12 @@ if (verbose):
 #nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
 ##temporary
-#def energy(mpos,rsquare):
-	##energyold=LJenergy(mpos,LJparam,nativeparam)
-	#energynew=LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
-	#return energynew
+def energy(mpos,torsE,change):
+	oldtorsE=torsionenergy_n(mpos,torsE,torsparam,change)
+	newtorsE=torsionenergy_nn(mpos,torsE,torsparam,change)
+	energyold=sum(oldtorsE)
+	energynew=sum(newtorsE)
+	return [newtorsE,energyold,energynew]
 
 
 ## calculate square distances for each interaction
@@ -133,19 +135,68 @@ if (verbose):
 #print energy(coord,r2)-energy(coord,r2_new)
 
 
-#move=0
+move=0
+torsE=zeros(54)
+change=arange(54)
+[torsE,old,new]=energy(coord,torsE,change)
+print old-new
 
 #while move<totmoves:
-	#newcoord=reptation(coord)
-	#r2=getLJr2(newcoord,numint,numbeads)
-	#r2_new=getLJr2_n(newcoord,numint,numbeads)
-	#print (energy(newcoord,r2_new)-energy(newcoord,r2))
+	#randdir=random()
+	#m=randint(4,52)
+	#coord=torsion(coord,m,randdir)
+	#if randdir<.5:
+		#change=arange(m-1,m+2)
+	#else:
+		#change=arange(m-3,m)
+	#[newangE,o,n]=energy(coord,angE,change)
+	#print o-n
 	#move +=1
+	#angE=newangE
+	
+#while move<totmoves:
+	#m=randint(4,52)
+	#coord=crankshaft(coord,m)
+	#change=[m-2,m]
+	#[newangE,o,n]=energy(coord,angE,change)
+	#print o-n
+	#move +=1
+	#angE=newangE
 
+#while move<totmoves:
+	#randdir=random()
+	#m=randint(4,52)
+	#coord=axistorsion(coord,m,randdir)
+	#if randdir<.5:
+		#change=[]
+	#else:
+		#change=[]
+	#[newangE,o,n]=energy(coord,angE,change)
+	#print o-n
+	#move +=1
+	#angE=newangE
+	
+#dihedarr=dihedral(coord,numbeads)
+#newcoord=axistorsion(coord,5,.7)
+#dihedarr_n=dihedral(newcoord,numbeads)
+#print dihedarr_n-dihedarr
 
-dihedarr=dihedral(coord,numbeads)
-newcoord=torsion(coord,5)
-dihedarr_n=dihedral(newcoord,numbeads)
-print dihedarr_n-dihedarr
+#angles=angle(coord)
+#newcoord=torsion(coord,5,.7)
+#newangle=angle(newcoord)
+#print len(angles)
+#print newangle-angles
 
-
+torsE=zeros(54)
+change=arange(54)
+[torsE,old,new]=energy(coord,torsE,change)
+t1=datetime.now()
+for i in range(10000):
+	oldtorsE=torsionenergy_n(coord,torsE,torsparam,change)
+	energyold=sum(oldtorsE)
+t2=datetime.now()
+for i in range(10000):
+	newtorsE=torsionenergy_nn(coord,torsE,torsparam,change)
+	energynew=sum(newtorsE)
+print datetime.now()-t2
+print t2-t1

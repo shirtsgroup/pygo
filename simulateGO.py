@@ -125,13 +125,16 @@ nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnat
 # SIMULATE
 #========================================================================================================
 
-def energy(mpos,rsquare):
-	#energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy(mpos,LJparam,nativeparam)
-	energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+def energy(mpos,rsquare,torsE,angE):#,diffdihed):
+	#energy=angleenergy(mpos,angleparam)+cccccccccccc+LJenergy(mpos,LJparam,nativeparam)
+	#energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
 	return energy
 
 r2=getLJr2(coord,numint,numbeads)
-u0=energy(coord,r2)
+torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(54))
+angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(55))
+u0=energy(coord,r2,torsE,angE)
 accepted_energy=[u0]
 energyarray[0]=u0
 rmsd_array[0]=rmsd(coord_nat,coord)
@@ -157,30 +160,79 @@ rejected=0
 movetype=''
 
 move=0
-theta=0. #for histogramming accepted torsion angles
-accepted_angle=[]
+#theta=0. #for histogramming accepted torsion angles
+#accepted_angle=[]
 
 while move<totmoves:
-        rand=random()
-	if rand < .7:
-            newcoord=torsion(coord)
+        randmove=random()
+	randdir=random()
+	m=randint(1,numbeads-2)
+	
+	#bend
+	if randmove < .7:
+            newcoord=torsion(coord,m,randdir)
 	    torsmoves += 1
 	    movetype='t'
-	elif rand < 0:
-            newcoord=reptation(coord)
-	    reptmoves += 1
-	    movetype='r'
-	elif rand < .85:
-	    theta=45./180*pi-random()*pi*45./180*2 
-	    newcoord=axistorsion(coord,theta)
+	    if randdir<.5:
+		    change=arange(m-2,m+2)
+		    angchange=arange(m-1,m+2)
+		    if m==1:
+			    change=arange(0,3)
+		    elif m==53:
+			    change=arange(m-2,m+1)
+		    elif m>53:
+			    change=change[change<(numbeads-3)]
+			    angchange=angchange[angchange<(numbeads-2)]
+	    else:
+		    change=arange(m-4,m)
+		    angchange=arange(m-3,m)
+		    if m==3:
+			    change=arange(0,m)
+		    elif m<3:
+			    change=change[change>-1]
+			    angchange=angchange[angchange>-1]
+		    elif m>53:
+			    change=change[change<(numbeads-3)]
+			    angchange=angchange[angchange<(numbeads-2)]
+
+	#axis torsion
+	elif randmove < .85:
+	    newcoord=axistorsion(coord,m,randdir)
 	    movetype='at'
 	    atormoves += 1
+	    angchange=[]
+	    if randdir<.5:
+		    change=[m-2]
+		    if m<2:
+			    change=[]
+	    elif m==55:
+		    change=[]
+	    else:
+		    change=[m-1]
+		    
+	
+	#crankshaft
 	else:
-	    newcoord=crankshaft(coord)
+	    newcoord=crankshaft(coord,m)
 	    crankmoves += 1
 	    movetype='c'
+	    change=arange(m-3,m+1)
+	    angchange=[m-2,m]
+	    if m==2:
+		    change=change[change>-1]
+	    elif m==1:
+		    change=change[change>-1]
+		    angchange=[m]
+ 	    elif m==53 or m==54:
+		    change=change[change<(numbeads-3)]
+	    elif m==55:
+		    change=change[change<(numbeads-3)]
+		    angchange=[m-2]
+
 	r2new=getLJr2(newcoord,numint,numbeads)
-	u1=energy(newcoord,r2new)
+	newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
+	newtorsE=torsionenergy_nn(newcoord,torsE,torsparam,change)
+	u1=energy(newcoord,r2new,newtorsE,newangE)
         move += 1
 	stdout.write(str(move)+'\r')
 	stdout.flush()
@@ -194,7 +246,7 @@ while move<totmoves:
 			acceptedr += 1
     		elif movetype=='at':
 			acceptedat +=1
-			accepted_angle.append(theta)
+			#accepted_angle.append(theta)
     		else: 
         		acceptedc += 1
     		if (writepdb):
@@ -203,6 +255,8 @@ while move<totmoves:
 			writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
 		r2=r2new   
 		coord=newcoord
+		torsE=newtorsE
+		angE=newangE
     		u0=u1
     		accepted_energy.append(u0)
 	else:
