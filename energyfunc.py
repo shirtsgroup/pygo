@@ -225,13 +225,13 @@ def angleenergy_n(mpos, oldE,param,change):
     return newE
 
 
-#def angle(mpos):
-	#angle=zeros(len(mpos)-2)
-	#for i in range(1,len(mpos)-1):
-		#BA=mpos[i-1,:]-mpos[i,:]
-		#BC=mpos[i+1,:]-mpos[i,:]
-		#angle[i-1]=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5))
-	#return angle
+def angle(mpos):
+	angle=zeros(len(mpos)-2)
+	for i in range(1,len(mpos)-1):
+		BA=mpos[i-1,:]-mpos[i,:]
+		BC=mpos[i+1,:]-mpos[i,:]
+		angle[i-1]=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5))
+	return angle
 
 #def torsionenergy(mpos, param):
     #energy=0.0
@@ -250,19 +250,19 @@ def angleenergy_n(mpos, oldE,param,change):
     ##print('torsion energy: '+str(energy))
     #return energy
 
-#def dihedral(mpos,param):
-	##newdihed=olddihed.copy()
-	##newE=oldE.copy()
-	#newdihed=zeros(len(mpos)-3)
-	#for i in range(len(mpos)-3):
-		#AB=mpos[:][i+1]-mpos[:][i]
-        	#BC=mpos[:][i+2]-mpos[:][i+1]
-        	#CD=mpos[:][i+3]-mpos[:][i+2]
-        	#plane1=cross(BC,AB)
-        	#plane2=cross(CD,BC)
-        	#newdihed[i]=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+def dihedral(mpos,param):
+	#newdihed=olddihed.copy()
+	#newE=oldE.copy()
+	newdihed=zeros(len(mpos)-3)
+	for i in range(len(mpos)-3):
+		AB=mpos[:][i+1]-mpos[:][i]
+        	BC=mpos[:][i+2]-mpos[:][i+1]
+        	CD=mpos[:][i+3]-mpos[:][i+2]
+        	plane1=cross(BC,AB)
+        	plane2=cross(CD,BC)
+        	newdihed[i]=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
 		
-	#return newdihed
+	return newdihed
 
 #def torsionenergy_n(mpos,oldE,param,change):
     #newE=oldE.copy()

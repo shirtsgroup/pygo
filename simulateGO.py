@@ -24,17 +24,19 @@ parser.add_option("-t", "--temperature", default='300', dest="T", type="float", 
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
 parser.add_option("-c", "--addconnect", action="store_true", default=False, help="add bonds to .pdb file")
 parser.add_option("-n", "--moves", dest="totmoves", type="int", default='100', help="total number of moves")
-parser.add_option("-s", "--stepsize", dest="step", type="int", default='50', help="number of moves between each sample")
+parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between each sample")
 parser.add_option("-o", "--outputfiles", dest="outputfiles", default='conformation_energies.txt', help="the output file for every [step] energy")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--energyplot", dest="plotname", default='', help="name of plot of accepted conformation energies, if desired")
-parser.add_option("-b", "--writepdb", action="store_true", default=False, help="write pdbs")
+parser.add_option("-b", "--writepdb", dest="pdbfile", default='', help="the output pdb file")
 
 (options,args)=parser.parse_args()
 #========================================================================================================
 # CONSTANTS
 #========================================================================================================
 
+kb=0.0019872041 #kcal/mol/K
+percentmove=[.7,.85] # 70% bend, 15% axis torsion, 15% crankshaft
 verbose=options.verbose
 T=options.T #Kelvin
 totmoves=options.totmoves
@@ -46,7 +48,7 @@ paramfile=options.datafile_directory + '/' + options.paramfiles
 outputfiles=options.outputfiles
 histname=options.histname
 plotname=options.plotname
-writepdb=options.writepdb
+pdbfile=options.pdbfile
 
 # read .pdb to get number of beads (numbeads)
 file=open(filename,'r')
@@ -87,20 +89,9 @@ file.close()
 #Get native conformation
 coord_nat=coord.copy()
 
-
 #Get parameters from .param file
 angleparam=getangleparam(paramfile,numbeads)
 torsparam=gettorsionparam(paramfile,numbeads)
-#LJparam=getLJparam(paramfile,numbeads)
-#nativeparam=getnativefix(paramfile)
-
-if (verbose):
-	print 'verbosity is %s' %(str(verbose))
-	print 'temperature is %f' %(T)
-	print 'total number of moves is %d' %(totmoves)
-	print 'autocorrelation step size is %d moves' %(step)
-	print 'There are %d residues in %s' %(numbeads,filename)
-
 
 #speed up terms
 numint=scipy.misc.comb(numbeads,2) # number of interactions
@@ -116,35 +107,34 @@ nonnativesig=delete(nonnativesig,-1) #remove epsilon from sigma array
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
+if (verbose):
+	print 'verbosity is %s' %(str(verbose))
+	print 'temperature is %f' %(T)
+	print 'total number of moves is %d' %(totmoves)
+	print 'autocorrelation step size is %d moves' %(step)
+	print 'There are %d residues in %s' %(numbeads,filename)
 
-
-
-
+def energy(mpos,rsquare,torsE,angE):
+	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+	return energy
 
 #========================================================================================================
 # SIMULATE
 #========================================================================================================
-
-def energy(mpos,rsquare,torsE,angE):#,diffdihed):
-	#energy=angleenergy(mpos,angleparam)+cccccccccccc+LJenergy(mpos,LJparam,nativeparam)
-	#energy=angleenergy(mpos,angleparam)+torsionenergy(mpos,torsparam)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
-	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
-	return energy
-
 r2=getLJr2(coord,numint,numbeads)
-torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(54))
-angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(55))
+torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energy(coord,r2,torsE,angE)
 accepted_energy=[u0]
 energyarray[0]=u0
 rmsd_array[0]=rmsd(coord_nat,coord)
 
-if(writepdb):
-	a=getmovietransform(coord)
-	untransform=dot(a,eye(3))
+if(pdbfile != ''):
+	untransform=getmovietransform(coord)
 	transform=transpose(untransform)
 	mcoord=moviecoord(coord,transform)
-	writeseqpdb(mcoord,wordtemplate,ATOMlinenum,0)
+	#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,0)
+	writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
 
 # constants for move stats
 torsmoves=0
@@ -158,19 +148,18 @@ acceptedc=0
 accepted=0
 rejected=0
 movetype=''
-
 move=0
-#theta=0. #for histogramming accepted torsion angles
-#accepted_angle=[]
 
 while move<totmoves:
         randmove=random()
 	randdir=random()
-	m=randint(1,numbeads-2)
+	m=randint(1,numbeads-2) #random bead, not end ones
 	
 	#bend
-	if randmove < .7:
-            newcoord=torsion(coord,m,randdir)
+	if randmove < percentmove[0]:
+	    theta=2*pi*random()
+	    phi=15./180*pi*random()
+            newcoord=bend(coord,m,randdir,theta,phi)
 	    torsmoves += 1
 	    movetype='t'
 	    if randdir<.5:
@@ -178,9 +167,9 @@ while move<totmoves:
 		    angchange=arange(m-1,m+2)
 		    if m==1:
 			    change=arange(0,3)
-		    elif m==53:
+		    elif m==numbeads-4: #53
 			    change=arange(m-2,m+1)
-		    elif m>53:
+		    elif m>numbeads-4: #53
 			    change=change[change<(numbeads-3)]
 			    angchange=angchange[angchange<(numbeads-2)]
 	    else:
@@ -191,13 +180,13 @@ while move<totmoves:
 		    elif m<3:
 			    change=change[change>-1]
 			    angchange=angchange[angchange>-1]
-		    elif m>53:
-			    change=change[change<(numbeads-3)]
-			    angchange=angchange[angchange<(numbeads-2)]
+		    elif m==numbeads-2:
+			    change=arange(m-4,m-1)
 
 	#axis torsion
-	elif randmove < .85:
-	    newcoord=axistorsion(coord,m,randdir)
+	elif randmove < percentmove[1]:
+	    theta=35./180*pi-random()*pi*35./180*2
+	    newcoord=axistorsion(coord,m,randdir,theta)
 	    movetype='at'
 	    atormoves += 1
 	    angchange=[]
@@ -205,28 +194,28 @@ while move<totmoves:
 		    change=[m-2]
 		    if m<2:
 			    change=[]
-	    elif m==55:
+	    elif m==numbeads-2:
 		    change=[]
 	    else:
 		    change=[m-1]
-		    
 	
 	#crankshaft
 	else:
-	    newcoord=crankshaft(coord,m)
+	    theta=30./180*pi-random()*30.*pi/180*2
+	    newcoord=crankshaft(coord,m,theta)
 	    crankmoves += 1
 	    movetype='c'
 	    change=arange(m-3,m+1)
 	    angchange=[m-2,m]
 	    if m==2:
-		    change=change[change>-1]
-	    elif m==1:
+		    change=arange(m-2,m+1)
+	    elif m<2:
 		    change=change[change>-1]
 		    angchange=[m]
- 	    elif m==53 or m==54:
+ 	    elif m==numbeads-4 or m==numbeads-3:
 		    change=change[change<(numbeads-3)]
-	    elif m==55:
-		    change=change[change<(numbeads-3)]
+	    elif m==numbeads-2:
+		    change=arange(m-3,m-1)
 		    angchange=[m-2]
 
 	r2new=getLJr2(newcoord,numint,numbeads)
@@ -236,7 +225,6 @@ while move<totmoves:
         move += 1
 	stdout.write(str(move)+'\r')
 	stdout.flush()
-	kb=0.0019872041 #kcal/mol/K
         boltz=exp(-(u1-u0)/(kb*T))
 	if u1< u0 or random() < boltz:
         	accepted += 1
@@ -249,11 +237,11 @@ while move<totmoves:
 			#accepted_angle.append(theta)
     		else: 
         		acceptedc += 1
-    		if (writepdb):
+    		if (pdbfile != ''):
 			mcoord=moviecoord(newcoord,transform)
-			#mcoord=moviecoord(newcoord)
-			writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
-		r2=r2new   
+			#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
+			addtopdb(mcoord,positiontemplate,move,pdbfile)
+		r2=r2new
 		coord=newcoord
 		torsE=newtorsE
 		angE=newangE
@@ -265,18 +253,19 @@ while move<totmoves:
 	    energyarray[move/step]=u0
 	    rmsd_array[move/step]=rmsd(coord_nat,coord)
 t2=datetime.now()
+
+if (pdbfile != ''):
+	f=open(pdbfile,'a')
+	f.write('END\r\n')
+	f.close
+
+
 #========================================================================================================
 # OUTPUT
 #========================================================================================================
-#acceptfile=outputfiles[0]
-#savetxt(acceptfile,accepted_energy)
-#print 'wrote accepted energies to %s' %(acceptfile)
 
 savetxt(outputfiles,energyarray)
 print 'wrote every %d conformation energies to %s' %(step,outputfiles)
-
-#savetxt('anglefile.txt',accepted_angle)
-#print 'wrote accepted torsion angles to anglefile.txt'
 
 savetxt('rmsd.txt',rmsd_array)
 print 'wrote rmsd array to rmsd.txt'

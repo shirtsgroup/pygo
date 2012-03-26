@@ -47,7 +47,7 @@ paramfile=options.datafile_directory + '/' + options.paramfiles
 outputfiles=options.outputfiles
 histname=options.histname
 plotname=options.plotname
-writepdb=options.writepdb
+#writepdb=options.writepdb
 
 # read .pdb to get number of beads (numbeads)
 file=open(filename,'r')
@@ -90,10 +90,10 @@ coord_nat=coord.copy()
 
 
 #Get parameters from .param file
-angleparam=getangleparam(paramfile,numbeads)
-torsparam=gettorsionparam(paramfile,numbeads)
-LJparam=getLJparam(paramfile,numbeads)
-nativeparam=getnativefix(paramfile)
+#angleparam=getangleparam(paramfile,numbeads)
+#torsparam=gettorsionparam(paramfile,numbeads)
+#LJparam=getLJparam(paramfile,numbeads)
+#nativeparam=getnativefix(paramfile)
 
 if (verbose):
 	print 'verbosity is %s' %(str(verbose))
@@ -135,11 +135,11 @@ def energy(mpos,torsE,change):
 #print energy(coord,r2)-energy(coord,r2_new)
 
 
-move=0
-torsE=zeros(54)
-change=arange(54)
-[torsE,old,new]=energy(coord,torsE,change)
-print old-new
+#move=0
+#torsE=zeros(54)
+#change=arange(54)
+#[torsE,old,new]=energy(coord,torsE,change)
+#print old-new
 
 #while move<totmoves:
 	#randdir=random()
@@ -175,11 +175,20 @@ print old-new
 	#print o-n
 	#move +=1
 	#angE=newangE
-	
-#dihedarr=dihedral(coord,numbeads)
-#newcoord=axistorsion(coord,5,.7)
-#dihedarr_n=dihedral(newcoord,numbeads)
-#print dihedarr_n-dihedarr
+pdbfile='simulates.pdb'
+writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
+dihedarr=dihedral(coord,numbeads)
+ang=angle(coord)
+newcoord=bend_n(coord,5,.3,1,0.01)
+dihedarr_n=dihedral(newcoord,numbeads)
+newang=angle(newcoord)
+print dihedarr_n-dihedarr
+print newang-ang
+addtopdb(newcoord,positiontemplate,1,pdbfile)
+
+f=open(pdbfile,'a')
+f.write('END\r\n')
+f.close
 
 #angles=angle(coord)
 #newcoord=torsion(coord,5,.7)
@@ -187,16 +196,43 @@ print old-new
 #print len(angles)
 #print newangle-angles
 
-torsE=zeros(54)
-change=arange(54)
-[torsE,old,new]=energy(coord,torsE,change)
-t1=datetime.now()
-for i in range(10000):
-	oldtorsE=torsionenergy_n(coord,torsE,torsparam,change)
-	energyold=sum(oldtorsE)
-t2=datetime.now()
-for i in range(10000):
-	newtorsE=torsionenergy_nn(coord,torsE,torsparam,change)
-	energynew=sum(newtorsE)
-print datetime.now()-t2
-print t2-t1
+#torsE=zeros(54)
+#change=arange(54)
+#[torsE,old,new]=energy(coord,torsE,change)
+#t1=datetime.now()
+#for i in range(10000):
+	#oldtorsE=torsionenergy_n(coord,torsE,torsparam,change)
+	#energyold=sum(oldtorsE)
+#t2=datetime.now()
+#for i in range(10000):
+	#newtorsE=torsionenergy_nn(coord,torsE,torsparam,change)
+	#energynew=sum(newtorsE)
+#print datetime.now()-t2
+#print t2-t1
+
+#t=datetime.now()
+#for i in range(numbeads-1):
+	#BC=coord[i+1,:]-coord[i,:]
+	#r=dot(BC,BC)**.5
+#t2=datetime.now()
+#for i in range(numbeads-1):
+	#r=(coord[i+1,0]-coord[i,0])**2+(coord[i+1,1]-coord[i,1])**2+(coord[i+1,2]-coord[i,2])**2
+	#r=sqrt(r)
+#t3=datetime.now()
+
+#t4=datetime.now()
+
+#print t2-t
+#print t3-t2
+#print t4-t3
+
+
+#newcoord=bend(coord,5,.3,0,1)
+#newcoord2=bend_n(coord,5,.3,0,1)
+#print newcoord2-newcoord
+
+
+#BCs=coord[1:numbeads,:]-coord[0:numbeads-1,:]
+#bonds=(BCs[:,0]**2+BCs[:,1]**2+BCs[:,2]**2)**.5
+
+
