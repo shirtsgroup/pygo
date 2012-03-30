@@ -16,6 +16,7 @@ from random import *
 import profile
 import scipy.misc
 import pdb
+from time import time
 
 parser=OptionParser()
 parser.add_option("-f", "--files", dest="datafiles", default='GO_protein.pdb', help="protein .pdb file")
@@ -179,11 +180,13 @@ pdbfile='simulates.pdb'
 writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
 dihedarr=dihedral(coord,numbeads)
 ang=angle(coord)
-newcoord=bend_n(coord,5,.3,1,0.01)
+newcoord=anglebend(coord,5,.7,pi/4)
+#newcoord=crankshaft(coord,5,pi/4)
+#newcoord=axistorsion(coord,5,.7,pi/4)
 dihedarr_n=dihedral(newcoord,numbeads)
 newang=angle(newcoord)
-print dihedarr_n-dihedarr
-print newang-ang
+#print dihedarr_n-dihedarr
+#print newang-ang
 addtopdb(newcoord,positiontemplate,1,pdbfile)
 
 f=open(pdbfile,'a')
@@ -234,5 +237,26 @@ f.close
 
 #BCs=coord[1:numbeads,:]-coord[0:numbeads-1,:]
 #bonds=(BCs[:,0]**2+BCs[:,1]**2+BCs[:,2]**2)**.5
+#newcoord=anglebend(coord,5,.7,pi/4)
+#BCsn=newcoord[1:numbeads,:]-newcoord[0:numbeads-1,:]
+#nbonds=(BCsn[:,0]**2+BCsn[:,1]**2+BCsn[:,2]**2)**.5
+#print BCsn-BCs
+#print nbonds-bonds
 
+t=time()
+count=0
+n=10000
+while count<n:
+	newcoord1=axistorsion_n(coord,40,.3,pi/4)
+	count+=1
+print time()-t
 
+t=time()
+count=0
+n=10000
+while count<n:
+	newcoord2=axistorsion(coord,40,.3,pi/4)
+	count+=1
+print time()-t
+
+print newcoord2-newcoord1

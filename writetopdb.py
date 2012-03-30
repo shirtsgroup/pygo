@@ -47,9 +47,9 @@ def addtopdb(mpos,coordtext,move,filename):
     for i in range(len(coordtext)):
         words=coordtext[i][0:30]
         coordstr=''
-        coordstr=coordstr+str('%8.3f') % mpos[i][0]
-	coordstr=coordstr+str('%8.3f') % mpos[i][1]
-	coordstr=coordstr+str('%8.3f') % mpos[i][2]
+        coordstr=coordstr+str('%8.3f') % mpos[i,0]
+	coordstr=coordstr+str('%8.3f') % mpos[i,1]
+	coordstr=coordstr+str('%8.3f') % mpos[i,2]
 	coordstr=coordstr+'\r\n'
         coordtext[i]=words+coordstr
     f=file(filename,'a')
@@ -97,7 +97,7 @@ def moviecoord(mpos123,transform):
 	mpos=mpos123.copy()
 	center=len(mpos)/2
 	translate=mpos[center,:]
-	translate=translate.copy()
+	#translate=translate.copy()
 	for i in range(len(mpos)):
 		mpos[i,:] -= translate
 	for i in range(center,len(mpos)-1):

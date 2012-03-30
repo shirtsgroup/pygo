@@ -154,11 +154,11 @@ def getLJr2(mpos,numint,numbeads):
 #speed up version
 def LJenergy_n(r2,natparam,nonnatparam,nnepsil):
 	#native calculation
-	nE=natparam[:,0]*natparam[:,2]**2/r2 #sigma2/r2
+	nE=natparam[:,0]*natparam[:,2]*natparam[:,2]/r2 #sigma2/r2
 	nE6=nE*nE*nE
 	nE=natparam[:,1]*(13*nE6*nE6-18*nE6*nE*nE+4*nE6)
 	#nonnative calculation
-	nnE=nonnatparam[:,0]*nonnatparam[:,1]**2/r2 #simga2/r2
+	nnE=nonnatparam[:,0]*nonnatparam[:,1]*nonnatparam[:,1]/r2 #simga2/r2
 	nnE=nnE*nnE #sigma4/r4
 	nnE=nnepsil*nnE*nnE*nnE
 	energy=sum(nE)+sum(nnE)
@@ -219,8 +219,11 @@ def angleenergy_n(mpos, oldE,param,change):
 	optangle=pi/180*param[i,1]
 	BA=mpos[i,:]-mpos[i+1,:]
         BC=mpos[i+2,:]-mpos[i+1,:]
-        angle=arccos(dot(BA,BC)/(dot(BA,BA)**.5*dot(BC,BC)**.5)) #in radians
-        newE[i]=ktheta*(angle-optangle)**2
+	dotBABC=BA[0]*BC[0]+BA[1]*BC[1]+BA[2]*BC[2]
+	dotBA=BA[0]*BA[0]+BA[1]*BA[1]+BA[2]*BA[2]
+	dotBC=BC[0]*BC[0]+BC[1]*BC[1]+BC[2]*BC[2]
+        angle=arccos(dotBABC/(dotBA**.5*dotBC**.5)) #in radians
+        newE[i]=ktheta*(angle-optangle)*(angle-optangle)
     #print('angle energy: '+str(energy))
     return newE
 
@@ -286,9 +289,11 @@ def torsionenergy_nn(mpos,oldE,param,change):
         AB=mpos[:][i+1]-mpos[:][i]
         BC=mpos[:][i+2]-mpos[:][i+1]
         CD=mpos[:][i+3]-mpos[:][i+2]
-        plane1=cross(BC,AB)
-        plane2=cross(CD,BC)
-        dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+        plane1=[BC[1]*AB[2]-BC[2]*AB[1],BC[2]*AB[0]-BC[0]*AB[2],BC[0]*AB[1]-BC[1]*AB[0]] #cross(BC,AB)
+        plane2=[CD[1]*BC[2]-CD[2]*BC[1],CD[2]*BC[0]-CD[0]*BC[2],CD[0]*BC[1]-CD[1]*BC[0]]#cross(CD,BC)
+        dotplane1=plane1[0]*plane1[0]+plane1[1]*plane1[1]+plane1[2]*plane1[2]
+	dotplane2=plane2[0]*plane2[0]+plane2[1]*plane2[1]+plane2[2]*plane2[2]
+	dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/(dotplane1*dotplane2)**.5)
         energy=param[4*i:4*i+4,0]*(1+cos(param[4*i:4*i+4,1]*dihedral-pi/180*param[4*i:4*i+4,2]))
 	newE[i]=sum(energy)
     return newE

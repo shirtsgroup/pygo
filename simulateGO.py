@@ -24,7 +24,7 @@ parser.add_option("-t", "--temperature", default='300', dest="T", type="float", 
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
 parser.add_option("-c", "--addconnect", action="store_true", default=False, help="add bonds to .pdb file")
 parser.add_option("-n", "--moves", dest="totmoves", type="int", default='100', help="total number of moves")
-parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between each sample")
+parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between save operations")
 parser.add_option("-o", "--outputfiles", dest="outputfiles", default='conformation_energies.txt', help="the output file for every [step] energy")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--energyplot", dest="plotname", default='', help="name of plot of accepted conformation energies, if desired")
@@ -35,8 +35,7 @@ parser.add_option("-b", "--writepdb", dest="pdbfile", default='', help="the outp
 # CONSTANTS
 #========================================================================================================
 
-kb=0.0019872041 #kcal/mol/K
-percentmove=[.7,.85] # 70% bend, 15% axis torsion, 15% crankshaft
+
 verbose=options.verbose
 T=options.T #Kelvin
 totmoves=options.totmoves
@@ -49,6 +48,10 @@ outputfiles=options.outputfiles
 histname=options.histname
 plotname=options.plotname
 pdbfile=options.pdbfile
+
+kb=0.0019872041 #kcal/mol/K
+percentmove=[.33,.66] #% bend,% axis torsion,% crankshaft
+maxtheta=[5*T/300.,5*T/300.,10*T/300.] # bend, axistorsion, crankshaft
 
 # read .pdb to get number of beads (numbeads)
 file=open(filename,'r')
@@ -125,6 +128,7 @@ r2=getLJr2(coord,numint,numbeads)
 torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energy(coord,r2,torsE,angE)
+print u0
 accepted_energy=[u0]
 energyarray[0]=u0
 rmsd_array[0]=rmsd(coord_nat,coord)
@@ -134,16 +138,15 @@ if(pdbfile != ''):
 	transform=transpose(untransform)
 	mcoord=moviecoord(coord,transform)
 	#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,0)
-	writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
+	writepdb(mcoord,wordtemplate,ATOMlinenum,0,pdbfile)
+	print 'writing trajectory to %s...' %(pdbfile)
 
 # constants for move stats
-torsmoves=0
-reptmoves=0
+angmoves=0
 crankmoves=0
 atormoves=0
 acceptedat=0
-acceptedt=0
-acceptedr=0
+accepteda=0
 acceptedc=0
 accepted=0
 rejected=0
@@ -157,35 +160,36 @@ while move<totmoves:
 	
 	#bend
 	if randmove < percentmove[0]:
-	    theta=2*pi*random()
-	    phi=15./180*pi*random()
-            newcoord=bend(coord,m,randdir,theta,phi)
-	    torsmoves += 1
-	    movetype='t'
-	    if randdir<.5:
-		    change=arange(m-2,m+2)
-		    angchange=arange(m-1,m+2)
-		    if m==1:
-			    change=arange(0,3)
-		    elif m==numbeads-4: #53
-			    change=arange(m-2,m+1)
-		    elif m>numbeads-4: #53
-			    change=change[change<(numbeads-3)]
-			    angchange=angchange[angchange<(numbeads-2)]
-	    else:
-		    change=arange(m-4,m)
-		    angchange=arange(m-3,m)
-		    if m==3:
-			    change=arange(0,m)
-		    elif m<3:
-			    change=change[change>-1]
-			    angchange=angchange[angchange>-1]
-		    elif m==numbeads-2:
-			    change=arange(m-4,m-1)
+	    theta=maxtheta[0]/180.*pi-random()*maxtheta[0]*pi/180.*2
+            newcoord=anglebend(coord,m,randdir,theta)
+	    angmoves += 1
+	    movetype='a'
+	    change=[]
+	    angchange=[m-1]
+	    #if randdir<.5:
+		    #change=arange(m-2,m+2)
+		    #angchange=arange(m-1,m+2)
+		    #if m==1:
+			    #change=arange(0,3)
+		    #elif m==numbeads-4: #53
+			    #change=arange(m-2,m+1)
+		    #elif m>numbeads-4: #53
+			    #change=change[change<(numbeads-3)]
+			    #angchange=angchange[angchange<(numbeads-2)]
+	    #else:
+		    #change=arange(m-4,m)
+		    #angchange=arange(m-3,m)
+		    #if m==3:
+			    #change=arange(0,m)
+		    #elif m<3:
+			    #change=change[change>-1]
+			    #angchange=angchange[angchange>-1]
+		    #elif m==numbeads-2:
+			    #change=arange(m-4,m-1)
 
 	#axis torsion
 	elif randmove < percentmove[1]:
-	    theta=35./180*pi-random()*pi*35./180*2
+	    theta=maxtheta[1]/180.*pi-random()*pi*maxtheta[1]/180.*2
 	    newcoord=axistorsion(coord,m,randdir,theta)
 	    movetype='at'
 	    atormoves += 1
@@ -201,7 +205,7 @@ while move<totmoves:
 	
 	#crankshaft
 	else:
-	    theta=30./180*pi-random()*30.*pi/180*2
+	    theta=maxtheta[2]/180.*pi-random()*maxtheta[2]*pi/180.*2
 	    newcoord=crankshaft(coord,m,theta)
 	    crankmoves += 1
 	    movetype='c'
@@ -228,8 +232,8 @@ while move<totmoves:
         boltz=exp(-(u1-u0)/(kb*T))
 	if u1< u0 or random() < boltz:
         	accepted += 1
-		if movetype=='t':
-			acceptedt += 1
+		if movetype=='a':
+			accepteda += 1
     		elif movetype=='r':
 			acceptedr += 1
     		elif movetype=='at':
@@ -258,6 +262,7 @@ if (pdbfile != ''):
 	f=open(pdbfile,'a')
 	f.write('END\r\n')
 	f.close
+	print 'wrote trajectory to %s' %(pdbfile)
 
 
 #========================================================================================================
@@ -297,10 +302,9 @@ if histname != '':
 if(verbose):
 	print 'total accepted moves: %d' %(accepted)
 	print 'total rejected moves: %d' %(rejected)
-	print 'bend/torsion: %d moves accepted out of %d tries' %(acceptedt,torsmoves)
-	print 'reptation: %d moves accepted out of %d tries' %(acceptedr,reptmoves)
+	print 'angle bend: %d moves accepted out of %d tries' %(accepteda,angmoves)
 	print 'crankshaft: %d moves accepted out of %d tries' %(acceptedc,crankmoves)
-	print 'twist/torsion: %d moves accepted out of %d tries' %(acceptedat,atormoves)
+	print 'torsion: %d moves accepted out of %d tries' %(acceptedat,atormoves)
 	print('Simulation time: '+str(t2-t1))
 
 #x=range(len(rmsd_array))
