@@ -1,0 +1,44 @@
+{\rtf1\ansi\ansicpg1252\cocoartf1038\cocoasubrtf360
+{\fonttbl\f0\fswiss\fcharset0 Helvetica;}
+{\colortbl;\red255\green255\blue255;}
+\margl1440\margr1440\vieww11140\viewh12260\viewkind0
+\pard\tx720\tx1440\tx2160\tx2880\tx3600\tx4320\tx5040\tx5760\tx6480\tx7200\tx7920\tx8640\ql\qnatural\pardirnatural
+
+\f0\fs24 \cf0 A GO-like monte carlo simulation program\
+\
+
+\b simulateGO.py: 
+\b0 main simulation code\
+	\
+Usage:\
+python [-m profile] simulateGO.py [-f InputPdbFile] [-p paramfile] [-t Temperature] [-n NumberOfMoves] [-s step(number of moves between save operations)] [-o outputfile (conformation_energies.txt)] [-b PdbOutputName] [-r RmsdFigName] [-g HistogramFigName] [-a EnergyPlotName]\
+\
+all inputs have default values. default of -b, -r, -g, -a is no figure/pdb saving\
+\
+
+\b energyfunc.py:
+\b0  module with energy calculating functions\
+\
+
+\b moveset.py:
+\b0  module with move functions\
+\
+
+\b writetopdb.py:
+\b0  module with file writing functions\
+\
+
+\b testspeed.py:
+\b0  code i use to test various things. Uses same inputs as simulateGo.py but lacks the main simulation code.\
+\
+
+\b CEsimulate:
+\b0  script to run two simulateGO.py simulations for checkensemble validation. moves output files to a directory named checkensemble_low and checkensemble_high\
+\
+
+\b analyzeGO.py
+\b0 : script that runs checkensemble validation. \
+\
+
+\b plot.py:
+\b0  script that generates plot of energies, energy histogram, and rmsd. note: can do all this from simulateGO.py options}

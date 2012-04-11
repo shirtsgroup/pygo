@@ -113,22 +113,22 @@ def anglebend(mpos123,m,rand,theta):
 	return mpos 
 
 
-#def reptation(mpos123):
-    #mpos=mpos123.copy()
-    #theta=arccos(1-2*random())
-    #phi=2*pi*random()
-    #rho=3.86470703286 #unhardcode this
-    #vec=[rho*sin(theta)*cos(phi),rho*sin(theta)*sin(phi),rho*cos(theta)]    
-    #n=len(mpos)
-    #if random() < .5:    
-	#for i in range(n-1):
-             #mpos[i,:]=mpos[i+1,:]
-    	#mpos[n-1,:]=mpos[n-2][:]+vec
-    #else:
-	#for i in range(n-1,0,-1):
-	     #mpos[i,:]=mpos[i-1,:]
-	#mpos[0,:]=mpos[1,:]+vec
-    #return mpos
+def reptation(mpos123):
+    mpos=mpos123.copy()
+    theta=arccos(1-2*random())
+    phi=2*pi*random()
+    rho=3.86470703286 #unhardcode this
+    vec=[rho*sin(theta)*cos(phi),rho*sin(theta)*sin(phi),rho*cos(theta)]    
+    n=len(mpos)
+    if random() < .5:    
+	for i in range(n-1):
+             mpos[i,:]=mpos[i+1,:]
+    	mpos[n-1,:]=mpos[n-2][:]+vec
+    else:
+	for i in range(n-1,0,-1):
+	     mpos[i,:]=mpos[i-1,:]
+	mpos[0,:]=mpos[1,:]+vec
+    return mpos
 
 #new
 #def bend_n(mpos123,m,rand,theta,phi):
@@ -200,7 +200,7 @@ def anglebend(mpos123,m,rand,theta):
 	#return mpos
 	    
 
-#def enddist(mpos):
-    #distvec=mpos[:][0]-mpos[:][7] #this is hardcoded
-    #return dot(distvec,distvec)**.5
+def enddist(mpos):
+    distvec=mpos[:][0]-mpos[:][7] #this is hardcoded
+    return dot(distvec,distvec)**.5
 

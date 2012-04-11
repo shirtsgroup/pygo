@@ -29,6 +29,8 @@ parser.add_option("-o", "--outputfiles", dest="outputfiles", default='conformati
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--energyplot", dest="plotname", default='', help="name of plot of accepted conformation energies, if desired")
 parser.add_option("-b", "--writepdb", dest="pdbfile", default='', help="the output pdb file")
+#parser.add_option("-e", "--percentmove", nargs=2, dest="percentmove", type="float",default=[.33,.66], help="the output pdb file")
+parser.add_option("-r", "--rmsd", dest="rmsdfig", default='', help="name of rmsd figure, if desired")
 
 (options,args)=parser.parse_args()
 #========================================================================================================
@@ -41,17 +43,25 @@ T=options.T #Kelvin
 totmoves=options.totmoves
 step=options.step
 energyarray=zeros(totmoves/step+1)
-rmsd_array=zeros(totmoves/step+1)
 filename=options.datafile_directory + '/' + options.datafiles
 paramfile=options.datafile_directory + '/' + options.paramfiles
 outputfiles=options.outputfiles
 histname=options.histname
 plotname=options.plotname
 pdbfile=options.pdbfile
+#percentmove=options.percentmove
+rmsdfig=options.rmsdfig
+addbonds=options.addconnect
+
+
+
+if (rmsdfig != ""):
+	rmsd_array=zeros(totmoves/step+1)
+	
 
 kb=0.0019872041 #kcal/mol/K
 percentmove=[.33,.66] #% bend,% axis torsion,% crankshaft
-maxtheta=[5*T/300.,5*T/300.,10*T/300.] # bend, axistorsion, crankshaft
+maxtheta=[10*T/300.,10*T/300.,20*T/300.] # bend, axistorsion, crankshaft
 
 # read .pdb to get number of beads (numbeads)
 file=open(filename,'r')
@@ -64,7 +74,9 @@ while 1:
 	if splitline[0]=='ATOM':
 		numbeads += 1
 
-
+if (addbonds):
+	addconnect(filename,numbeads)
+	
 # gets bead coordinates from .pdb file
 file.seek(0)
 coord=empty((numbeads,3)) #3 dimensional
@@ -90,15 +102,18 @@ while 1:
 file.close()
 
 #Get native conformation
-coord_nat=coord.copy()
+if (rmsdfig != ""):
+	untransform=getmovietransform(coord)
+	transform=transpose(untransform)
+	coord_nat=moviecoord(coord,transform)
 
 #Get parameters from .param file
 angleparam=getangleparam(paramfile,numbeads)
 torsparam=gettorsionparam(paramfile,numbeads)
 
 #speed up terms
-numint=scipy.misc.comb(numbeads,2) # number of interactions
-numint= numint - 110 # don't count 12 and 13 neighbors
+numint=int(scipy.misc.comb(numbeads,2)+1) # number of interactions
+numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
 nativeparam_n=getnativefix_n(paramfile,numint,numbeads) # [ones and zeros, native epsilon, native sigma]
@@ -117,6 +132,14 @@ if (verbose):
 	print 'autocorrelation step size is %d moves' %(step)
 	print 'There are %d residues in %s' %(numbeads,filename)
 
+def energyprint(mpos,rsquare,torsE,angE):
+	LJ=LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+	energy=sum(angE)+sum(torsE)+LJ
+	print 'Angle energy: ' + str(sum(angE))
+	print 'Torsion energy: '+str(sum(torsE))
+	print 'LJ energy: '+str(LJ)
+	return energy
+
 def energy(mpos,rsquare,torsE,angE):
 	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
 	return energy
@@ -127,11 +150,11 @@ def energy(mpos,rsquare,torsE,angE):
 r2=getLJr2(coord,numint,numbeads)
 torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
-u0=energy(coord,r2,torsE,angE)
+u0=energyprint(coord,r2,torsE,angE)
 print u0
-accepted_energy=[u0]
 energyarray[0]=u0
-rmsd_array[0]=rmsd(coord_nat,coord)
+if (rmsdfig != ""):
+	rmsd_array[0]=rmsd(coord_nat,coord_nat)
 
 if(pdbfile != ''):
 	untransform=getmovietransform(coord)
@@ -250,12 +273,13 @@ while move<totmoves:
 		torsE=newtorsE
 		angE=newangE
     		u0=u1
-    		accepted_energy.append(u0)
 	else:
 	    rejected += 1
 	if move%step==0:
 	    energyarray[move/step]=u0
-	    rmsd_array[move/step]=rmsd(coord_nat,coord)
+	    if (rmsdfig != ''):
+	    	mcoord=moviecoord(coord,transform)
+	    	rmsd_array[move/step]=rmsd(coord_nat,mcoord)
 t2=datetime.now()
 
 if (pdbfile != ''):
@@ -272,8 +296,8 @@ if (pdbfile != ''):
 savetxt(outputfiles,energyarray)
 print 'wrote every %d conformation energies to %s' %(step,outputfiles)
 
-savetxt('rmsd.txt',rmsd_array)
-print 'wrote rmsd array to rmsd.txt'
+#savetxt('rmsd.txt',rmsd_array)
+#print 'wrote rmsd array to rmsd.txt'
 
 if plotname != '':
 	print 'generating conformational energy plot...'
@@ -284,6 +308,16 @@ if plotname != '':
 	plt.title('Go-like model monte carlo simulation at '+str(T)+' K')
 	plt.savefig(plotname)
 	print 'conformational energy plot saved to %s' %(plotname)
+
+if rmsdfig != '':
+	print 'generating rmsd plot...'
+	plt.figure(1)
+	plt.plot(range(len(rmsd_array)),rmsd_array)
+	plt.xlabel('move/%d' %(step))
+	plt.ylabel('rmsd')
+	plt.title('Go-like model monte carlo simulation at '+str(T)+' K')
+	plt.savefig(rmsdfig)
+	print 'rmsd plot saved to %s' %(rmsdfig)
 
 #if rmsdname != '':
 	#print 'generating rmsd plot...'

@@ -19,8 +19,8 @@ import pdb
 from time import time
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafiles", default='GO_protein.pdb', help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfiles", default='GO_protein.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafiles", default='GO_2LL3.pdb', help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfiles", default='GO_2LL3.param', help="protein .param file")
 parser.add_option("-d", "--directory", dest="datafile_directory", default='./', help="the directory the data files are in")
 parser.add_option("-t", "--temperature", default='300', dest="T", type="float", help="temperature")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -91,10 +91,8 @@ coord_nat=coord.copy()
 
 
 #Get parameters from .param file
-#angleparam=getangleparam(paramfile,numbeads)
-#torsparam=gettorsionparam(paramfile,numbeads)
-#LJparam=getLJparam(paramfile,numbeads)
-#nativeparam=getnativefix(paramfile)
+angleparam=getangleparam(paramfile,numbeads)
+torsparam=gettorsionparam(paramfile,numbeads)
 
 if (verbose):
 	print 'verbosity is %s' %(str(verbose))
@@ -107,31 +105,43 @@ if (verbose):
 ###############################
 ######## SPEED UP TERMS########
 ###############################
-#numint=scipy.misc.comb(numbeads,2) # number of interactions
-#numint= numint - 110 # don't count 12 and 13 neighbors
-##native LJ parameter getting
-#nativeparam_n=getnativefix_n(paramfile,numint,numbeads) # [ones and zeros, native epsilon, native sigma]
-##nonnative LJ parameter getting
-#nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
+numint=int(scipy.misc.comb(numbeads,2)+1) # number of interactions
+numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 
-#nnepsil=-nonnativesig[-1] # last element
-#nonnativesig=delete(nonnativesig,-1) #remove epsilon from sigma array
-#nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
-#nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
+
+#native LJ parameter getting
+nativeparam_n=getnativefix_n(paramfile,numint,numbeads) # [ones and zeros, native epsilon, native sigma]
+#nonnative LJ parameter getting
+nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
+
+nnepsil=-nonnativesig[-1] # last element
+nonnativesig=delete(nonnativesig,-1) #remove epsilon from sigma array
+nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
+nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
 ##temporary
-def energy(mpos,torsE,change):
-	oldtorsE=torsionenergy_n(mpos,torsE,torsparam,change)
-	newtorsE=torsionenergy_nn(mpos,torsE,torsparam,change)
-	energyold=sum(oldtorsE)
-	energynew=sum(newtorsE)
-	return [newtorsE,energyold,energynew]
+##def energy(mpos,torsE,change):
+##	oldtorsE=torsionenergy_n(mpos,torsE,torsparam,change)
+##	newtorsE=torsionenergy_nn(mpos,torsE,torsparam,change)
+##	energyold=sum(oldtorsE)
+##	energynew=sum(newtorsE)
+##	return [newtorsE,energyold,energynew]
+
+def energyprint(mpos,rsquare,torsE,angE):
+	LJ=LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+	energy=sum(angE)+sum(torsE)+LJ
+	print 'Angle energy: ' + str(sum(angE))
+	print 'Torsion energy: '+str(sum(torsE))
+	print 'LJ energy: '+str(LJ)
+	return energy
 
 
 ## calculate square distances for each interaction
-#r2=getLJr2(coord,numint,numbeads)
-#r2_new=getLJr2_n(coord,numint,numbeads)
-
+r2=getLJr2(coord,numint,numbeads)
+torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+u0=energyprint(coord,r2,torsE,angE)
+print u0
 
 #print energy(coord,r2)-energy(coord,r2_new)
 
@@ -176,22 +186,22 @@ def energy(mpos,torsE,change):
 	#print o-n
 	#move +=1
 	#angE=newangE
-pdbfile='simulates.pdb'
-writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
-dihedarr=dihedral(coord,numbeads)
-ang=angle(coord)
-newcoord=anglebend(coord,5,.7,pi/4)
-#newcoord=crankshaft(coord,5,pi/4)
-#newcoord=axistorsion(coord,5,.7,pi/4)
-dihedarr_n=dihedral(newcoord,numbeads)
-newang=angle(newcoord)
-#print dihedarr_n-dihedarr
-#print newang-ang
-addtopdb(newcoord,positiontemplate,1,pdbfile)
-
-f=open(pdbfile,'a')
-f.write('END\r\n')
-f.close
+##dbfile='simulates.pdb'
+##writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
+##dihedarr=dihedral(coord,numbeads)
+##ang=angle(coord)
+##newcoord=anglebend(coord,5,.3,pi/4)
+###newcoord=crankshaft(coord,5,pi/4)
+###newcoord=axistorsion(coord,5,.7,pi/4)
+##dihedarr_n=dihedral(newcoord,numbeads)
+##newang=angle(newcoord)
+##print dihedarr_n-dihedarr
+##print newang-ang
+##addtopdb(newcoord,positiontemplate,1,pdbfile)
+##
+##f=open(pdbfile,'a')
+##f.write('END\r\n')
+##f.close
 
 #angles=angle(coord)
 #newcoord=torsion(coord,5,.7)
@@ -243,20 +253,20 @@ f.close
 #print BCsn-BCs
 #print nbonds-bonds
 
-t=time()
-count=0
-n=10000
-while count<n:
-	newcoord1=axistorsion_n(coord,40,.3,pi/4)
-	count+=1
-print time()-t
+#t=time()
+#count=0
+#n=10000
+#while count<n:
+	#newcoord1=axistorsion_n(coord,40,.3,pi/4)
+	#count+=1
+#print time()-t
 
-t=time()
-count=0
-n=10000
-while count<n:
-	newcoord2=axistorsion(coord,40,.3,pi/4)
-	count+=1
-print time()-t
+#t=time()
+#count=0
+#n=10000
+#while count<n:
+	#newcoord2=axistorsion(coord,40,.3,pi/4)
+	#count+=1
+#print time()-t
 
-print newcoord2-newcoord1
+#print newcoord2-newcoord1
