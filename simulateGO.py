@@ -111,12 +111,15 @@ if (rmsdfig != ""):
 angleparam=getangleparam(paramfile,numbeads)
 torsparam=gettorsionparam(paramfile,numbeads)
 
+
 #speed up terms
 numint=int(scipy.misc.comb(numbeads,2)+1) # number of interactions
 numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
 nativeparam_n=getnativefix_n(paramfile,numint,numbeads) # [ones and zeros, native epsilon, native sigma]
+totnc=sum(nativeparam_n[:,0]) #total native contacts
+print totnc
 
 #nonnative LJ parameter getting
 nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]

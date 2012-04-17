@@ -52,6 +52,7 @@ def gettorsionparam(paramfile, numbeads):
 	    else:
 		param[i,:]=[0.0,0.0,0.0]
 		f.seek(-len(line),1)
+		print 'Dihedral parameter missing'
 	    i += 1
     f.close()
     return param
@@ -95,7 +96,7 @@ def getnativefix_n(paramfile,numint,numbeads):
 		if not line:
 			break
 		if "G" in line:
-			[i,j,ep,sig]=[int(line[1:3]),int(line[9:11]),float(line[19:28]),float(line[32:-1])]
+			[i,j,ep,sig]=[int(line[1:4]),int(line[9:12]),float(line[19:28]),float(line[32:-1])]
 			intindex=sum(numbeads-arange(1,i))+(j-i)-1-2*i
 			param[intindex,:]=[1,-ep,sig]
 	return param
@@ -126,6 +127,18 @@ def LJenergy_n(r2,natparam,nonnatparam,nnepsil):
 	energy=sum(nE)+sum(nnE)
 	return energy
 
+def LJenergy_CHARMM(r2,natparam,nonnatparam,nnepsil):
+	#native calculation
+	nE=natparam[:,0]*natparam[:,2]*natparam[:,2]/r2 #sigma2/r2
+	nE6=nE*nE*nE
+	nE=natparam[:,1]*(nE6*nE6-2*nE6)
+	#nonnative calculation
+	nnE=nonnatparam[:,0]*nonnatparam[:,1]*nonnatparam[:,1]/r2 #simga2/r2
+	nnE=nnE*nnE*nnE #sigma6/r6
+	nnE=nnepsil*(nnE*nnE-2*nnE)
+	energy=sum(nE)+sum(nnE)
+	return energy
+    
     
 def angleenergy_n(mpos, oldE,param,change):
     newE=oldE.copy()
@@ -158,32 +171,39 @@ def anglem(mpos,i):
 	return angle
 
 
-def dihedral(mpos,param):
+def dihedral(mpos):
 	#newdihed=olddihed.copy()
 	#newE=oldE.copy()
 	newdihed=zeros(len(mpos)-3)
 	for i in range(len(mpos)-3):
-		AB=mpos[:][i+1]-mpos[:][i]
-        	BC=mpos[:][i+2]-mpos[:][i+1]
-        	CD=mpos[:][i+3]-mpos[:][i+2]
-        	plane1=cross(BC,AB)
-        	plane2=cross(CD,BC)
+		AB=mpos[i+1,:]-mpos[i,:]
+        	BC=mpos[i+2,:]-mpos[i+1,:]
+        	CD=mpos[i+3,:]-mpos[i+2,:]
+        	plane1=cross(AB,BC)
+        	plane2=cross(BC,CD)
         	newdihed[i]=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
-		
+		if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
+			newdihed[i]=-abs(newdihed[i])+2*pi
+		else:
+			newdihed[i]=abs(newdihed[i])
 	return newdihed
-
+    
     
 def torsionenergy_nn(mpos,oldE,param,change):
     newE=oldE.copy()
     for i in change:
-        AB=mpos[:][i+1]-mpos[:][i]
-        BC=mpos[:][i+2]-mpos[:][i+1]
-        CD=mpos[:][i+3]-mpos[:][i+2]
-        plane1=[BC[1]*AB[2]-BC[2]*AB[1],BC[2]*AB[0]-BC[0]*AB[2],BC[0]*AB[1]-BC[1]*AB[0]] #cross(BC,AB)
-        plane2=[CD[1]*BC[2]-CD[2]*BC[1],CD[2]*BC[0]-CD[0]*BC[2],CD[0]*BC[1]-CD[1]*BC[0]]#cross(CD,BC)
+        AB=mpos[i+1,:]-mpos[i,:]
+        BC=mpos[i+2,:]-mpos[i+1,:]
+	CD=mpos[i+3,:]-mpos[i+2,:]
+        plane1=[AB[1]*BC[2]-AB[2]*BC[1],AB[2]*BC[0]-AB[0]*BC[2],AB[0]*BC[1]-AB[1]*BC[0]] #cross(AB,BC)
+        plane2=[BC[1]*CD[2]-BC[2]*CD[1],BC[2]*CD[0]-BC[0]*CD[2],BC[0]*CD[1]-BC[1]*CD[0]]#cross(CD,BC)
         dotplane1=plane1[0]*plane1[0]+plane1[1]*plane1[1]+plane1[2]*plane1[2]
 	dotplane2=plane2[0]*plane2[0]+plane2[1]*plane2[1]+plane2[2]*plane2[2]
 	dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/(dotplane1*dotplane2)**.5)
+	if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
+		dihedral=-abs(dihedral)+2*pi
+	else:
+		dihedral=abs(dihedral)
         energy=param[4*i:4*i+4,0]*(1+cos(param[4*i:4*i+4,1]*dihedral-pi/180*param[4*i:4*i+4,2]))
 	newE[i]=sum(energy)
     return newE
@@ -237,5 +257,8 @@ def rmsd(crds1, crds2):
   	rmsd_sq = (E0 - 2.0*sum(s)) / float(n_vec)
   	rmsd_sq = max([rmsd_sq, 0.0])
  	return numpy.sqrt(rmsd_sq)
+	
+def nativecontact(r2,nativeparam):
+	pass
 
 
