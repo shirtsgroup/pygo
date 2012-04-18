@@ -42,7 +42,6 @@ verbose=options.verbose
 T=options.T #Kelvin
 totmoves=options.totmoves
 step=options.step
-energyarray=zeros(totmoves/step+1)
 filename=options.datafile_directory + '/' + options.datafiles
 paramfile=options.datafile_directory + '/' + options.paramfiles
 outputfiles=options.outputfiles
@@ -54,7 +53,8 @@ rmsdfig=options.rmsdfig
 addbonds=options.addconnect
 
 
-
+energyarray=zeros(totmoves/step+1)
+nc=zeros(totmoves/step+1)
 if (rmsdfig != ""):
 	rmsd_array=zeros(totmoves/step+1)
 	
@@ -62,6 +62,8 @@ if (rmsdfig != ""):
 kb=0.0019872041 #kcal/mol/K
 percentmove=[.33,.66] #% bend,% axis torsion,% crankshaft
 maxtheta=[10*T/300.,10*T/300.,20*T/300.] # bend, axistorsion, crankshaft
+nativecutoff=1.2
+
 
 # read .pdb to get number of beads (numbeads)
 file=open(filename,'r')
@@ -119,7 +121,7 @@ numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 #native LJ parameter getting
 nativeparam_n=getnativefix_n(paramfile,numint,numbeads) # [ones and zeros, native epsilon, native sigma]
 totnc=sum(nativeparam_n[:,0]) #total native contacts
-print totnc
+nsigma2=nativecutoff*nativecutoff*nativeparam_n[:,2]*nativeparam_n[:,2]
 
 #nonnative LJ parameter getting
 nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
@@ -158,6 +160,8 @@ print u0
 energyarray[0]=u0
 if (rmsdfig != ""):
 	rmsd_array[0]=rmsd(coord_nat,coord_nat)
+nc[0]=nativecontact(r2,nativeparam_n,nsigma2)
+
 
 if(pdbfile != ''):
 	untransform=getmovietransform(coord)
@@ -280,6 +284,7 @@ while move<totmoves:
 	    rejected += 1
 	if move%step==0:
 	    energyarray[move/step]=u0
+	    nc[move/step]=nativecontact(r2,nativeparam_n,nsigma2)
 	    if (rmsdfig != ''):
 	    	mcoord=moviecoord(coord,transform)
 	    	rmsd_array[move/step]=rmsd(coord_nat,mcoord)
@@ -295,6 +300,14 @@ if (pdbfile != ''):
 #========================================================================================================
 # OUTPUT
 #========================================================================================================
+
+fraction=nc/totnc
+print 'excluding first '+str(len(fraction)/20)+' native contact values from average'
+fraction=fraction[len(fraction)/20:-1]
+fractionfile='fractionnative'+str(int(T))+'.txt'
+savetxt(fractionfile,fraction)
+print 'wrote ever %d conformation fraction native contacts to %s' %(step,fractionfile)
+print sum(fraction)/len(fraction)
 
 savetxt(outputfiles,energyarray)
 print 'wrote every %d conformation energies to %s' %(step,outputfiles)

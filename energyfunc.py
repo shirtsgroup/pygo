@@ -258,7 +258,11 @@ def rmsd(crds1, crds2):
   	rmsd_sq = max([rmsd_sq, 0.0])
  	return numpy.sqrt(rmsd_sq)
 	
-def nativecontact(r2,nativeparam):
-	pass
+def nativecontact(r2,nativeparam,nsigma2):
+	# native contact if ij pair is native and if rij < 1.2 sigmaij
+	r2=r2*nativeparam[:,0]
+	nc=nsigma2-r2
+	nc=nc[nc>0]
+	return len(nc)
 
 
