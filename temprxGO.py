@@ -12,12 +12,13 @@ from energyfunc import *
 from optparse import OptionParser
 import matplotlib.pyplot as plt
 from sys import stdout
-from random import *
+import random
 import profile
 import scipy.misc
 from simulationobject import *
 import os
 import pp
+import pdb
 
 parser=OptionParser()
 parser.add_option("-f", "--files", dest="datafile", default="GO_protein.pdb", help="protein .pdb file")
@@ -28,7 +29,7 @@ parser.add_option("-v", "--verbose", action="store_false", default=True, help="m
 parser.add_option("-c", "--addconnect", action="store_true", default=False, help="add bonds to .pdb file")
 parser.add_option("-n", "--moves", dest="totmoves", type="int", default='100', help="total number of moves")
 parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between save operations")
-parser.add_option("-k", "--swapstep", dest="swap", type="int", default='2000', help="number of moves between swap moves")
+parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', help="number of moves between swap moves")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--plot", action="store_true", default=True, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", dest="pdbfile", default='', help="the output pdb file")
@@ -136,6 +137,7 @@ Simulation.nnepsil=nnepsil
 Simulation.totmoves=totmoves
 Simulation.step=step
 Simulation.numbeads=numbeads
+
 Simulation.numint=numint
 Simulation.wordtemplate=wordtemplate
 Simulation.positiontemplate=positiontemplate
@@ -150,16 +152,10 @@ elif(numreplicas==2):
 	T=trange
 elif(numreplicas==3):
 	T=empty(numreplicas)
+	alpha=(trange[1]/trange[0])**(1/float(numreplicas-1))
 	T[0]=trange[0]
-	T[-1]=trange[1]
-	T[1]=T[0]+(T[-1]/T[0])**(1./(numreplicas-1))
-else:
-	T=empty(numreplicas)
-	T[0]=trange[0]
-	T[-1]=trange[1]
-	T[1]=T[0]+(T[-1]/T[0])**(1./(numreplicas-1))
-	for i in range(2,numreplicas-1):
-		T[i]=T[0]*(T[1]-T[0])**i
+	for i in range(1,numreplicas):
+		T[i]=T[i-1]*alpha
 
 if (verbose):
 	print 'verbosity is %s' %(str(verbose))
@@ -172,33 +168,43 @@ if (verbose):
 	print 'There are %d residues in %s' %(numbeads,filename)
 
 
-def tryswap(Simulations,lastenergy):
+def tryswap(Replicas):
 	if(numreplicas==1):
 		pass
 	else:
 		i=randint(0,numreplicas-2) #tests swap between replica i and i+1
-		print i
-		P=exp((lastenergy[i+1]-lastenergy[i])*(1/(kb*T[i])-1/(kb*T[i+1])))
-		if(random()<P):
-			Simulations[i].coord, Simulations[i+1].coord = Simulations[i+1].coord, Simulations[i].coord
+		P=exp((Replicas[i].u0-Replicas[i+1].u0)*(1/(kb*T[i])-1/(kb*T[i+1])))
+		print P
+		if(random.random()<P):
+			Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
+			Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
+			Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
+			Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
+			Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
+			print 'Swapping replica'+str(i)+' and replica'+str(i+1)
+		else:
+			print 'not swapping replica'+str(i)+' and replica'+str(i+1)
 
-def pprun(Simulations,moves):
-	jobs=[job_server.submit(Simulations[i].run,(moves,Simulations[i].coord,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat),(energy,energyprint),('random','numpy','energyfunc','moveset','writetopdb')) for i in range(numreplicas)]
-	lastenergy=[job() for job in jobs]
-	return lastenergy
+def pprun(Replicas,moves):
+	job_server=pp.Server()
+	jobs=[job_server.submit(run,(Replicas[i],moves,),(),("random","numpy","energyfunc","moveset","writetopdb")) for i in range(numreplicas)]
+	for job in jobs: print job()
+	#jobs=[job_server.submit(run,(moves,Simulations[i].coord,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat),(energy,energyprint),('random','numpy','energyfunc','moveset','writetopdb')) for i in range(numreplicas)]
+	#lastenergy=[job() for job in jobs]
+	#return lastenergy
 
-def energyprint(mpos,rsquare,torsE,angE):
-	LJ=energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
-	energy=sum(angE)+sum(torsE)+LJ
-	print 'Angle energy: ' + str(sum(angE))
-	print 'Torsion energy: '+str(sum(torsE))
-	print 'LJ energy: '+str(LJ)
-	print 'Total energy: '+str(energy)
-	return energy
+#def energyprint(mpos,rsquare,torsE,angE):
+	#LJ=energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
+	#energy=sum(angE)+sum(torsE)+LJ
+	#print 'Angle energy: ' + str(sum(angE))
+	#print 'Torsion energy: '+str(sum(torsE))
+	#print 'LJ energy: '+str(LJ)
+	#print 'Total energy: '+str(energy)
+	#return energy
 
-def energy(mpos,rsquare,torsE,angE):
-	energy=sum(angE)+sum(torsE)+energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
-	return energy
+#def energy(mpos,rsquare,torsE,angE):
+	#energy=sum(angE)+sum(torsE)+energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
+	#return energy
 
 
 #========================================================================================================
@@ -215,37 +221,58 @@ for i in range(len(T)):
 	replicas.append(Simulation(name,direc,coord,T[i]))
 
 #result=replicas[0].run(1000,replicas[0].coord)
-job_server=pp.Server()
+#job_server=pp.Server()
 #print job_server
 #jobs=job_server.submit(replicas[0].run,(1000,replicas[0].coord,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat),(energy,energyprint),modules=('random','numpy','energyfunc','moveset','writetopdb'))
 #result=jobs()
 #print result
 
-job_server=pp.Server()
 move=0
-print move
-
+########SIMULATE##########
 for i in range(totmoves/swap):
-	currentenergy=pprun(replicas,swap)
-	tryswap(replicas,currentenergy)
-	move += totmoves/swap
-	print move
+	for replica in replicas: run(replica,swap)
+	tryswap(replicas)
 
-e=pprun(replicas,totmoves%swap)
-print e
-move += totmoves%swap
-print move
+#job_server=pp.Server()
+#for i in range(totmoves/swap):
+	##pdb.set_trace()
+	#pprun(replicas,swap)
+	#tryswap(replicas)
 
-output=''
+#########OUTPUT##########
 for replica in replicas:
-	output+=replica.output(verbose)
+	#pdb.set_trace()
+	replica.output(verbose)
 	replica.saveenergy(plot)
 	replica.savermsd(plot)
 	replica.savenc(plot)
-print output
-f=open('./replicaexchange/output.txt','w')
-f.write(output)
-f.close	
+	replica.savehist(plot)
+
+#job_server=pp.Server()
+#move=0
+#print move
+
+#for i in range(1):#range(totmoves/swap):
+	#currentenergy=pprun(replicas,swap)
+	#tryswap(replicas,currentenergy)
+	#move += totmoves/swap
+	#print move
+
+#e=pprun(replicas,totmoves%swap)
+#print e
+#move += totmoves%swap
+#print move
+
+#output=''
+#for replica in replicas:
+	#output+=replica.output(verbose)
+	#replica.saveenergy(plot)
+	#replica.savermsd(plot)
+	#replica.savenc(plot)
+#print output
+#f=open('./replicaexchange/output.txt','w')
+#f.write(output)
+#f.close	
 	
 	
 t2=datetime.now()
