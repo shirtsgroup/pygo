@@ -13,15 +13,16 @@ import writetopdb
 import moveset
 import energyfunc
 import matplotlib.pyplot as plt
+import pdb
 
-def energyprint(mpos,rsquare,torsE,angE):
-	LJ=energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
-	energy=sum(angE)+sum(torsE)+LJ
-	print 'Angle energy: ' + str(sum(angE))
-	print 'Torsion energy: '+str(sum(torsE))
-	print 'LJ energy: '+str(LJ)
-	print 'Total energy: '+str(energy)
-	return energy
+#def energyprint(mpos,rsquare,torsE,angE):
+	#LJ=energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
+	#energy=sum(angE)+sum(torsE)+LJ
+	#print 'Angle energy: ' + str(sum(angE))
+	#print 'Torsion energy: '+str(sum(torsE))
+	#print 'LJ energy: '+str(LJ)
+	#print 'Total energy: '+str(energy)
+	#return energy
 
 def energy(mpos,rsquare,torsE,angE):
 	energy=sum(angE)+sum(torsE)+energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
@@ -31,10 +32,6 @@ def energy(mpos,rsquare,torsE,angE):
 class Simulation:
 	kb=0.0019872041 #kcal/mol/K
 	percentmove=[.33,.66] #% bend,% axis torsion,% crankshaft
-	
-	
-	def __set__(self,instance,value):
-		instance._name=value
 	
 	def __init__(self,name,outputdirectory,coord,temp):
 		self.name=name
@@ -48,7 +45,7 @@ class Simulation:
 		self.r2=energyfunc.getLJr2(self.coord,Simulation.numint,Simulation.numbeads)
 		self.torsE=energyfunc.torsionenergy_nn(self.coord,numpy.zeros(Simulation.numbeads-3),Simulation.torsparam,numpy.arange(Simulation.numbeads-3))
 		self.angE=energyfunc.angleenergy_n(self.coord,numpy.zeros(Simulation.numbeads-2),Simulation.angleparam,numpy.arange(Simulation.numbeads-2))
-		self.u0=energyprint(self.coord,self.r2,self.torsE,self.angE)
+		self.u0=energy(self.coord,self.r2,self.torsE,self.angE)
 		self.energyarray[0]=self.u0
 		self.rmsd_array[0]=energyfunc.rmsd(Simulation.coord_nat,Simulation.coord_nat)
 		self.nc[0]=energyfunc.nativecontact(self.r2,Simulation.nativeparam_n,Simulation.nsigma2)
@@ -63,6 +60,7 @@ class Simulation:
 		self.accepted=0
 		self.rejected=0
 		self.movetype=''
+		self.whoami=[]
 	
 	
 	
@@ -70,9 +68,9 @@ class Simulation:
 		write='-------- %s Simulation Results --------\r\n' %(self.name) 
 		write += 'total accepted moves: %d \r\n' %(self.accepted)
 		write += 'total rejected moves: %d \r\n' %(self.rejected)
-		write += 'angle bend: %d moves accepted out of %d tries \r\n' %(self.accepteda,self.angmoves)
-		write += 'crankshaft: %d moves accepted out of %d tries \r\n' %(self.acceptedc,self.crankmoves)
-		write += 'torsion: %d moves accepted out of %d tries \r\n' %(self.acceptedat,self.atormoves)
+		#write += 'angle bend: %d moves accepted out of %d tries \r\n' %(self.accepteda,self.angmoves)
+		#write += 'crankshaft: %d moves accepted out of %d tries \r\n' %(self.acceptedc,self.crankmoves)
+		#write += 'torsion: %d moves accepted out of %d tries \r\n' %(self.acceptedat,self.atormoves)
 		if(verbose):
 			print write
 		return write
@@ -80,10 +78,10 @@ class Simulation:
 	def saveenergy(self,plot):
 		filename=self.out+'/energy'+str(int(self.T))+'.txt'
 		savetxt(filename,self.energyarray)
-		print 'wrote every %d conformation energies to %s' %(Simulation.step,filename)
+		#print 'wrote every %d conformation energies to %s' %(Simulation.step,filename)
 		if(plot):
 			plotname=self.out+'/energy'+str(int(self.T))+'.png'
-			print 'generating conformational energy plot...'
+			#print 'generating conformational energy plot...'
 			fig=plt.figure(1)
 			plt.plot(range(len(self.energyarray)),self.energyarray,label=str('%3.2f') % self.T +' K')
 			plt.xlabel('move/%d' %(Simulation.step))
@@ -92,15 +90,15 @@ class Simulation:
 			plt.grid(True)
 			lgd=plt.legend(loc=2,prop={'size':8})
 			fig.savefig(plotname)
-			print 'conformational energy plot saved to %s' %(plotname)
+			#print 'conformational energy plot saved to %s' %(plotname)
 	
 	def savermsd(self,plot):
 		filename=self.out+'/rmsd'+str(int(self.T))+'.txt'
 		savetxt(filename,self.rmsd_array)
-		print 'wrote every %d rmsd values to %s' %(Simulation.step,filename)
+		#print 'wrote every %d rmsd values to %s' %(Simulation.step,filename)
 		if(plot):
 			plotname=self.out+'/rmsd'+str(int(self.T))+'.png'
-			print 'generating rmsd plot...'
+			#print 'generating rmsd plot...'
 			fig=plt.figure(2)
 			plt.plot(range(len(self.rmsd_array)),self.rmsd_array,label=str('%3.2f') % self.T +' K')
 			plt.xlabel('move/%d' %(Simulation.step))
@@ -109,20 +107,20 @@ class Simulation:
 			plt.grid(True)
 			lgd=plt.legend(loc=2,prop={'size':8})
 			fig.savefig(plotname)
-			print 'rmsd plot saved to %s' %(plotname)
+			#print 'rmsd plot saved to %s' %(plotname)
 		
 	
 	def savenc(self,plot):
 		fraction=self.nc/Simulation.totnc
 		fractionfile=self.out+'/fractionnative'+str(int(self.T))+'.txt'
 		savetxt(fractionfile,fraction)
-		print 'wrote every %d fractional nativeness values to %s' %(Simulation.step,fractionfile)
+		#print 'wrote every %d fractional nativeness values to %s' %(Simulation.step,fractionfile)
 		print 'excluding first '+str(len(fraction)/5)+' out of ' + str(len(fraction))+' fractional nativeness values from average'
 		fractioncut=fraction[len(fraction)/5:-1]
 		print 'the average fractional nativeness is '+str(sum(fractioncut)/len(fractioncut))
 		if(plot):
 			plotname=self.out+'/fractionnative'+str(int(self.T))+'.png'
-			print 'generating fractional nativeness plot...'
+			#print 'generating fractional nativeness plot...'
 			fig=plt.figure(3)
 			plt.plot(range(len(fraction)),fraction,label=str('%3.2f') % self.T +' K')
 			plt.xlabel('move/%d' %(Simulation.step))
@@ -131,33 +129,34 @@ class Simulation:
 			plt.grid(True)
 			lgd=plt.legend(loc=3,prop={'size':8})
 			fig.savefig(plotname)
-			print 'fractional nativeness plot saved to %s' %(plotname)
+			#print 'fractional nativeness plot saved to %s' %(plotname)
 	def savehist(self,plot):
 		if(plot):
 			plotname=self.out+'/energyhist'+str(int(self.T))+'.png'
-			print 'generating energy histogram...'
+			#print 'generating energy histogram...'
 			fig=plt.figure(4)
 			plt.hist(self.energyarray,40,label=str('%3.2f') % self.T +' K')
 			plt.xlabel('energy (kcal/mol)')
 			plt.title('Go-like model MC simulation at %d K' %(self.T))
 			plt.legend(loc=2,prop={'size':8})
 			fig.savefig(plotname)
-			print 'energy histogram saved to %s' %(plotname)
-			
-def run(self,nummoves):
+			#print 'energy histogram saved to %s' %(plotname)
+
+		
+def run(self,nummoves,dict):
 	#,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat):
-	#Simulation.numbeads=numbeads
-	#Simulation.step=step
-	#Simulation.totmoves=totmoves
-	#Simulation.numint=numint
-	#Simulation.angleparam=angleparam
-	#Simulation.torsparam=torsparam
-	#Simulation.nativeparam_n=nativeparam_n
-	#Simulation.nonnativeparam=nonnativeparam
-	#Simulation.nnepsil=nnepsil
-	#Simulation.nsigma2=nsigma2
-	#Simulation.transform=transform
-	#Simulation.coord_nat=coord_nat
+	Simulation.numbeads=dict['numbeads']
+	Simulation.step=dict['step']
+	Simulation.totmoves=dict['totmoves']
+	Simulation.numint=dict['numint']
+	Simulation.angleparam=dict['angleparam']
+	Simulation.torsparam=dict['torsparam']
+	Simulation.nativeparam_n=dict['nativeparam_n']
+	Simulation.nonnativeparam=dict['nonnativeparam']
+	Simulation.nnepsil=dict['nnepsil']
+	Simulation.nsigma2=dict['nsigma2']
+	Simulation.transform=dict['transform']
+	Simulation.coord_nat=dict['coord_nat']
 	for i in range(nummoves):
 		self.randmove=random.random()
 		self.randdir=random.random()
@@ -211,9 +210,8 @@ def run(self,nummoves):
 		self.newtorsE=energyfunc.torsionenergy_nn(self.newcoord,self.torsE,Simulation.torsparam,self.change)
 		self.u1=energy(self.newcoord,self.r2new,self.newtorsE,self.newangE)
 		self.move += 1
-		#print self.move
-		stdout.write(str(self.move)+'\r')
-		stdout.flush()
+		#stdout.write(str(self.move)+'\r')
+		#stdout.flush()
 		self.boltz=numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
 		#stdout.write(str(self.boltz)+'\r')
 		#stdout.flush()
@@ -249,7 +247,9 @@ def run(self,nummoves):
 			# rmsd array
 			self.mcoord=writetopdb.moviecoord(self.coord,Simulation.transform)
 			self.rmsd_array[self.move/Simulation.step]=energyfunc.rmsd(Simulation.coord_nat,self.mcoord)
-	return self.u0
+	#print str(self.name)+' '+str(self.u0)
+	return self
+	#return [self.energyarray,self.nc,self.rmsd_array,self.coord,self.move,self.accepted,self.rejected,self.acceptedc,self.acceptedat,self.accepteda,self.u0,self.r2,self.angE,self.torsE,self.crankmoves,self.atormoves,self.angmoves]
 	
 		
 	

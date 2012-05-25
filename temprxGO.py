@@ -104,15 +104,14 @@ file.close()
 
 untransform=getmovietransform(coord)
 transform=transpose(untransform)
-Simulation.transform=transform
+
 coord_nat=moviecoord(coord,transform)
-Simulation.coord_nat=coord_nat
+
 
 #Get parameters from .param file
 angleparam=getangleparam(paramfile,numbeads)
 torsparam=gettorsionparam(paramfile,numbeads)
-Simulation.angleparam=angleparam
-Simulation.torsparam=torsparam
+
 
 #pregenerate list of interactions
 numint=int(scipy.misc.comb(numbeads,2)+1) # number of interactions
@@ -120,10 +119,10 @@ numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
 nativeparam_n=getnativefix_n(paramfile,numint,numbeads) # [ones and zeros, native epsilon, native sigma]
-Simulation.nativeparam_n=nativeparam_n
-Simulation.totnc=sum(nativeparam_n[:,0]) #total native contacts
+
+totnc=sum(nativeparam_n[:,0]) #total native contacts
 nsigma2=nativecutoff2*nativeparam_n[:,2]*nativeparam_n[:,2]
-Simulation.nsigma2=nsigma2
+
 
 #nonnative LJ parameter getting
 nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
@@ -131,17 +130,27 @@ nnepsil=-nonnativesig[-1] # last element
 nonnativesig=delete(nonnativesig,-1) #remove epsilon from sigma array
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
+
+# set Simulation class variables
+Simulation.angleparam=angleparam
+Simulation.torsparam=torsparam
+Simulation.totnc=totnc
+Simulation.nativeparam_n=nativeparam_n
+Simulation.nsigma2=nsigma2
 Simulation.nonnativeparam=nonnativeparam
 Simulation.nnepsil=nnepsil
-# set additional Simulation class variables
 Simulation.totmoves=totmoves
 Simulation.step=step
 Simulation.numbeads=numbeads
-
 Simulation.numint=numint
 Simulation.wordtemplate=wordtemplate
 Simulation.positiontemplate=positiontemplate
 Simulation.ATOMlinenum=ATOMlinenum
+Simulation.transform=transform
+Simulation.coord_nat=coord_nat
+
+# put class variables in a dictionary for threading
+dict={'numbeads':numbeads,'step':step,'totmoves':totmoves,'numint':numint,'angleparam':angleparam,'torsparam':torsparam,'nativeparam_n':nativeparam_n,'nonnativeparam':nonnativeparam,'nnepsil':nnepsil,'nsigma2':nsigma2,'transform':transform,'coord_nat':coord_nat}
 
 # Calculate temperature distribution
 if(numreplicas==1):
@@ -150,12 +159,21 @@ if(numreplicas==1):
 	T=[trange[0]]
 elif(numreplicas==2):
 	T=trange
-elif(numreplicas==3):
+else:
 	T=empty(numreplicas)
 	alpha=(trange[1]/trange[0])**(1/float(numreplicas-1))
 	T[0]=trange[0]
 	for i in range(1,numreplicas):
 		T[i]=T[i-1]*alpha
+
+##########temporary#############
+#T[1]=295.0
+#T[2:7]=arange(310,335,5)
+#trange=[330.0,trange[1]]
+#alpha=(trange[1]/trange[0])**(1/9.0)
+#for i in range(7,numreplicas):
+	#T[i]=T[i-1]*alpha
+###################################3
 
 if (verbose):
 	print 'verbosity is %s' %(str(verbose))
@@ -167,31 +185,77 @@ if (verbose):
 	print 'the replica exchange interval is %d steps' %(swap)
 	print 'There are %d residues in %s' %(numbeads,filename)
 
-
-def tryswap(Replicas):
+#type 1 switches
+def tryswap1(Replicas,Swapaccepted,Swaprejected,Whoiswhere):
 	if(numreplicas==1):
 		pass
 	else:
-		i=randint(0,numreplicas-2) #tests swap between replica i and i+1
-		P=exp((Replicas[i].u0-Replicas[i+1].u0)*(1/(kb*T[i])-1/(kb*T[i+1])))
-		print P
-		if(random.random()<P):
-			Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
-			Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
-			Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
-			Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
-			Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-			print 'Swapping replica'+str(i)+' and replica'+str(i+1)
-		else:
-			print 'not swapping replica'+str(i)+' and replica'+str(i+1)
+		#i=randint(0,numreplicas-2) #tests swap between replica i and i+1
+		for i in range(0,numreplicas-1,2):
+			P=exp((Replicas[i].u0-Replicas[i+1].u0)*(1/(kb*T[i])-1/(kb*T[i+1])))
+			if(random.random()<P):
+				Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
+				Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
+				Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
+				Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
+				Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
+				#print 'Swapping replica'+str(i)+' and replica'+str(i+1)
+				Swapaccepted[i]+=1
+				Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
+				Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
+				Whoiswhere[Replicas[i].whoami[-1]].append(i)
+				Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
+			else:
+				#print 'not swapping replica'+str(i)+' and replica'+str(i+1)
+				Swaprejected[i]+=1
+				Replicas[i].whoami.append(Replicas[i].whoami[-1])
+				Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
+				Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
+				Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
+	if numreplicas%2==1:
+		Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
+		Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
+	return [Swapaccepted,Swaprejected,Whoiswhere]
 
-def pprun(Replicas,moves):
-	job_server=pp.Server()
-	jobs=[job_server.submit(run,(Replicas[i],moves,),(),("random","numpy","energyfunc","moveset","writetopdb")) for i in range(numreplicas)]
-	for job in jobs: print job()
+#type 2 switches
+def tryswap2(Replicas,Swapaccepted,Swaprejected,Whoiswhere):
+	if(numreplicas==1):
+		pass
+	else:
+		#i=randint(0,numreplicas-2) #tests swap between replica i and i+1
+		for i in range(1,numreplicas-1,2):
+			P=exp((Replicas[i].u0-Replicas[i+1].u0)*(1/(kb*T[i])-1/(kb*T[i+1])))
+			if(random.random()<P):
+				Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
+				Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
+				Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
+				Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
+				Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
+				#print 'Swapping replica'+str(i)+' and replica'+str(i+1)
+				Swapaccepted[i]+=1
+				Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
+				Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
+				Whoiswhere[Replicas[i].whoami[-1]].append(i)
+				Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
+			else:
+				#print 'not swapping replica'+str(i)+' and replica'+str(i+1)
+				Swaprejected[i]+=1
+				Replicas[i].whoami.append(Replicas[i].whoami[-1])
+				Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
+				Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
+				Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
+	Replicas[0].whoami.append(Replicas[0].whoami[-1])
+	Whoiswhere[Replicas[0].whoami[-1]].append(Whoiswhere[Replicas[0].whoami[-1]][-1])
+	if len(Replicas[numreplicas-1].whoami) != len(Replicas[0].whoami):
+		Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
+		Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
+	return [Swapaccepted,Swaprejected,Whoiswhere]
+
+def pprun(Replicas,moves,Dict):
+	jobs=[job_server.submit(run,(Replicas[i],moves,Dict),(energy,),("random","numpy","energyfunc","moveset","writetopdb")) for i in range(numreplicas)]
 	#jobs=[job_server.submit(run,(moves,Simulations[i].coord,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat),(energy,energyprint),('random','numpy','energyfunc','moveset','writetopdb')) for i in range(numreplicas)]
-	#lastenergy=[job() for job in jobs]
-	#return lastenergy
+	newReplicas=[job() for job in jobs]
+	return newReplicas
 
 #def energyprint(mpos,rsquare,torsE,angE):
 	#LJ=energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
@@ -202,9 +266,9 @@ def pprun(Replicas,moves):
 	#print 'Total energy: '+str(energy)
 	#return energy
 
-#def energy(mpos,rsquare,torsE,angE):
-	#energy=sum(angE)+sum(torsE)+energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
-	#return energy
+def energy(mpos,rsquare,torsE,angE):
+	energy=sum(angE)+sum(torsE)+energyfunc.LJenergy_n(rsquare,Simulation.nativeparam_n,Simulation.nonnativeparam,Simulation.nnepsil)
+	return energy
 
 
 #========================================================================================================
@@ -219,6 +283,7 @@ for i in range(len(T)):
 		os.mkdir(direc)
 	name='replica'+str(i)
 	replicas.append(Simulation(name,direc,coord,T[i]))
+	replicas[i].whoami.append(i)
 
 #result=replicas[0].run(1000,replicas[0].coord)
 #job_server=pp.Server()
@@ -229,54 +294,53 @@ for i in range(len(T)):
 
 move=0
 ########SIMULATE##########
-for i in range(totmoves/swap):
-	for replica in replicas: run(replica,swap)
-	tryswap(replicas)
-
-#job_server=pp.Server()
 #for i in range(totmoves/swap):
-	##pdb.set_trace()
-	#pprun(replicas,swap)
+	#for replica in replicas: run(replica,swap)
 	#tryswap(replicas)
+swapaccepted=zeros(numreplicas-1)
+swaprejected=zeros(numreplicas-1)
+job_server=pp.Server(ppservers=())
+whoiswhere=range(numreplicas)
+for i in whoiswhere:
+	whoiswhere[i]=[i]
+for i in range(totmoves/swap):
+	stdout.write(str(i)+'\r')
+	stdout.flush()
+	replicas=pprun(replicas,swap,dict)
+	job_server.wait()
+	if i%2==0:
+		#type 1 switch
+		[swapaccepted,swaprejected,whoiswhere]=tryswap1(replicas,swapaccepted,swaprejected,whoiswhere)
+	else:
+		#type 2 switch
+		[swapaccepted,swaprejected,whoiswhere]=tryswap2(replicas,swapaccepted,swaprejected,whoiswhere)
 
 #########OUTPUT##########
-for replica in replicas:
+job_server.print_stats()
+savetxt('./replicaexchange/whoiswhere.txt',whoiswhere)
+for i in range(len(replicas)):
 	#pdb.set_trace()
-	replica.output(verbose)
-	replica.saveenergy(plot)
-	replica.savermsd(plot)
-	replica.savenc(plot)
-	replica.savehist(plot)
+	replicas[i].output(verbose)
+	replicas[i].saveenergy(plot)
+	replicas[i].savermsd(plot)
+	replicas[i].savenc(plot)
+	replicas[i].savehist(plot)
+	#print replica.whoami
+	plt.figure(5)
+	plt.plot(range(len(whoiswhere[i])),whoiswhere[i])
+plt.xlabel('swap')
+plt.ylabel('replica')
+plt.savefig('./replicaexchange/whoiswhere.png')
 
-#job_server=pp.Server()
-#move=0
-#print move
+if(verbose):
+	for i in range(numreplicas-1):
+		print 'Swaps accepted betweeen replica'+str(i)+' and replica'+str(i+1)+': '+str('%3.2f') %(swapaccepted[i]/float(swapaccepted[i]+swaprejected[i])*100)+'%'
+	print 'Total swaps accepted: '+str(sum(swapaccepted))
+	print 'Total swaps rejected: '+str(sum(swaprejected))
 
-#for i in range(1):#range(totmoves/swap):
-	#currentenergy=pprun(replicas,swap)
-	#tryswap(replicas,currentenergy)
-	#move += totmoves/swap
-	#print move
 
-#e=pprun(replicas,totmoves%swap)
-#print e
-#move += totmoves%swap
-#print move
-
-#output=''
-#for replica in replicas:
-	#output+=replica.output(verbose)
-	#replica.saveenergy(plot)
-	#replica.savermsd(plot)
-	#replica.savenc(plot)
-#print output
-#f=open('./replicaexchange/output.txt','w')
-#f.write(output)
-#f.close	
-	
-	
 t2=datetime.now()
-
+plt.show()
 #if (pdbfile != ''):
 	#f=open(pdbfile,'a')
 	#f.write('END\r\n')
@@ -284,24 +348,6 @@ t2=datetime.now()
 	#print 'wrote trajectory to %s' %(pdbfile)
 
 
-##========================================================================================================
-## OUTPUT
-##========================================================================================================
-
-#fraction=nc/totnc
-#print 'excluding first '+str(len(fraction)/5)+' native contact values from average'
-#fraction=fraction[len(fraction)/20:-1]
-#fractionfile='fractionnative'+str(int(T))+'.txt'
-#savetxt(fractionfile,fraction)
-#print 'wrote ever %d conformation fraction native contacts to %s' %(step,fractionfile)
-#print sum(fraction)/len(fraction)
-
-
 print('Simulation time: '+str(t2-t1))
 
-#x=range(len(rmsd_array))
-#plt.plot(x,rmsd_array)
-#plt.ylabel('RMSD')
-#plt.xlabel('move/100')
-#plt.title('RMSD from native conformation at %f Kelvin taken every %d moves' %(T,step))
-#plt.savefig(rmsdname)
+
