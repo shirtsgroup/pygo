@@ -15,6 +15,7 @@ from sys import stdout
 from random import *
 import profile
 import scipy.misc
+import pdb
 
 parser=OptionParser()
 parser.add_option("-f", "--files", dest="datafiles", default='GO_protein.pdb', help="protein .pdb file")
@@ -43,6 +44,7 @@ T=options.T #Kelvin
 totmoves=options.totmoves
 step=options.step
 filename=options.datafile_directory + '/' + options.datafiles
+print filename
 paramfile=options.datafile_directory + '/' + options.paramfiles
 outputfiles=options.outputfiles
 histname=options.histname
@@ -60,8 +62,9 @@ if (rmsdfig != ""):
 	
 
 kb=0.0019872041 #kcal/mol/K
-percentmove=[.33,.66] #% bend,% axis torsion,% crankshaft
-maxtheta=[10*T/300.,10*T/300.,20*T/300.] # bend, axistorsion, crankshaft
+percentmove=[.2,.3,.5] #% bend,% axis torsion,% crankshaft, %local move
+#percentmove=[0,0,0]
+maxtheta=[10*T/300.,10*T/200.,20*T/250.,5.] # bend, axistorsion, crankshaft
 nativecutoff=1.2
 
 
@@ -175,6 +178,8 @@ if(pdbfile != ''):
 angmoves=0
 crankmoves=0
 atormoves=0
+lmoves=0
+acceptedlm=0
 acceptedat=0
 accepteda=0
 acceptedc=0
@@ -182,12 +187,13 @@ accepted=0
 rejected=0
 movetype=''
 move=0
+closure=0
 
 while move<totmoves:
         randmove=random()
 	randdir=random()
 	m=randint(1,numbeads-2) #random bead, not end ones
-	
+	uncloseable=False
 	#bend
 	if randmove < percentmove[0]:
 	    theta=maxtheta[0]/180.*pi-random()*maxtheta[0]*pi/180.*2
@@ -196,28 +202,8 @@ while move<totmoves:
 	    movetype='a'
 	    change=[]
 	    angchange=[m-1]
-	    #if randdir<.5:
-		    #change=arange(m-2,m+2)
-		    #angchange=arange(m-1,m+2)
-		    #if m==1:
-			    #change=arange(0,3)
-		    #elif m==numbeads-4: #53
-			    #change=arange(m-2,m+1)
-		    #elif m>numbeads-4: #53
-			    #change=change[change<(numbeads-3)]
-			    #angchange=angchange[angchange<(numbeads-2)]
-	    #else:
-		    #change=arange(m-4,m)
-		    #angchange=arange(m-3,m)
-		    #if m==3:
-			    #change=arange(0,m)
-		    #elif m<3:
-			    #change=change[change>-1]
-			    #angchange=angchange[angchange>-1]
-		    #elif m==numbeads-2:
-			    #change=arange(m-4,m-1)
 
-	#axis torsion
+	#torsion
 	elif randmove < percentmove[1]:
 	    theta=maxtheta[1]/180.*pi-random()*pi*maxtheta[1]/180.*2
 	    newcoord=axistorsion(coord,m,randdir,theta)
@@ -234,7 +220,7 @@ while move<totmoves:
 		    change=[m-1]
 	
 	#crankshaft
-	else:
+	elif randmove < percentmove[2]:
 	    theta=maxtheta[2]/180.*pi-random()*maxtheta[2]*pi/180.*2
 	    newcoord=crankshaft(coord,m,theta)
 	    crankmoves += 1
@@ -251,37 +237,72 @@ while move<totmoves:
 	    elif m==numbeads-2:
 		    change=arange(m-3,m-1)
 		    angchange=[m-2]
-
-	r2new=getLJr2(newcoord,numint,numbeads)
-	newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
-	newtorsE=torsionenergy_nn(newcoord,torsE,torsparam,change)
-	u1=energy(newcoord,r2new,newtorsE,newangE)
-        move += 1
-	stdout.write(str(move)+'\r')
-	stdout.flush()
-        boltz=exp(-(u1-u0)/(kb*T))
-	if u1< u0 or random() < boltz:
-        	accepted += 1
-		if movetype=='a':
-			accepteda += 1
-    		elif movetype=='r':
-			acceptedr += 1
-    		elif movetype=='at':
-			acceptedat +=1
-			#accepted_angle.append(theta)
-    		else: 
-        		acceptedc += 1
-    		if (pdbfile != ''):
-			mcoord=moviecoord(newcoord,transform)
-			#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
-			addtopdb(mcoord,positiontemplate,move,pdbfile)
-		r2=r2new
-		coord=newcoord
-		torsE=newtorsE
-		angE=newangE
-    		u0=u1
+	#local move
 	else:
-	    rejected += 1
+		theta=maxtheta[3]/180.*pi-random()*maxtheta[3]/180.*pi*2
+		movetype='lm'
+		lmoves +=1
+		if m<5 and randdir>.5:
+			newcoord=axistorsion(coord,m,randdir,theta)
+			angchange=[]
+			change=[m-1]
+		elif m>numbeads-6 and randdir<.5:
+			newcoord=axistorsion(coord,m,randdir,theta)
+			angchange=[]
+			change=[m-2]
+		else:
+			newcoord=localmove(coord,m,randdir,theta)
+			if any(isnan(newcoord)):
+				uncloseable=True
+				rejected +=1
+				closure +=1
+			elif randdir <.5: #toward end of chain
+				angchange=arange(m+2,m+5)
+				change=array([m-2,m+1,m+2,m+3,m+4])
+				angchange=angchange[angchange<(numbeads-2)]
+				change=change[change<(numbeads-3)]
+				angchange=angchange[angchange>-1]
+				change=change[change>(-1)]
+			else: # toward beginning of chain
+				angchange=arange(m-6,m-3)
+				change=array([m-7,m-6,m-5,m-4,m-1])
+				angchange=angchange[angchange>-1]
+				change=change[change>(-1)]
+				angchange=angchange[angchange<(numbeads-2)]
+				change=change[change<(numbeads-3)]
+	if(uncloseable==False):
+		r2new=getLJr2(newcoord,numint,numbeads)
+		newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
+		newtorsE=torsionenergy_nn(newcoord,torsE,torsparam,change)
+		u1=energy(newcoord,r2new,newtorsE,newangE)
+		move += 1
+		stdout.write(str(move)+'\r')
+		stdout.flush()
+		boltz=exp(-(u1-u0)/(kb*T))
+		if u1< u0 or random() < boltz:
+			accepted += 1
+			if movetype=='a':
+				accepteda += 1
+			elif movetype=='r':
+				acceptedr += 1
+			elif movetype=='at':
+				acceptedat +=1
+				#accepted_angle.append(theta)
+			elif movetype=='c': 
+				acceptedc += 1
+			else:
+				acceptedlm +=1
+			if (pdbfile != ''):
+				mcoord=moviecoord(newcoord,transform)
+				#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
+				addtopdb(mcoord,positiontemplate,move,pdbfile)
+			r2=r2new
+			coord=newcoord
+			torsE=newtorsE
+			angE=newangE
+			u0=u1
+		else:
+			rejected += 1
 	if move%step==0:
 	    energyarray[move/step]=u0
 	    nc[move/step]=nativecontact(r2,nativeparam_n,nsigma2)
@@ -302,8 +323,8 @@ if (pdbfile != ''):
 #========================================================================================================
 
 fraction=nc/totnc
-print 'excluding first '+str(len(fraction)/20)+' native contact values from average'
-fraction=fraction[len(fraction)/20:-1]
+print 'excluding first '+str(len(fraction)/5)+' native contact values from average'
+fraction=fraction[len(fraction)/5:-1]
 fractionfile='fractionnative'+str(int(T))+'.txt'
 savetxt(fractionfile,fraction)
 print 'wrote ever %d conformation fraction native contacts to %s' %(step,fractionfile)
@@ -327,7 +348,7 @@ if plotname != '':
 
 if rmsdfig != '':
 	print 'generating rmsd plot...'
-	plt.figure(1)
+	plt.figure(2)
 	plt.plot(range(len(rmsd_array)),rmsd_array)
 	plt.xlabel('move/%d' %(step))
 	plt.ylabel('rmsd')
@@ -342,7 +363,7 @@ if rmsdfig != '':
 
 if histname != '':
 	print 'generating conformation energy histogram'
-	plt.figure(2)
+	plt.figure(3)
 	plt.hist(energyarray,40)
 	plt.title('conformation energies at %f Kelvin taken every %d moves' %(T,step))
 	plt.xlabel('conformation energies (kcal/mol)')
@@ -355,6 +376,8 @@ if(verbose):
 	print 'angle bend: %d moves accepted out of %d tries' %(accepteda,angmoves)
 	print 'crankshaft: %d moves accepted out of %d tries' %(acceptedc,crankmoves)
 	print 'torsion: %d moves accepted out of %d tries' %(acceptedat,atormoves)
+	print 'local move: %d moves accepted out of %d tries' %(acceptedlm,lmoves)
+	print '%d local moves rejected due to chain closure' %(closure)
 	print('Simulation time: '+str(t2-t1))
 
 #x=range(len(rmsd_array))

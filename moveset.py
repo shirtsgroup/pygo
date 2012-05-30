@@ -1,5 +1,6 @@
 from numpy import *
 from random import *
+import scipy.optimize
 
 def crankshaft(mpos123,m,theta): 
     mpos=mpos123.copy()
@@ -199,6 +200,196 @@ def reptation(mpos123):
 			#mpos[i-1,:]=mpos[i,:]+BC_new
 	#return mpos
 	    
+def conrot(mpos123,m,rand,delw):
+	mpos=mpos123.copy()
+	solutions=[]
+	jacobians=[]
+	#get bond lengths and angles
+	l=empty(6)
+	u=empty((6,3))
+	theta=empty(6)
+	index=0
+	for i in range(m,m+7):
+		BA=mpos[i-1,:]-mpos[i,:]
+		BC=mpos[i+1,:]-mpos[i,:]
+		theta[index]=arccos(dot(BA,BC)/dot(BA,BA)**.5*dot(BC,BC)**.5)
+		l[index]=dot(BA,BA)**.5
+		u[index,:]=-BA/l[index]
+		index += 1
+	#get driver torsion w0
+	AB=mpos[m-1,:]-mpos[m-2,:]
+	BC=mpos[m,:]-mpos[m-1,:]
+	CD=mpos[m+1,:]-mpos[m,:]
+	plane1=cross(AB,BC)
+        plane2=cross(BC,CD)
+	w0=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+	if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
+		w0=-abs(w0)+2*pi
+	else:
+		w0=abs(w0)
+	q1=array([[l[3]+l[2]*cos(theta[2])],[l[2]*sin(theta[2])],[0]])
+	q2=array([[l[5]+l[4]*cos(theta[4])],[l[4]*sin(theta[4])],[0]])
+	q11=array([[l[2]+l[3]*cos(theta[2])],[l[3]*sin(theta[2])],[0]])
+	q22=array([[l[4]+l[5]*cos(theta[4])],[l[5]*sin(theta[4])],[0]])
+	T1lab=zeros((3,3))
+	T1lab[:,0]=u[1]
+	T1lab[:,2]=cross(u[1],u[0])/sin(theta[1])
+	T1lab[:,1]=cross(T1lab[:,2],T1lab[:,0])
+	r51=linalg.solve(T1lab,mpos[m+5]-mpos[m])
+	u61=linalg.solve(T1lab,u[6])
+	def func1(w1):
+		#branch 1
+		T1=array([[cos(theta[1]),sin(theta[1]),0],[sin(theta[1])*cos(w1),-cos(theta[1])*cos(w1),sin(w1)],[sin(theta[1])*sin(w1),-cos(theta[1])*sin(w1),-cos(w1)]])
+		t=linalg.solve(T1,r51-array([[l[1]],[0],[0]]))
+		w=(sum(q1**2)-sum(q2**2)+sum(t**2)-2*t[0]*q11[0])/(2*q11[1])
+		cosw2=(t[1]*w+t[2]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		sinw2=(t[2]*w-t[1]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		T2=array([[cos(theta[2]),sin(theta[2]),0],[sin(theta[2])*cosw2,-cos(theta[2])*cosw2,sinw2],[sin(theta[2])*sinw2,-cos(theta[2])*sinw2,-cosw2]])
+		q3=linalg.solve(T2,t)
+		q3=q3-q1
+		cosw4=(q3[0]-cos(theta[3])*q22[0])/(sin(theta[3])*q22[1])
+		sinw4=sin(arccos(cosw4))
+		A=q22[2]*sinw4
+		B=sin(theta[3])*q22[0]-cos(theta[3])*q22[1]*cosw4
+		sinw3=(q33[1]+B/A*q33[2])/(B**2/A+A)
+		cosw3=(B*sinw3-q33[2])/A
+		T3=array([[cos(theta[3]),sin(theta[3]),0],[sin(theta[3])*cosw3,-cos(theta[3])*cosw3,sinw3],[sin(theta[3])*sinw3,-cos(theta[3])*sinw3,-cosw3]])
+		T4=array([[cos(theta[4]),sin(theta[4]),0],[sin(theta[4])*cosw4,-cos(theta[4])*cosw4,sinw4],[sin(theta[4])*sinw4,-cos(theta[4])*sinw4,-cosw4]])
+		ans=dot(T4,array([[1],[0],[0]]))
+		ans=dot(T3,ans)
+		ans=dot(T2,ans)
+		ans=dot(T1,ans)
+		ans=dot(u61.transpose(),ans)
+		ans=ans-cos(theta[5])
+		return ans
+	def func2(w1):
+		#branch 2
+		T1=array([[cos(theta[1]),sin(theta[1]),0],[sin(theta[1])*cos(w1),-cos(theta[1])*cos(w1),sin(w1)],[sin(theta[1])*sin(w1),-cos(theta[1])*sin(w1),-cos(w1)]])
+		t=linalg.solve(T1,r51-array([[l[1]],[0],[0]]))
+		w=(sum(q1**2)-sum(q2**2)+sum(t**2)-2*t[0]*q11[0])/(2*q11[1])
+		cosw2=(t[1]*w+t[2]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		sinw2=(t[2]*w-t[1]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		T2=array([[cos(theta[2]),sin(theta[2]),0],[sin(theta[2])*cosw2,-cos(theta[2])*cosw2,sinw2],[sin(theta[2])*sinw2,-cos(theta[2])*sinw2,-cosw2]])
+		q3=linalg.solve(T2,t)
+		q3=q3-q1
+		cosw4=(q3[0]-cos(theta[3])*q22[0])/(sin(theta[3])*q22[1])
+		sinw4=sin(-arccos(cosw4))
+		A=q22[2]*sinw4
+		B=sin(theta[3])*q22[0]-cos(theta[3])*q22[1]*cosw4
+		sinw3=(q33[1]+B/A*q33[2])/(B**2/A+A)
+		cosw3=(B*sinw3-q33[2])/A
+		T3=array([[cos(theta[3]),sin(theta[3]),0],[sin(theta[3])*cosw3,-cos(theta[3])*cosw3,sinw3],[sin(theta[3])*sinw3,-cos(theta[3])*sinw3,-cosw3]])
+		T4=array([[cos(theta[4]),sin(theta[4]),0],[sin(theta[4])*cosw4,-cos(theta[4])*cosw4,sinw4],[sin(theta[4])*sinw4,-cos(theta[4])*sinw4,-cosw4]])
+		ans=dot(T4,array([[1],[0],[0]]))
+		ans=dot(T3,ans)
+		ans=dot(T2,ans)
+		ans=dot(T1,ans)
+		ans=dot(u61.transpose(),ans)
+		ans=ans-cos(theta[5])
+		return ans
+	def func3(w1):
+		#branch 1
+		T1=array([[cos(theta[1]),sin(theta[1]),0],[sin(theta[1])*cos(w1),-cos(theta[1])*cos(w1),sin(w1)],[sin(theta[1])*sin(w1),-cos(theta[1])*sin(w1),-cos(w1)]])
+		t=linalg.solve(T1,r51-array([[l[1]],[0],[0]]))
+		w=(sum(q1**2)-sum(q2**2)+sum(t**2)-2*t[0]*q11[0])/(2*q11[1])
+		cosw2=(t[1]*w-t[2]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		sinw2=(t[2]*w+t[1]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		T2=array([[cos(theta[2]),sin(theta[2]),0],[sin(theta[2])*cosw2,-cos(theta[2])*cosw2,sinw2],[sin(theta[2])*sinw2,-cos(theta[2])*sinw2,-cosw2]])
+		q3=linalg.solve(T2,t)
+		q3=q3-q1
+		cosw4=(q3[0]-cos(theta[3])*q22[0])/(sin(theta[3])*q22[1])
+		sinw4=sin(arccos(cosw4))
+		A=q22[2]*sinw4
+		B=sin(theta[3])*q22[0]-cos(theta[3])*q22[1]*cosw4
+		sinw3=(q33[1]+B/A*q33[2])/(B**2/A+A)
+		cosw3=(B*sinw3-q33[2])/A
+		T3=array([[cos(theta[3]),sin(theta[3]),0],[sin(theta[3])*cosw3,-cos(theta[3])*cosw3,sinw3],[sin(theta[3])*sinw3,-cos(theta[3])*sinw3,-cosw3]])
+		T4=array([[cos(theta[4]),sin(theta[4]),0],[sin(theta[4])*cosw4,-cos(theta[4])*cosw4,sinw4],[sin(theta[4])*sinw4,-cos(theta[4])*sinw4,-cosw4]])
+		ans=dot(T4,array([[1],[0],[0]]))
+		ans=dot(T3,ans)
+		ans=dot(T2,ans)
+		ans=dot(T1,ans)
+		ans=dot(u61.transpose(),ans)
+		ans=ans-cos(theta[5])
+		return ans
+	def func4(w1):
+		#branch 1
+		T1=array([[cos(theta[1]),sin(theta[1]),0],[sin(theta[1])*cos(w1),-cos(theta[1])*cos(w1),sin(w1)],[sin(theta[1])*sin(w1),-cos(theta[1])*sin(w1),-cos(w1)]])
+		t=linalg.solve(T1,r51-array([[l[1]],[0],[0]]))
+		w=(sum(q1**2)-sum(q2**2)+sum(t**2)-2*t[0]*q11[0])/(2*q11[1])
+		cosw2=(t[1]*w-t[2]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		sinw2=(t[2]*w+t[1]*(sum(t**2)-t[0]**2-w**2)**.5)/(sum(t**2)-t[0]**2)
+		T2=array([[cos(theta[2]),sin(theta[2]),0],[sin(theta[2])*cosw2,-cos(theta[2])*cosw2,sinw2],[sin(theta[2])*sinw2,-cos(theta[2])*sinw2,-cosw2]])
+		q3=linalg.solve(T2,t)
+		q3=q3-q1
+		cosw4=(q3[0]-cos(theta[3])*q22[0])/(sin(theta[3])*q22[1])
+		sinw4=sin(-arccos(cosw4))
+		A=q22[2]*sinw4
+		B=sin(theta[3])*q22[0]-cos(theta[3])*q22[1]*cosw4
+		sinw3=(q33[1]+B/A*q33[2])/(B**2/A+A)
+		cosw3=(B*sinw3-q33[2])/A
+		T3=array([[cos(theta[3]),sin(theta[3]),0],[sin(theta[3])*cosw3,-cos(theta[3])*cosw3,sinw3],[sin(theta[3])*sinw3,-cos(theta[3])*sinw3,-cosw3]])
+		T4=array([[cos(theta[4]),sin(theta[4]),0],[sin(theta[4])*cosw4,-cos(theta[4])*cosw4,sinw4],[sin(theta[4])*sinw4,-cos(theta[4])*sinw4,-cosw4]])
+		ans=dot(T4,array([[1],[0],[0]]))
+		ans=dot(T3,ans)
+		ans=dot(T2,ans)
+		ans=dot(T1,ans)
+		ans=dot(u61.transpose(),ans)
+		ans=ans-cos(theta[5])
+		return ans
+	# prerotation solutions
+	pass
+	# postrotation solutions
+	
+
+def localmove(mpos123,m,rand,theta):
+	mpos=mpos123.copy()
+	c=cos(theta)
+	s=sin(theta)
+	rotate=array([[1,0,0],[0,c,s],[0,-s,c]])
+	if rand <.5:
+		n=1
+	        #end=len(mpos)-1
+	else:
+		n=-1
+		#end=0
+	AB=mpos[m,:]-mpos[m-n,:]
+	BC=mpos[m+n,:]-mpos[m,:]
+	
+	dotAB=AB[0]*AB[0]+AB[1]*AB[1]+AB[2]*AB[2]
+	x=AB/dotAB**.5
+        y=BC-(BC[0]*AB[0]+BC[1]*AB[1]+BC[2]*AB[2])/dotAB*AB
+        y=y/(y[0]*y[0]+y[1]*y[1]+y[2]*y[2])**.5
+        z=[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]]
+        transform=array([x,y,z])
+	untransform=transpose(transform)
+	for i in range(m,m+n*3,n):
+		bond=mpos123[i+n,:]-mpos123[i,:]
+		bond=dot(transform,bond.transpose())
+		bond=dot(rotate,bond)
+		bond=dot(untransform,bond)
+		mpos[i+n,:]=mpos[i,:]+bond
+	AB=mpos[m+n*5,:]-mpos[m+n*3,:]
+	BC=mpos[m+n*4,:]-mpos[m+n*3,:]
+	dotAB=AB[0]*AB[0]+AB[1]*AB[1]+AB[2]*AB[2]
+	x=AB/dotAB**.5
+        y=BC-(BC[0]*AB[0]+BC[1]*AB[1]+BC[2]*AB[2])/dotAB*AB
+        y=y/(y[0]*y[0]+y[1]*y[1]+y[2]*y[2])**.5
+        z=[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]]
+        transform=array([x,y,z])
+	untransform=transpose(transform)
+	l42=dot(mpos123[m+n*4,:]-mpos123[m+n*3,:],mpos123[m+n*4,:]-mpos123[m+n*3,:])
+	l4=l42**.5
+	l52=dot(mpos123[m+n*5,:]-mpos123[m+n*4,:],mpos123[m+n*5,:]-mpos123[m+n*4,:])	
+	q2=dot(mpos[m+n*5,:]-mpos[m+n*3,:],mpos[m+n*5,:]-mpos[m+n*3,:])
+	cosine=(l42+q2-l52)/(2*l4*q2**.5)
+	if abs(cosine)>1:
+		return float('nan')
+	else:
+		sine=sin(arccos(cosine))
+		bond=array([l4*cosine,l4*sine,0])
+		mpos[m+n*4,:]=dot(untransform,bond)+mpos[m+n*3,:]
+		return mpos 
 
 def enddist(mpos):
     distvec=mpos[:][0]-mpos[:][7] #this is hardcoded

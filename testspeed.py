@@ -143,6 +143,11 @@ angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 print u0
 
+
+#old=dihedral(coord)
+#new=dihedral2(coord)
+#print new-old
+
 #print energy(coord,r2)-energy(coord,r2_new)
 
 
@@ -186,22 +191,44 @@ print u0
 	#print o-n
 	#move +=1
 	#angE=newangE
-##dbfile='simulates.pdb'
-##writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
-##dihedarr=dihedral(coord,numbeads)
-##ang=angle(coord)
-##newcoord=anglebend(coord,5,.3,pi/4)
-###newcoord=crankshaft(coord,5,pi/4)
-###newcoord=axistorsion(coord,5,.7,pi/4)
-##dihedarr_n=dihedral(newcoord,numbeads)
-##newang=angle(newcoord)
-##print dihedarr_n-dihedarr
-##print newang-ang
-##addtopdb(newcoord,positiontemplate,1,pdbfile)
-##
-##f=open(pdbfile,'a')
-##f.write('END\r\n')
-##f.close
+
+dihedarr=dihedral(coord)
+ang=angle(coord)
+newcoord=localmove(coord,8,.7,5*pi/180)
+dihedarr_n=dihedral(newcoord)
+newang=angle(newcoord)
+print dihedarr_n-dihedarr
+print newang-ang
+	
+#pdbfile='simulates.pdb'
+#writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
+#count=0
+#for i in range(10000):
+	##dihedarr=dihedral(coord)
+	##ang=angle(coord)
+	#m=randint(1,numbeads-2)
+	#rand=random()
+	#if m<5 and rand>.5 or m>numbeads-6 and rand<.5:
+		#newcoord=axistorsion(coord,m,rand,10*pi/180)
+	#else:
+		#newcoord=localmove(coord,m,rand,10*pi/180)
+	##newcoord=crankshaft(coord,5,pi/4)
+	##newcoord=axistorsion(coord,5,.7,pi/4)
+	##dihedarr_n=dihedral(newcoord)
+	##newang=angle(newcoord)
+	#if any(isnan(newcoord)):
+		#pass
+	#else:
+		#coord=newcoord
+		#addtopdb(newcoord,positiontemplate,1,pdbfile)
+		#count+=1
+	#print dihedarr_n-dihedarr
+	##print newang-ang
+	
+#print count
+#f=open(pdbfile,'a')
+#f.write('END\r\n')
+#f.close
 
 #angles=angle(coord)
 #newcoord=torsion(coord,5,.7)
