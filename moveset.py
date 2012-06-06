@@ -392,6 +392,6 @@ def localmove(mpos123,m,rand,theta):
 		return mpos 
 
 def enddist(mpos):
-    distvec=mpos[:][0]-mpos[:][7] #this is hardcoded
+    distvec=mpos[0,:]-mpos[-1,:] #this is hardcoded
     return dot(distvec,distvec)**.5
 

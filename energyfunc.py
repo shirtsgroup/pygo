@@ -102,6 +102,18 @@ def getnativefix_n(paramfile,numint,numbeads):
 	return param
 
 #speed up version
+def getforcer(mpos,numint,numbeads):
+	r2array=empty((numint,3))
+	k=0
+	for i in range(numbeads):
+		BC=mpos[i,:]-mpos[i+3:numbeads,:]
+		knew=k+numbeads-(i+3)
+		r2array[k:knew,:]=BC
+		k=knew
+	return r2array #r^2 values for every interaction
+
+
+#speed up version
 def getLJr2(mpos,numint,numbeads):
 	r2array=empty(numint)
 	k=0
@@ -116,6 +128,18 @@ def getLJr2(mpos,numint,numbeads):
 
 #speed up version
 def LJenergy_n(r2,natparam,nonnatparam,nnepsil):
+	#native calculation
+	nE=natparam[:,0]*natparam[:,2]*natparam[:,2]/r2 #sigma2/r2
+	nE6=nE*nE*nE
+	nE=natparam[:,1]*(13*nE6*nE6-18*nE6*nE*nE+4*nE6)
+	#nonnative calculation
+	nnE=nonnatparam[:,0]*nonnatparam[:,1]*nonnatparam[:,1]/r2 #simga2/r2
+	nnE6=nnE*nnE*nnE
+	nnE=nnepsil*(13*nnE6*nnE6-18*nnE6*nnE*nnE+4*nnE6)
+	energy=sum(nE)+sum(nnE)
+	return energy
+
+def LJenergy(r2,natparam,nonnatparam,nnepsil):
 	#native calculation
 	nE=natparam[:,0]*natparam[:,2]*natparam[:,2]/r2 #sigma2/r2
 	nE6=nE*nE*nE
@@ -155,6 +179,13 @@ def angleenergy_n(mpos, oldE,param,change):
     #print('angle energy: '+str(energy))
     return newE
 
+def bond(mpos):
+	bonds=zeros((len(mpos)-1,3))
+	bonds=mpos[0:len(mpos)-1,:]-mpos[1:len(mpos),:] #bond=rij=ri-rj
+	return bonds
+
+def r2bond(bonds):
+	return sum(bonds**2,axis=1)			
 
 def angle(mpos):
 	angle=zeros(len(mpos)-2)

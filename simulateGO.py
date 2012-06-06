@@ -118,7 +118,7 @@ torsparam=gettorsionparam(paramfile,numbeads)
 
 
 #speed up terms
-numint=int(scipy.misc.comb(numbeads,2)+1) # number of interactions
+numint=around(scipy.misc.comb(numbeads,2)) # number of interactions
 numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
@@ -256,6 +256,7 @@ while move<totmoves:
 				uncloseable=True
 				rejected +=1
 				closure +=1
+				move +=1
 			elif randdir <.5: #toward end of chain
 				angchange=arange(m+2,m+5)
 				change=array([m-2,m+1,m+2,m+3,m+4])
