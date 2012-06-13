@@ -25,7 +25,7 @@ parser.add_option("-t", "--temperature", default='300', dest="T", type="float", 
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
 parser.add_option("-c", "--addconnect", action="store_true", default=False, help="add bonds to .pdb file")
 parser.add_option("-n", "--moves", dest="totmoves", type="int", default='100', help="total number of moves")
-parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between save operations")
+parser.add_option("-s", "--stepsize", dest="step", type="float", default='100', help="number of moves between save operations")
 parser.add_option("-o", "--outputfiles", dest="outputfiles", default='conformation_energies.txt', help="the output file for every [step] energy")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--energyplot", dest="plotname", default='', help="name of plot of accepted conformation energies, if desired")
@@ -119,7 +119,6 @@ torsparam=gettorsionparam(paramfile,numbeads)
 
 #speed up terms
 numint=around(scipy.misc.comb(numbeads,2)) # number of interactions
-
 numint= numint - 2*(numbeads-2)-1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
@@ -128,9 +127,8 @@ totnc=sum(nativeparam_n[:,0]) #total native contacts
 nsigma2=nativecutoff*nativecutoff*nativeparam_n[:,2]*nativeparam_n[:,2]
 
 #nonnative LJ parameter getting
-nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
-nnepsil=-nonnativesig[-1] # last element
-nonnativesig=delete(nonnativesig,-1) #remove epsilon from sigma array
+[nonnativesig,nnepsil]=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
+pdb.set_trace()
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
@@ -153,6 +151,7 @@ def energy(mpos,rsquare,torsE,angE):
 	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
 	return energy
 
+
 		
 
 r2=getLJr2(coord,numint,numbeads)
@@ -162,61 +161,95 @@ u0=energyprint(coord,r2,torsE,angE)
 
 writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
 
-h=.04
-nsteps=100
-m=120.368 # average mass of all residues
-tol=1e-10
-
+h=step
+nsteps=totmoves
+#m=120.368 # average mass of all residues
+m=getmass('GO_protein.top',numbeads)
+tol=1e-7
 
 
 mpos=coord.copy()
-vel=np.random.normal(0,sqrt(.0083144621*T/120.3684),(numbeads,3)) #in nm/ps, uses average residue mass
+vel=empty((numbeads,3))
+for i in range(numbeads):
+	vel[i,:]=np.random.normal(0,sqrt(4.184*kb*T/m[i]),3) #in nm/ps, uses average residue mass
 bonds=bond(mpos)
 d2=sum(bonds**2,axis=1)
-force=bondedforces(mpos,torsparam,angleparam,bonds)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
-
+d=d2**.5
+force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 print 'Potential: '+str(u0)
-print 'Kinetic: '+str(.5*sum(vel**2))
+ke=.5*m/4.184*sum(vel**2,axis=1)
+print 'Kinetic: '+str(sum(ke))
+h0=u0+sum(ke)
+print 'Hamiltonian: '+str(h0)
 
+pot=zeros(nsteps+1)
+pot[0]=u0
+K=zeros(nsteps+1)
+K[0]=sum(ke)
+maxloop=1000
 
-
-for i in range(nsteps):
-	
+for e in range(nsteps):
+	loops=0
 	# finding r(t+dt)
 	conv=ones(len(mpos)-1)
-	q=vel+h/(2*m)*force
-	while sum(conv)!=0:
+	a=transpose(force)/m
+	q=vel+h/2*transpose(a)
+	while sum(conv)!=0 and loops<maxloop:
 		for i in range(len(mpos)-1): # loops through all bonds/constraints
 			s=bonds[i]+h*(q[i,:]-q[i+1,:])
-			diff=sum(s**2)-d2[i]
+			diff=s[0]*s[0]+s[1]*s[1]+s[2]*s[2]-d2[i]
 		#	print diff
 			if (abs(diff)<tol):
 				conv[i]=0
 			else:
-				g=diff/(4*h*dot(s,bonds[i]))*m
-				q[i,:]-=g/m*bonds[i]
-				q[i+1,:]+=g/m*bonds[i]
-		print sum(conv)
+				#g=diff/(4*h*dot(s,bonds[i]))*m
+				g=diff/(2*h*(s[0]*bonds[i,0]+s[1]*bonds[i,1]+s[2]*bonds[i,2])*(1/m[i]+1/m[i+1]))
+				q[i,:]-=g/m[i]*bonds[i]
+				q[i+1,:]+=g/m[i+1]*bonds[i]
+		loops += 1
+	if (loops==maxloop):
+		print 'not converging'
+		break
 	mpos+=h*q #r(t+dt)
 	vel=q # new v(t)
 	bonds=bond(mpos) #rij(t+dt)
-	force=bondedforces(mpos,torsparam,angleparam,bonds)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+	force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+
 	
 	#finding v(t+dt)
+	loops=0
 	conv=ones(len(mpos)-1)
-	vel+=h/(2*m)*force
-	while sum(conv)!=0:
+	a=transpose(force)/m
+	vel+=h/2*transpose(a)
+	while sum(conv)!=0 and loops<maxloop:
 		for i in range(len(mpos)-1):
-			if (abs(dot(bonds[i,:],vel[i,:]-vel[i+1,:]))<tol):
+			vij=vel[i,:]-vel[i+1,:]
+			diff=bonds[i,0]*vij[0]+bonds[i,1]*vij[1]+bonds[i,2]*vij[2]
+			if (abs(diff)<tol):
 				conv[i]=0
 			else:
-				k=dot(bonds[i,:],(vel[i,:]-vel[i+1,:])/d2[i]*m/2)
-				vel[i] -= k/m*bonds[i,:]
-				vel[i+1] += k/m*bonds[i,:]
-				
+				k=diff/(d2[i]*(1/m[i]+1/m[i+1]))
+				vel[i] -= k/m[i]*bonds[i,:]
+				vel[i+1] += k/m[i+1]*bonds[i,:]
+		loops += 1
+	if (loops==maxloop):
+		print 'not converging'
+		break
 	addtopdb(mpos,positiontemplate,i+1,pdbfile)
-	stdout.write(str(i)+'\r')
+	stdout.write(str(e)+'\r')
 	stdout.flush()
+	
+	coord=mpos
+	r2=getLJr2(coord,numint,numbeads)
+	torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+	angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+	u1=energy(coord,r2,torsE,angE)
+	ke=.5*m/4.184*sum(vel**2,axis=1)
+	
+	
+	pot[e+1]=u1
+	K[e+1]=sum(ke)
+	
 print sum(bonds**2,axis=1)-d2
 
 #for i in range(nsteps):
@@ -237,12 +270,31 @@ coord=mpos
 r2=getLJr2(coord,numint,numbeads)
 torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
-u0=energyprint(coord,r2,torsE,angE)
-print 'Potential: '+str(u0)
-print 'Kinetic: '+str(.5*sum(vel**2))
+u1=energyprint(coord,r2,torsE,angE)
+print 'Potential: '+str(u1)
+ke=.5*m/4.184*sum(vel**2,axis=1)
+print 'Kinetic: '+str(sum(ke))
+h1=u1+sum(ke)
+print 'Hamiltonian: '+str(h1)
+
+print 'Difference '+str(h1-h0)
+print 'Boltzmann Factor '+str(exp(-(h1-h0)/kb/T))
+
+print 'Difference '+str(u1-u0)
+print 'Boltzmann Factor '+str(exp(-(u1-u0)/kb/T))
 
 f=open(pdbfile,'a')
 f.write('END\r\n')
 f.close
 
 print 'Simulation time: '+str(datetime.now()-t1)
+
+plt.figure(1)
+plt.plot(range(nsteps+1),K,label='KE')
+plt.plot(range(nsteps+1),pot,label='PE')
+plt.plot(range(nsteps+1),K+pot,label='Total Energy')
+plt.legend()
+plt.xlabel('step (h=%f)'%(h))
+plt.ylabel('Energy (kcal/mol/K)')
+plt.title('MD simulation at %i for %f ps' %(T, h*nsteps))
+plt.show()

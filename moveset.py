@@ -1,6 +1,11 @@
 from numpy import *
 from random import *
 import scipy.optimize
+import numpy
+import energyfunc
+import HMCforce
+import pdb
+import writetopdb
 
 def crankshaft(mpos123,m,theta): 
     mpos=mpos123.copy()
@@ -390,8 +395,83 @@ def localmove(mpos123,m,rand,theta):
 		bond=array([l4*cosine,l4*sine,0])
 		mpos[m+n*4,:]=dot(untransform,bond)+mpos[m+n*3,:]
 		return mpos 
+	
+def runMD(self,nsteps,h,dict):
+	numbeads=dict['numbeads']
+	numint=dict['numint']
+	angleparam=dict['angleparam']
+	torsparam=dict['torsparam']
+	nativeparam_n=dict['nativeparam_n']
+	nonnativeparam=dict['nonnativeparam']
+	nnepsil=dict['nnepsil']
+	m=dict['mass']
+	positiontemplate=dict['positiontemplate']
+	
+	#m=120.368 # average mass of all residues
+	tol=1e-8
+	maxloop=100
+	
+	self.newcoord=self.coord.copy()
+	self.vel=empty((numbeads,3))
+	for i in range(numbeads): self.vel[i,:]=numpy.random.normal(0,(4.184*self.kb*self.T/m[i])**.5,3) #in nm/ps, uses average residue mass
+	bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
+	d2=numpy.sum(bonds**2,axis=1)
+	d=d2**.5
+	force=HMCforce.bondedforces(self.coord,torsparam,angleparam,bonds,d2,d)+HMCforce.nonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+	self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
+	
+	for e in range(nsteps):
+		#finding r(t+dt)
+		loops=0
+		conv=numpy.ones(numbeads-1)
+		a=numpy.transpose(force)/m
+		q=self.vel+h/2*transpose(a)
+		while numpy.sum(conv)!=0 and loops<maxloop:
+			for i in range(numbeads-1): # loops through all bonds/constraints
+				s=bonds[i]+h*(q[i,:]-q[i+1,:])
+				diff=s[0]*s[0]+s[1]*s[1]+s[2]*s[2]-d2[i]
+				#print diff
+				if (numpy.abs(diff)<tol):
+					conv[i]=0
+				else:
+					g=diff/(2*h*(s[0]*bonds[i,0]+s[1]*bonds[i,1]+s[2]*bonds[i,2])*(1/m[i]+1/m[i+1]))
+					q[i,:]-=g/m[i]*bonds[i]
+					q[i+1,:]+=g/m[i+1]*bonds[i]
+			loops += 1
+		if (loops==maxloop):
+			abc=q
+			pdb.set_trace()
+			break
+		self.newcoord+=h*q #r(t+dt)
+		self.vel=q # new v(t)
+		bonds=self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
+		force=HMCforce.bondedforces(self.newcoord,torsparam,angleparam,bonds,d2,d)+HMCforce.nonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+		
+		#finding v(t+dt)
+		loops=0
+		conv=numpy.ones(numbeads-1)
+		a=transpose(force)/m
+		self.vel+=h/2*transpose(a)
+		while numpy.sum(conv)!=0 and loops<maxloop:
+			for i in range(numbeads-1):
+				vij=self.vel[i,:]-self.vel[i+1,:]
+				diff=bonds[i,0]*vij[0]+bonds[i,1]*vij[1]+bonds[i,2]*vij[2]
+				if (numpy.abs(diff)<tol):
+					conv[i]=0
+				else:
+					k=diff/(d2[i]*(1/m[i]+1/m[i+1]))
+					self.vel[i] -= k/m[i]*bonds[i,:]
+					self.vel[i+1] += k/m[i+1]*bonds[i,:]
+			loops += 1
+		if (loops==maxloop):
+			break
+		writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+	if(loops==maxloop):
+		self.uncloseable=True
+		self.rejected += 1
+	return self
 
 def enddist(mpos):
-    distvec=mpos[0,:]-mpos[-1,:] #this is hardcoded
+    distvec=mpos[0,:]-mpos[-1,:]
     return dot(distvec,distvec)**.5
 

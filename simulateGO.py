@@ -99,9 +99,9 @@ while 1:
     if splitline[0]=='ATOM':
         positiontemplate.append(line)
         ATOMlinenum.append(k)
-        coord[i][0]=float(line[31:38])
-        coord[i][1]=float(line[39:46])
-        coord[i][2]=float(line[47:54])
+        coord[i,0]=float(line[31:38])
+        coord[i,1]=float(line[39:46])
+        coord[i,2]=float(line[47:54])
         i=i+1
     k=k+1
 file.close()
@@ -127,9 +127,8 @@ totnc=sum(nativeparam_n[:,0]) #total native contacts
 nsigma2=nativecutoff*nativecutoff*nativeparam_n[:,2]*nativeparam_n[:,2]
 
 #nonnative LJ parameter getting
-nonnativesig=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
-nnepsil=-nonnativesig[-1] # last element
-nonnativesig=delete(nonnativesig,-1) #remove epsilon from sigma array
+[nonnativesig,nnepsil]=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
+pdb.set_trace()
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
@@ -165,14 +164,15 @@ if (rmsdfig != ""):
 	rmsd_array[0]=rmsd(coord_nat,coord_nat)
 nc[0]=nativecontact(r2,nativeparam_n,nsigma2)
 
-
+#pdbfile2='simulate.pdb'
+#if (1):
 if(pdbfile != ''):
 	untransform=getmovietransform(coord)
 	transform=transpose(untransform)
 	mcoord=moviecoord(coord,transform)
 	#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,0)
-	writepdb(mcoord,wordtemplate,ATOMlinenum,0,pdbfile)
-	print 'writing trajectory to %s...' %(pdbfile)
+	writepdb(mcoord,wordtemplate,ATOMlinenum,0,pdbfile2)
+	print 'writing trajectory to %s...' %(pdbfile2)
 
 # constants for move stats
 angmoves=0
@@ -311,6 +311,9 @@ while move<totmoves:
 	    	mcoord=moviecoord(coord,transform)
 	    	rmsd_array[move/step]=rmsd(coord_nat,mcoord)
 t2=datetime.now()
+
+mcoord=moviecoord(newcoord,transform)
+addtopdb(mcoord,positiontemplate,move,pdbfile2)
 
 if (pdbfile != ''):
 	f=open(pdbfile,'a')

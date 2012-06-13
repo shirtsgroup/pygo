@@ -10,14 +10,27 @@ def getangleparam(paramfile,numbeads):
 	line=f.readline()
         if "ANGLE" in line:
             break
-    for i in range(numbeads-2): #no angle formed for end beads
+    for i in xrange(numbeads-2): #no angle formed for end beads
 	line=f.readline()
 	param[i][0]=float(line[26:36]) #somewhat hardcoded, may apply to all/most go model param files?
 	param[i][1]=float(line[37:-1])
     f.close()
     return param
 
-def gettorsionparam_o(paramfile, numbeads):
+def getmass(topfile,numbeads):
+	f=open(topfile,'r')
+	mass=empty(numbeads)
+	while 1:
+		line=f.readline()
+		if "MASS" in line:
+			break
+	for i in xrange(numbeads):
+		mass[i]=float(line[18:-1])
+		line=f.readline()
+	f.close()
+	return mass
+
+def gettorsionparam_old(paramfile, numbeads):
     f=open(paramfile,'r')
     param=empty((4*(numbeads-3),3)) #4 torsional potentials per 4 molecules
     while 1:
@@ -69,7 +82,7 @@ def getLJparam_n(paramfile,numbeads,numint):
 	    		break
     	for i in range(numbeads): # param for each bead, use combining rules for interaction
 		line=f.readline()
-		epsil=float(line[14:23]) #somewhat hardcoded
+		epsil=-float(line[14:23]) #somewhat hardcoded
 		param[i]=float(line[25:33])
     	f.close()
 	sigarray=zeros(numint)
@@ -80,8 +93,8 @@ def getLJparam_n(paramfile,numbeads,numint):
 		for j in vdw:
 			sigarray[k]=param[i]+param[j]
 			k += 1
-	sigarray=append(sigarray,epsil)
-    	return sigarray
+	#sigarray=append(sigarray,epsil)
+    	return [sigarray,epsil]
 
 #speed up version
 def getnativefix_n(paramfile,numint,numbeads):
@@ -103,7 +116,7 @@ def getnativefix_n(paramfile,numint,numbeads):
 
 #speed up version
 def getforcer(mpos,numint,numbeads):
-	r2array=empty((numint,3))
+	r2array=empty((numint,3)) # distance vectors
 	k=0
 	for i in range(numbeads):
 		BC=mpos[i,:]-mpos[i+3:numbeads,:]
@@ -174,18 +187,14 @@ def angleenergy_n(mpos, oldE,param,change):
 	dotBABC=BA[0]*BC[0]+BA[1]*BC[1]+BA[2]*BC[2]
 	dotBA=BA[0]*BA[0]+BA[1]*BA[1]+BA[2]*BA[2]
 	dotBC=BC[0]*BC[0]+BC[1]*BC[1]+BC[2]*BC[2]
-        angle=arccos(dotBABC/(dotBA**.5*dotBC**.5)) #in radians
-        newE[i]=ktheta*(angle-optangle)*(angle-optangle)
+        angle=arccos(dotBABC/(dotBA*dotBC)**.5) #in radians
+        newE[i]=ktheta*(angle-optangle)**2
     #print('angle energy: '+str(energy))
     return newE
 
 def bond(mpos):
-	bonds=zeros((len(mpos)-1,3))
 	bonds=mpos[0:len(mpos)-1,:]-mpos[1:len(mpos),:] #bond=rij=ri-rj
-	return bonds
-
-def r2bond(bonds):
-	return sum(bonds**2,axis=1)			
+	return bonds		
 
 def angle(mpos):
 	angle=zeros(len(mpos)-2)
@@ -202,6 +211,23 @@ def anglem(mpos,i):
 	return angle
 
 
+def dihedral_n(mpos):
+	#newdihed=olddihed.copy()
+	#newE=oldE.copy()
+	newdihed=zeros(len(mpos)-3)
+	for i in range(len(mpos)-3):
+		AB=mpos[i,:]-mpos[i+1,:]#rij
+        	BC=mpos[i+2,:]-mpos[i+1,:]#rkj
+        	CD=mpos[i+2,:]-mpos[i+3,:]#rkl
+        	plane1=cross(AB,BC)#m
+        	plane2=cross(BC,CD)#n
+        	newdihed[i]=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+		if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
+			newdihed[i]=-abs(newdihed[i])+2*pi
+		else:
+			newdihed[i]=abs(newdihed[i])
+	return newdihed
+ 
 def dihedral(mpos):
 	#newdihed=olddihed.copy()
 	#newE=oldE.copy()
@@ -226,8 +252,8 @@ def torsionenergy_nn(mpos,oldE,param,change):
         AB=mpos[i+1,:]-mpos[i,:]
         BC=mpos[i+2,:]-mpos[i+1,:]
 	CD=mpos[i+3,:]-mpos[i+2,:]
-        plane1=[AB[1]*BC[2]-AB[2]*BC[1],AB[2]*BC[0]-AB[0]*BC[2],AB[0]*BC[1]-AB[1]*BC[0]] #cross(AB,BC)
-        plane2=[BC[1]*CD[2]-BC[2]*CD[1],BC[2]*CD[0]-BC[0]*CD[2],BC[0]*CD[1]-BC[1]*CD[0]]#cross(CD,BC)
+        plane1=array([AB[1]*BC[2]-AB[2]*BC[1],AB[2]*BC[0]-AB[0]*BC[2],AB[0]*BC[1]-AB[1]*BC[0]]) #cross(AB,BC)
+        plane2=array([BC[1]*CD[2]-BC[2]*CD[1],BC[2]*CD[0]-BC[0]*CD[2],BC[0]*CD[1]-BC[1]*CD[0]])#cross(CD,BC)
         dotplane1=plane1[0]*plane1[0]+plane1[1]*plane1[1]+plane1[2]*plane1[2]
 	dotplane2=plane2[0]*plane2[0]+plane2[1]*plane2[1]+plane2[2]*plane2[2]
 	dihedral=arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2])/(dotplane1*dotplane2)**.5)

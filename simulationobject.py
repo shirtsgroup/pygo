@@ -31,7 +31,7 @@ def energy(mpos,rsquare,torsE,angE):
 
 class Simulation:
 	kb=0.0019872041 #kcal/mol/K
-	percentmove=[.33,.66] #% bend,% axis torsion,% crankshaft
+	percentmove=[.4,.6,.99,.99] #% bend,% axis torsion,% crankshaft, %local move, %MD
 	
 	def __init__(self,name,outputdirectory,coord,temp):
 		self.name=name
@@ -49,16 +49,21 @@ class Simulation:
 		self.energyarray[0]=self.u0
 		self.rmsd_array[0]=energyfunc.rmsd(Simulation.coord_nat,Simulation.coord_nat)
 		self.nc[0]=energyfunc.nativecontact(self.r2,Simulation.nativeparam_n,Simulation.nsigma2)
-		self.maxtheta=[10*self.T/300.,10*self.T/200.,20*self.T/250.] # bend, axistorsion, crankshaft
+		self.maxtheta=[10*self.T/300.,10*self.T/200.,20*self.T/250.,5.*self.T/300] # bend, axistorsion, crankshaft
 		# constants for move stats
 		self.angmoves=0
 		self.crankmoves=0
 		self.atormoves=0
+		self.lmoves=0
+		self.mdmove=0
+		self.acceptedmd=0
+		self.acceptedlm=0
 		self.acceptedat=0
 		self.accepteda=0
 		self.acceptedc=0
 		self.accepted=0
 		self.rejected=0
+		self.closure=0
 		self.movetype=''
 		self.whoami=[]
 	
@@ -68,9 +73,12 @@ class Simulation:
 		write='-------- %s Simulation Results --------\r\n' %(self.name) 
 		write += 'total accepted moves: %d \r\n' %(self.accepted)
 		write += 'total rejected moves: %d \r\n' %(self.rejected)
-		#write += 'angle bend: %d moves accepted out of %d tries \r\n' %(self.accepteda,self.angmoves)
-		#write += 'crankshaft: %d moves accepted out of %d tries \r\n' %(self.acceptedc,self.crankmoves)
-		#write += 'torsion: %d moves accepted out of %d tries \r\n' %(self.acceptedat,self.atormoves)
+		write += 'local move: %d moves accepted out of %d tries' %(self.acceptedlm,self.lmoves)
+		write += '%d local moves rejected due to chain closure' %(self.closure)
+		write += 'angle bend: %d moves accepted out of %d tries \r\n' %(self.accepteda,self.angmoves)
+		write += 'crankshaft: %d moves accepted out of %d tries \r\n' %(self.acceptedc,self.crankmoves)
+		write += 'torsion: %d moves accepted out of %d tries \r\n' %(self.acceptedat,self.atormoves)
+		write += 'MD moves: %d moves accepted out of %d tries \r\n' %(self.acceptedmd,self.mdmove)
 		if(verbose):
 			print write
 		return write
@@ -145,6 +153,7 @@ class Simulation:
 		
 def run(self,nummoves,dict):
 	#,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat):
+	
 	Simulation.numbeads=dict['numbeads']
 	Simulation.step=dict['step']
 	Simulation.totmoves=dict['totmoves']
@@ -157,11 +166,15 @@ def run(self,nummoves,dict):
 	Simulation.nsigma2=dict['nsigma2']
 	Simulation.transform=dict['transform']
 	Simulation.coord_nat=dict['coord_nat']
-	for i in range(nummoves):
+	Simulation.positiontemplate=dict['positiontemplate']
+	Simulation.pdbfile=dict['pdbfile']
+	m=dict['mass']
+	
+	for i in xrange(nummoves):
 		self.randmove=random.random()
 		self.randdir=random.random()
 		self.m=random.randint(1,Simulation.numbeads-2) #random bead, not end ones
-		
+		self.uncloseable=False
 		#bend
 		if self.randmove < Simulation.percentmove[0]:
 			self.theta=self.maxtheta[0]/180.*numpy.pi-random.random()*self.maxtheta[0]*numpy.pi/180.*2
@@ -188,7 +201,7 @@ def run(self,nummoves,dict):
 				self.change=[self.m-1]
 			
 		#crankshaft
-		else:
+		elif self.randmove < Simulation.percentmove[2]:
 			self.theta=self.maxtheta[2]/180.*numpy.pi-random.random()*self.maxtheta[2]*numpy.pi/180.*2
 			self.newcoord=moveset.crankshaft(self.coord,self.m,self.theta)
 			self.crankmoves += 1
@@ -205,38 +218,100 @@ def run(self,nummoves,dict):
 			elif self.m==Simulation.numbeads-2:
 				self.change=numpy.arange(self.m-3,self.m-1)
 				self.angchange=[self.m-2]
-		self.r2new=energyfunc.getLJr2(self.newcoord,Simulation.numint,Simulation.numbeads)
-		self.newangE=energyfunc.angleenergy_n(self.newcoord,self.angE,Simulation.angleparam,self.angchange)
-		self.newtorsE=energyfunc.torsionenergy_nn(self.newcoord,self.torsE,Simulation.torsparam,self.change)
-		self.u1=energy(self.newcoord,self.r2new,self.newtorsE,self.newangE)
-		self.move += 1
-		#stdout.write(str(self.move)+'\r')
-		#stdout.flush()
-		self.boltz=numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
-		#stdout.write(str(self.boltz)+'\r')
-		#stdout.flush()
-		if self.u1< self.u0 or random.random() < self.boltz:
-			self.accepted += 1
-			if self.movetype=='a':
-				self.accepteda += 1
-			elif self.movetype=='r':
-				self.acceptedr += 1
-			elif self.movetype=='at':
-				self.acceptedat +=1
-				#accepted_angle.append(theta)
+		#local move
+		elif self.randmove < Simulation.percentmove[3]:
+			self.theta=self.maxtheta[3]/180.*numpy.pi-random.random()*self.maxtheta[3]/180.*numpy.pi*2
+			self.movetype='lm'
+			self.lmoves +=1
+			if self.m<5 and self.randdir>.5:
+				self.newcoord=moveset.axistorsion(self.coord,self.m,self.randdir,self.theta)
+				self.angchange=[]
+				self.change=[self.m-1]
+			elif self.m>Simulation.numbeads-6 and self.randdir<.5:
+				self.newcoord=moveset.axistorsion(self.coord,self.m,self.randdir,self.theta)
+				self.angchange=[]
+				self.change=[self.m-2]
 			else: 
-				self.acceptedc += 1
-			#if (pdbfile != ''):
-				#mcoord=moviecoord(newcoord,transform)
-				##writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
-				#addtopdb(mcoord,positiontemplate,move,pdbfile)
-			self.r2=self.r2new
-			self.coord=self.newcoord
-			self.torsE=self.newtorsE
-			self.angE=self.newangE
-			self.u0=self.u1
+				self.newcoord=moveset.localmove(self.coord,self.m,self.randdir,self.theta)
+				if numpy.any(numpy.isnan(self.newcoord)):
+					self.uncloseable=True
+					del self.newcoord
+					self.rejected +=1
+					self.closure +=1
+					self.move += 1
+				elif self.randdir <.5: #toward end of chain
+					self.angchange=numpy.arange(self.m+2,self.m+5)
+					self.change=numpy.array([self.m-2,self.m+1,self.m+2,self.m+3,self.m+4])
+					self.angchange=self.angchange[self.angchange<(Simulation.numbeads-2)]
+					self.change=self.change[self.change<(Simulation.numbeads-3)]
+					self.angchange=self.angchange[self.angchange>-1]
+					self.change=self.change[self.change>(-1)]
+				else: # toward beginning of chain
+					self.angchange=numpy.arange(self.m-6,self.m-3)
+					self.change=numpy.array([self.m-7,self.m-6,self.m-5,self.m-4,self.m-1])
+					self.angchange=self.angchange[self.angchange>-1]
+					self.change=self.change[self.change>(-1)]
+					self.angchange=self.angchange[self.angchange<(Simulation.numbeads-2)]
+					self.change=self.change[self.change<(Simulation.numbeads-3)]
+		# run molecular dynamics
 		else:
-			self.rejected += 1
+			self=moveset.runMD(self,50,.5,dict)
+			self.movetype='md'
+			self.move += 1
+			self.mdmove += 1
+		
+		if(self.uncloseable==False and self.movetype=='md'):
+			self.r2new=energyfunc.getLJr2(self.newcoord,Simulation.numint,Simulation.numbeads)
+			self.newtorsE=energyfunc.torsionenergy_nn(self.newcoord,numpy.zeros(Simulation.numbeads-3),Simulation.torsparam,numpy.arange(Simulation.numbeads-3))
+			self.newangE=energyfunc.angleenergy_n(self.newcoord,numpy.zeros(Simulation.numbeads-2),Simulation.angleparam,numpy.arange(Simulation.numbeads-2))
+			self.u1=energy(self.newcoord,self.r2new,self.newtorsE,self.newangE)
+			self.newH=self.u1+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1))
+			self.boltz=numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
+			if self.newH < self.oldH or random.random() < self.boltz:
+				self.accepted += 1
+				self.acceptedmd += 1
+				self.r2=self.r2new
+				self.coord=self.newcoord
+				self.torsE=self.newtorsE
+				self.angE=self.newangE
+				self.u0=self.u1
+			else:
+				self.rejected += 1
+		elif(self.uncloseable==False and self.movetype!='md'):
+			self.r2new=energyfunc.getLJr2(self.newcoord,Simulation.numint,Simulation.numbeads)
+			self.newangE=energyfunc.angleenergy_n(self.newcoord,self.angE,Simulation.angleparam,self.angchange)
+			self.newtorsE=energyfunc.torsionenergy_nn(self.newcoord,self.torsE,Simulation.torsparam,self.change)
+			self.u1=energy(self.newcoord,self.r2new,self.newtorsE,self.newangE)
+			self.move += 1
+			#stdout.write(str(self.move)+'\r')
+			#stdout.flush()
+			self.boltz=numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
+			#stdout.write(str(self.boltz)+'\r')
+			#stdout.flush()
+			if self.u1< self.u0 or random.random() < self.boltz:
+				self.accepted += 1
+				if self.movetype=='a':
+					self.accepteda += 1
+				elif self.movetype=='r':
+					self.acceptedr += 1
+				elif self.movetype=='at':
+					self.acceptedat +=1
+					#accepted_angle.append(theta)
+				elif self.movetype=='c': 
+					self.acceptedc += 1
+				else:
+					self.acceptedlm += 1
+				#if (pdbfile != ''):
+					#mcoord=moviecoord(newcoord,transform)
+					##writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
+					#addtopdb(mcoord,positiontemplate,move,pdbfile)
+				self.r2=self.r2new
+				self.coord=self.newcoord
+				self.torsE=self.newtorsE
+				self.angE=self.newangE
+				self.u0=self.u1
+			else:
+				self.rejected += 1
 		if self.move%Simulation.step==0:
 			# energy array
 			self.energyarray[self.move/Simulation.step]=self.u0
@@ -247,10 +322,41 @@ def run(self,nummoves,dict):
 			# rmsd array
 			self.mcoord=writetopdb.moviecoord(self.coord,Simulation.transform)
 			self.rmsd_array[self.move/Simulation.step]=energyfunc.rmsd(Simulation.coord_nat,self.mcoord)
+			if (Simulation.pdbfile):
+				pass
+				#writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
 	#print str(self.name)+' '+str(self.u0)
 	return self
 	#return [self.energyarray,self.nc,self.rmsd_array,self.coord,self.move,self.accepted,self.rejected,self.acceptedc,self.acceptedat,self.accepteda,self.u0,self.r2,self.angE,self.torsE,self.crankmoves,self.atormoves,self.angmoves]
 	
 		
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 	
