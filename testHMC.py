@@ -15,7 +15,7 @@ from random import *
 import profile
 import scipy.misc
 import pdb
-from hmcGO import *
+from HMCforce import *
 
 parser=OptionParser()
 parser.add_option("-f", "--files", dest="datafiles", default='GO_protein.pdb', help="protein .pdb file")
@@ -128,7 +128,6 @@ nsigma2=nativecutoff*nativecutoff*nativeparam_n[:,2]*nativeparam_n[:,2]
 
 #nonnative LJ parameter getting
 [nonnativesig,nnepsil]=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
-pdb.set_trace()
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
@@ -159,14 +158,14 @@ torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 
-writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
+#writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
 
 h=step
 nsteps=totmoves
 #m=120.368 # average mass of all residues
 m=getmass('GO_protein.top',numbeads)
 tol=1e-7
-
+maxloop=1000
 
 mpos=coord.copy()
 vel=empty((numbeads,3))
@@ -175,7 +174,9 @@ for i in range(numbeads):
 bonds=bond(mpos)
 d2=sum(bonds**2,axis=1)
 d=d2**.5
-force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+a=transpose(force)/m
+vel, conv = HMCforce.rattle(bonds, vel, m, d2, maxloop, numbeads, tol)
 print 'Potential: '+str(u0)
 ke=.5*m/4.184*sum(vel**2,axis=1)
 print 'Kinetic: '+str(sum(ke))
@@ -186,56 +187,24 @@ pot=zeros(nsteps+1)
 pot[0]=u0
 K=zeros(nsteps+1)
 K[0]=sum(ke)
-maxloop=1000
+
 
 for e in range(nsteps):
-	loops=0
-	# finding r(t+dt)
-	conv=ones(len(mpos)-1)
-	a=transpose(force)/m
-	q=vel+h/2*transpose(a)
-	while sum(conv)!=0 and loops<maxloop:
-		for i in range(len(mpos)-1): # loops through all bonds/constraints
-			s=bonds[i]+h*(q[i,:]-q[i+1,:])
-			diff=s[0]*s[0]+s[1]*s[1]+s[2]*s[2]-d2[i]
-		#	print diff
-			if (abs(diff)<tol):
-				conv[i]=0
-			else:
-				#g=diff/(4*h*dot(s,bonds[i]))*m
-				g=diff/(2*h*(s[0]*bonds[i,0]+s[1]*bonds[i,1]+s[2]*bonds[i,2])*(1/m[i]+1/m[i+1]))
-				q[i,:]-=g/m[i]*bonds[i]
-				q[i+1,:]+=g/m[i+1]*bonds[i]
-		loops += 1
-	if (loops==maxloop):
+	v_half = vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
+	v_half, conv = HMCforce.shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # constrained v(t+dt/2)
+	if not conv:
 		print 'not converging'
 		break
-	mpos+=h*q #r(t+dt)
-	vel=q # new v(t)
-	bonds=bond(mpos) #rij(t+dt)
-	force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
-
-	
-	#finding v(t+dt)
-	loops=0
-	conv=ones(len(mpos)-1)
-	a=transpose(force)/m
-	vel+=h/2*transpose(a)
-	while sum(conv)!=0 and loops<maxloop:
-		for i in range(len(mpos)-1):
-			vij=vel[i,:]-vel[i+1,:]
-			diff=bonds[i,0]*vij[0]+bonds[i,1]*vij[1]+bonds[i,2]*vij[2]
-			if (abs(diff)<tol):
-				conv[i]=0
-			else:
-				k=diff/(d2[i]*(1/m[i]+1/m[i+1]))
-				vel[i] -= k/m[i]*bonds[i,:]
-				vel[i+1] += k/m[i+1]*bonds[i,:]
-		loops += 1
-	if (loops==maxloop):
+	mpos += h * v_half #constrained r(t+dt)
+	bonds = mpos[0:numbeads-1,:]-mpos[1:numbeads,:] #rij(t+dt)
+	force = HMCforce.bondedforces(mpos, torsparam, angleparam, bonds, d2, d, numbeads) +	HMCforce.nonbondedforces(mpos, numint, numbeads, nativeparam_n, nonnativeparam, nnepsil)
+	a = transpose(force)/m
+	vel = v_half + h/2*transpose(a)
+	vel, conv = HMCforce.rattle(bonds, vel, m, d2, maxloop, numbeads, tol)
+	if not conv:
 		print 'not converging'
 		break
-	addtopdb(mpos,positiontemplate,i+1,pdbfile)
+	#addtopdb(mpos,positiontemplate,i+1,pdbfile)
 	stdout.write(str(e)+'\r')
 	stdout.flush()
 	
@@ -251,20 +220,6 @@ for e in range(nsteps):
 	K[e+1]=sum(ke)
 	
 print sum(bonds**2,axis=1)-d2
-
-#for i in range(nsteps):
-	#mpos_new=mpos+v*tstep+.5*a*tstep**2
-	#bonds=bond(mpos_new)
-        #fnew=bondedforces(mpos_new,torsparam,angleparam,bonds)+nonbondedforces(mpos_new,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
-	##fnew=nonbondedforces(mpos_new,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
-	#fnew=fnew*4.184 # convert from kcal to kJ
-        #anew=fnew/120.368 # use average residue mass
-	#vnew=v+.5*tstep*(anew+a)
-	#v=vnew
-	#a=anew
-	#mpos=mpos_new
-	#addtopdb(mpos,positiontemplate,i+1,pdbfile)
-	##print i
 
 coord=mpos
 r2=getLJr2(coord,numint,numbeads)
@@ -283,9 +238,9 @@ print 'Boltzmann Factor '+str(exp(-(h1-h0)/kb/T))
 print 'Difference '+str(u1-u0)
 print 'Boltzmann Factor '+str(exp(-(u1-u0)/kb/T))
 
-f=open(pdbfile,'a')
-f.write('END\r\n')
-f.close
+#f=open(pdbfile,'a')
+#f.write('END\r\n')
+#f.close
 
 print 'Simulation time: '+str(datetime.now()-t1)
 
