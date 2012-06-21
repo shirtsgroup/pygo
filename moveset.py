@@ -346,41 +346,44 @@ def conrot(mpos123,m,rand,delw):
 	pass
 	# postrotation solutions
 	
+def localmove_find(mpos123, m, rand, theta):
+	"""Performs localmove_find with the reverse proximity criterion"""
+	newcoord = localmove_find(mpos123, m, rand, theta)
+	oldcoord = localmove_find(newcoord, m, rand, -theta)
+	print oldcoord - mpos123
 
-def localmove(mpos123,m,rand,theta):
-	mpos=mpos123.copy()
-	c=cos(theta)
-	s=sin(theta)
-	rotate=array([[1,0,0],[0,c,s],[0,-s,c]])
-	if rand <.5:
-		n=1
-	        #end=len(mpos)-1
+def localmove(mpos123, m, rand, theta):
+	mpos = mpos123.copy()
+	c = cos(theta)
+	s = sin(theta)
+	rotate = array([[1,0,0],[0,c,s],[0,-s,c]])
+	if rand < .5:
+		n = 1
 	else:
 		n=-1
-		#end=0
-	AB=mpos[m,:]-mpos[m-n,:]
-	BC=mpos[m+n,:]-mpos[m,:]
+	AB = mpos[m,:] - mpos[m-n,:]
+	BC = mpos[m+n,:] - mpos[m,:]
 	
-	dotAB=AB[0]*AB[0]+AB[1]*AB[1]+AB[2]*AB[2]
-	x=AB/dotAB**.5
-        y=BC-(BC[0]*AB[0]+BC[1]*AB[1]+BC[2]*AB[2])/dotAB*AB
-        y=y/(y[0]*y[0]+y[1]*y[1]+y[2]*y[2])**.5
-        z=[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]]
-        transform=array([x,y,z])
-	untransform=transpose(transform)
+	dotAB = AB[0]*AB[0] + AB[1]*AB[1] + AB[2]*AB[2]
+	x = AB / dotAB**.5
+        y = BC - (BC[0]*AB[0] + BC[1]*AB[1] + BC[2]*AB[2]) / dotAB * AB
+        y = y / (y[0]*y[0] + y[1]*y[1] + y[2]*y[2])**.5
+        z = [x[1]*y[2] - x[2]*y[1], x[2]*y[0] - x[0]*y[2], x[0]*y[1] - x[1]*y[0]]
+        transform = array([x,y,z])
+	untransform = transpose(transform)
 	for i in range(m,m+n*3,n):
-		bond=mpos123[i+n,:]-mpos123[i,:]
-		bond=dot(transform,bond.transpose())
-		bond=dot(rotate,bond)
-		bond=dot(untransform,bond)
-		mpos[i+n,:]=mpos[i,:]+bond
-	AB=mpos[m+n*5,:]-mpos[m+n*3,:]
-	BC=mpos[m+n*4,:]-mpos[m+n*3,:]
-	dotAB=AB[0]*AB[0]+AB[1]*AB[1]+AB[2]*AB[2]
-	x=AB/dotAB**.5
-        y=BC-(BC[0]*AB[0]+BC[1]*AB[1]+BC[2]*AB[2])/dotAB*AB
-        y=y/(y[0]*y[0]+y[1]*y[1]+y[2]*y[2])**.5
-        z=[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]]
+		bond = mpos123[i+n,:] - mpos123[i,:]
+		bond = dot(transform,bond.transpose())
+		bond = dot(rotate,bond)
+		bond = dot(untransform,bond)
+		mpos[i+n,:] = mpos[i,:] + bond
+	AB = mpos[m+n*5,:] - mpos[m+n*3,:]
+	BC = mpos[m+n*4,:] - mpos[m+n*3,:]
+	dotAB = AB[0]*AB[0] + AB[1]*AB[1] + AB[2]*AB[2]
+	x = AB / dotAB**.5
+        y = BC - (BC[0]*AB[0]+BC[1]*AB[1]+BC[2]*AB[2]) / dotAB * AB
+        y = y / (y[0]*y[0] + y[1]*y[1] + y[2]*y[2])**.5
+        z = [x[1]*y[2] - x[2]*y[1], x[2]*y[0] - x[0]*y[2], x[0]*y[1] - x[1]*y[0]]
         transform=array([x,y,z])
 	untransform=transpose(transform)
 	l42=dot(mpos123[m+n*4,:]-mpos123[m+n*3,:],mpos123[m+n*4,:]-mpos123[m+n*3,:])
@@ -395,6 +398,11 @@ def localmove(mpos123,m,rand,theta):
 		bond=array([l4*cosine,l4*sine,0])
 		mpos[m+n*4,:]=dot(untransform,bond)+mpos[m+n*3,:]
 		return mpos 
+	
+	
+	
+	
+	
 	
 def runMD(self,nsteps,h,dict):
 	numbeads=dict['numbeads']
@@ -418,60 +426,117 @@ def runMD(self,nsteps,h,dict):
 	d2=numpy.sum(bonds**2,axis=1)
 	d=d2**.5
 	force=HMCforce.bondedforces(self.coord,torsparam,angleparam,bonds,d2,d)+HMCforce.nonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+	a = numpy.transpose(force) / m
+	self.vel, conv = HMCforce.rattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
 	self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
 	
 	for e in range(nsteps):
 		#finding r(t+dt)
-		loops=0
-		conv=numpy.ones(numbeads-1)
-		a=numpy.transpose(force)/m
-		q=self.vel+h/2*transpose(a)
-		while numpy.sum(conv)!=0 and loops<maxloop:
-			for i in range(numbeads-1): # loops through all bonds/constraints
-				s=bonds[i]+h*(q[i,:]-q[i+1,:])
-				diff=s[0]*s[0]+s[1]*s[1]+s[2]*s[2]-d2[i]
-				#print diff
-				if (numpy.abs(diff)<tol):
-					conv[i]=0
-				else:
-					g=diff/(2*h*(s[0]*bonds[i,0]+s[1]*bonds[i,1]+s[2]*bonds[i,2])*(1/m[i]+1/m[i+1]))
-					q[i,:]-=g/m[i]*bonds[i]
-					q[i+1,:]+=g/m[i+1]*bonds[i]
-			loops += 1
-		if (loops==maxloop):
-			abc=q
-			pdb.set_trace()
+		#loops = 0
+		#conv = numpy.ones(numbeads-1)
+		v_half = self.vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
+		v_half, conv = HMCforce.shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # constrained v(t+dt/2)
+		#while numpy.sum(conv) != 0 and loops < maxloop:
+			#for i in range(numbeads-1): # loops through all bonds/constraints
+				#s = bonds[i] + h * (v_half[i,:] - v_half[i+1,:])
+				#diff = s[0]*s[0] + s[1]*s[1] + s[2]*s[2] - d2[i]
+				#if (numpy.abs(diff) < tol):
+					#conv[i] = 0
+				#else:
+					#g = diff / (2 * h * (s[0]*bonds[i,0] + s[1]*bonds[i,1] + s[2]*bonds[i,2]) * (1/m[i] + 1/m[i+1]))
+					#v_half[i,:] -= g / m[i] * bonds[i]
+					#v_half[i+1,:] += g / m[i+1] * bonds[i]
+			#loops += 1
+		#if (loops == maxloop):
+			#break
+		if not conv:
+			self.uncloseable=True
+			self.rejected += 1
 			break
-		self.newcoord+=h*q #r(t+dt)
-		self.vel=q # new v(t)
-		bonds=self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
-		force=HMCforce.bondedforces(self.newcoord,torsparam,angleparam,bonds,d2,d)+HMCforce.nonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
-		
-		#finding v(t+dt)
-		loops=0
-		conv=numpy.ones(numbeads-1)
+		self.newcoord += h * v_half #constrained r(t+dt)
+		bonds = self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
+		force = HMCforce.bondedforces(self.newcoord, torsparam, angleparam, bonds, d2, d) + 		HMCforce.nonbondedforces(self.newcoord, numint, numbeads, nativeparam_n, 		nonnativeparam, nnepsil)
 		a=transpose(force)/m
-		self.vel+=h/2*transpose(a)
-		while numpy.sum(conv)!=0 and loops<maxloop:
-			for i in range(numbeads-1):
-				vij=self.vel[i,:]-self.vel[i+1,:]
-				diff=bonds[i,0]*vij[0]+bonds[i,1]*vij[1]+bonds[i,2]*vij[2]
-				if (numpy.abs(diff)<tol):
-					conv[i]=0
-				else:
-					k=diff/(d2[i]*(1/m[i]+1/m[i+1]))
-					self.vel[i] -= k/m[i]*bonds[i,:]
-					self.vel[i+1] += k/m[i+1]*bonds[i,:]
-			loops += 1
-		if (loops==maxloop):
+		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
+		self.vel, conv = HMCforce.rattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+		if not conv:
+			self.uncloseable=True
+			self.rejected += 1
 			break
+		#finding v(t+dt)
+		#loops=0
+		#conv=numpy.ones(numbeads-1)
+		#a=transpose(force)/m
+		#self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
+		#while numpy.sum(conv)!=0 and loops<maxloop:
+			#for i in range(numbeads-1):
+				#vij=self.vel[i,:]-self.vel[i+1,:]
+				#diff=bonds[i,0]*vij[0]+bonds[i,1]*vij[1]+bonds[i,2]*vij[2]
+				#if (numpy.abs(diff)<tol):
+					#conv[i]=0
+				#else:
+					#k=diff/(d2[i]*(1/m[i]+1/m[i+1]))
+					#self.vel[i] -= k/m[i]*bonds[i,:]
+					#self.vel[i+1] += k/m[i+1]*bonds[i,:]
+			#loops += 1
+		#if (loops==maxloop):
+			#break
 		writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
-	if(loops==maxloop):
-		self.uncloseable=True
-		self.rejected += 1
+	#if(loops==maxloop):
+		#self.uncloseable=True
+		#self.rejected += 1
 	return self
 
 def enddist(mpos):
     distvec=mpos[0,:]-mpos[-1,:]
     return dot(distvec,distvec)**.5
 
+def makeT(angle,phi):
+    T = array([[-cos(angle),sin(angle),0], [-cos(phi)*sin(angle),-cos(phi)*cos(angle),-sin(phi)], [-sin(phi)*sin(angle),-sin(phi)*cos(angle),cos(phi)]])
+    return T
+
+def parrot(mpos123, m, rand, theta):
+    """Performs a parallel-rotation move"""
+    mpos = mpos123.copy()
+    angle = energyfunc.angle(mpos)
+    dihed = energyfunc.dihedral(mpos)
+    bonds = mpos[1:len(mpos),:]-mpos[0:-1,:]
+    phi0=dihed[m-2]+theta
+    T = makeT(angle[m-1],phi0)
+    u = bonds[m+2,:]/sum(bonds[m+2,:]**2)**.5
+    x=bonds[m-1,:]/sum(bonds[m-1,:]**2)**.5
+    z1=bonds[m-2,:]/sum(bonds[m-2,:]**2)**.5
+    z=cross(x,z1)/sin(pi-angle[m-2])
+    y=cross(z,x)
+    Tlab=vstack((x,y,z))
+    Tlab=transpose(Tlab)
+    u = linalg.solve(Tlab,u)
+    v = linalg.solve(T,u)
+    cosphi2 = (cos(angle[m])*cos(angle[m+1])-v[0]) / (sin(angle[m+1])*sin(angle[m]))
+    phi2=arccos(cosphi2) # 0, 1, or 2 solutions
+    a = sin(angle[m])*cos(angle[m+1]) + cosphi2*cos(angle[m])*sin(angle[m+1])
+    b = sin(angle[m+1])*sin(phi2)
+    cosphi1 = (a*v[1] - b*v[2])/(1-v[0]**2)
+    phi1 = arccos(cosphi1)
+    bond=dot(Tlab,T)
+    mpos[m+1,:]=mpos[m,:]+dot(bond,array([sqrt(sum(bonds[m,:]**2)),0,0]))
+    T1=makeT(angle[m],phi1)
+    T2=makeT(angle[m+1],phi2)
+    bond=dot(bond,T1)
+    mpos[m+2,:]=mpos[m+1,:]+dot(bond,array([sqrt(sum(bonds[m+1,:]**2)),0,0]))
+    bond=dot(bond,T2)
+    mpos[m+3,:]=mpos[m+2,:]+dot(bond,array([sqrt(sum(bonds[m+2,:]**2)),0,0]))
+    #T3=makeT(angle[m+2],dihed[m+1])
+    #bond=dot(bond,T3)
+    #bond=dot(bond,array([sqrt(sum(bonds[m+3,:]**2)),0,0]))
+    #phi3=arccos(dot(bond,bonds[m+3])/(dot(bond,bond)*dot(bonds[m+3],bonds[m+3]))**.5)
+    for i in range(m+3,len(mpos)-1):
+        mpos[i+1,:]=mpos[i,:]+bonds[i,:]
+    pdb.set_trace()
+    
+    
+    
+    
+    
+    
+    
