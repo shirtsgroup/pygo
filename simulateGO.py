@@ -57,14 +57,14 @@ addbonds=options.addconnect
 
 energyarray=zeros(totmoves/step+1)
 nc=zeros(totmoves/step+1)
-if (rmsdfig != ""):
+if rmsdfig:
 	rmsd_array=zeros(totmoves/step+1)
 	
 
 kb=0.0019872041 #kcal/mol/K
-percentmove=[.2,.3,.5] #% bend,% axis torsion,% crankshaft, %local move
+percentmove=[-.2,-.3,-.5,-1] #% bend,% axis torsion,% crankshaft, %local move
 #percentmove=[0,0,0]
-maxtheta=[10*T/300.,10*T/200.,20*T/250.,5.] # bend, axistorsion, crankshaft
+maxtheta=[10*T/300.,10*T/200.,20*T/250.,5.,10.] # bend, axistorsion, crankshaft
 nativecutoff=1.2
 
 
@@ -107,7 +107,7 @@ while 1:
 file.close()
 
 #Get native conformation
-if (rmsdfig != ""):
+if rmsdfig:
 	untransform=getmovietransform(coord)
 	transform=transpose(untransform)
 	coord_nat=moviecoord(coord,transform)
@@ -128,11 +128,10 @@ nsigma2=nativecutoff*nativecutoff*nativeparam_n[:,2]*nativeparam_n[:,2]
 
 #nonnative LJ parameter getting
 [nonnativesig,nnepsil]=getLJparam_n(paramfile,numbeads,numint) #[nonnative sigmas for every interaction, epsilon (one value)]
-pdb.set_trace()
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
-if (verbose):
+if verbose:
 	print 'verbosity is %s' %(str(verbose))
 	print 'temperature is %f' %(T)
 	print 'total number of moves is %d' %(totmoves)
@@ -160,25 +159,27 @@ angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 print u0
 energyarray[0]=u0
-if (rmsdfig != ""):
+if rmsdfig:
 	rmsd_array[0]=rmsd(coord_nat,coord_nat)
 nc[0]=nativecontact(r2,nativeparam_n,nsigma2)
 
 #pdbfile2='simulate.pdb'
 #if (1):
-if(pdbfile != ''):
-	untransform=getmovietransform(coord)
-	transform=transpose(untransform)
-	mcoord=moviecoord(coord,transform)
+if pdbfile:
+	#untransform=getmovietransform(coord)
+	#transform=transpose(untransform)
+	#mcoord=moviecoord(coord,transform)
 	#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,0)
-	writepdb(mcoord,wordtemplate,ATOMlinenum,0,pdbfile2)
-	print 'writing trajectory to %s...' %(pdbfile2)
+	writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
+	print 'writing trajectory to %s...' %(pdbfile)
 
 # constants for move stats
 angmoves=0
 crankmoves=0
 atormoves=0
 lmoves=0
+pmoves=0
+acceptedp=0
 acceptedlm=0
 acceptedat=0
 accepteda=0
@@ -238,7 +239,7 @@ while move<totmoves:
 		    change=arange(m-3,m-1)
 		    angchange=[m-2]
 	#local move
-	else:
+	elif randmove < percentmove[3]:
 		theta=maxtheta[3]/180.*pi-random()*maxtheta[3]/180.*pi*2
 		movetype='lm'
 		lmoves +=1
@@ -271,6 +272,34 @@ while move<totmoves:
 				change=change[change>(-1)]
 				angchange=angchange[angchange<(numbeads-2)]
 				change=change[change<(numbeads-3)]
+
+        # parrot
+        else:
+            theta = maxtheta[4]/180.*pi-random()*maxtheta[4]/180.*pi*2
+            movetype = 'p'
+            pmoves += 1
+            angchange=[]
+            if m == 1:
+                newcoord = axistorsion(coord, m, 1, theta)
+                change = [0]
+            elif m == numbeads-2:
+                newcoord = axistorsion(coord, m, 0, theta)
+                change = [m-2]
+            else:
+                newcoord=parrot_o(coord, m, randdir, theta)
+                if any(isnan(newcoord)):
+                    uncloseable = True
+                    rejected += 1
+                    closure += 1
+                    move += 1
+                elif randdir < .5:
+                    change = arange(m-2,m+2)
+                    change = change[change<(numbeads-3)]
+                else:
+                    change = arange(m-4,m)
+                    change = change[change>-1]
+                    change = change[change<(numbeads-3)]
+                
 	if(uncloseable==False):
 		r2new=getLJr2(newcoord,numint,numbeads)
 		newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
@@ -291,12 +320,14 @@ while move<totmoves:
 				#accepted_angle.append(theta)
 			elif movetype=='c': 
 				acceptedc += 1
-			else:
+			elif movetype=='lm':
 				acceptedlm +=1
-			if (pdbfile != ''):
-				mcoord=moviecoord(newcoord,transform)
+                        else:
+                            acceptedp += 1
+			if pdbfile:
+				#mcoord=moviecoord(newcoord,transform)
 				#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
-				addtopdb(mcoord,positiontemplate,move,pdbfile)
+				addtopdb(coord,positiontemplate,move,pdbfile)
 			r2=r2new
 			coord=newcoord
 			torsE=newtorsE
@@ -304,6 +335,7 @@ while move<totmoves:
 			u0=u1
 		else:
 			rejected += 1
+
 	if move%step==0:
 	    energyarray[move/step]=u0
 	    nc[move/step]=nativecontact(r2,nativeparam_n,nsigma2)
@@ -312,10 +344,10 @@ while move<totmoves:
 	    	rmsd_array[move/step]=rmsd(coord_nat,mcoord)
 t2=datetime.now()
 
-mcoord=moviecoord(newcoord,transform)
-addtopdb(mcoord,positiontemplate,move,pdbfile2)
+#mcoord=moviecoord(newcoord,transform)
+#addtopdb(mcoord,positiontemplate,move,pdbfile2)
 
-if (pdbfile != ''):
+if pdbfile:
 	f=open(pdbfile,'a')
 	f.write('END\r\n')
 	f.close
@@ -325,7 +357,6 @@ if (pdbfile != ''):
 #========================================================================================================
 # OUTPUT
 #========================================================================================================
-
 fraction=nc/totnc
 print 'excluding first '+str(len(fraction)/5)+' native contact values from average'
 fraction=fraction[len(fraction)/5:-1]
@@ -381,6 +412,7 @@ if(verbose):
 	print 'crankshaft: %d moves accepted out of %d tries' %(acceptedc,crankmoves)
 	print 'torsion: %d moves accepted out of %d tries' %(acceptedat,atormoves)
 	print 'local move: %d moves accepted out of %d tries' %(acceptedlm,lmoves)
+        print 'parrot move: %d moves accepted out of %d tries' %(acceptedp,pmoves)
 	print '%d local moves rejected due to chain closure' %(closure)
 	print('Simulation time: '+str(t2-t1))
 

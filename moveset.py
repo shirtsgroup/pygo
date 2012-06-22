@@ -492,51 +492,267 @@ def enddist(mpos):
     return dot(distvec,distvec)**.5
 
 def makeT(angle,phi):
+    """Generates transformation matrix from coordinate frame of bond i+1 to coordinate frame of bond i"""
     T = array([[-cos(angle),sin(angle),0], [-cos(phi)*sin(angle),-cos(phi)*cos(angle),-sin(phi)], [-sin(phi)*sin(angle),-sin(phi)*cos(angle),cos(phi)]])
     return T
+
 
 def parrot(mpos123, m, rand, theta):
     """Performs a parallel-rotation move"""
     mpos = mpos123.copy()
-    angle = energyfunc.angle(mpos)
-    dihed = energyfunc.dihedral(mpos)
+    if rand > .5: # backward
+        mpos = mpos[::-1]
+    #if rand < .5: #forward
+    n = 1
+    end = len(mpos)-1
+    angle = energyfunc.angle(mpos,range(m-2,m+2))
+    dihed = energyfunc.dihedral(mpos, [m-2])
     bonds = mpos[1:len(mpos),:]-mpos[0:-1,:]
-    phi0=dihed[m-2]+theta
-    T = makeT(angle[m-1],phi0)
-    u = bonds[m+2,:]/sum(bonds[m+2,:]**2)**.5
-    x=bonds[m-1,:]/sum(bonds[m-1,:]**2)**.5
-    z1=bonds[m-2,:]/sum(bonds[m-2,:]**2)**.5
-    z=cross(x,z1)/sin(pi-angle[m-2])
+    #else: # backward
+        #n = -1
+        #end = 0
+        #angle = energyfunc.angle(mpos, range(m,m-4,-1))
+        #dihed = energyfunc.dihedral(mpos, [m-1])
+        #bonds = mpos[0:-1,:] - mpos[1:len(mpos),:]
+    #u1=bonds[m]/sum(bonds[m]**2)**.5
+    #u2=bonds[m+n*1]/sum(bonds[m+n*1]**2)**.5
+    phi0=dihed[0]+theta
+    T = makeT(angle[1],phi0)
+    u = bonds[m+n*2,:]/sum(bonds[m+n*2,:]**2)**.5
+    #Jold=dot(u,cross(u1,u2))
+    #Jold=sum(Jold**2)
+    x=bonds[m-n*1,:]/sum(bonds[m-n*1,:]**2)**.5
+    z1=bonds[m-n*2,:]/sum(bonds[m-n*2,:]**2)**.5
+    z=cross(x,z1)/sin(pi-angle[0])
     y=cross(z,x)
     Tlab=vstack((x,y,z))
     Tlab=transpose(Tlab)
     u = linalg.solve(Tlab,u)
     v = linalg.solve(T,u)
+    cosphi2 = (cos(angle[2])*cos(angle[3])-v[0]) / (sin(angle[3])*sin(angle[2]))
+    if abs(cosphi2) > 1:
+        return nan
+    phi2 = arccos(cosphi2) # 0, 1, or 2 solutions
+    a = sin(angle[2])*cos(angle[3]) + cosphi2*cos(angle[2])*sin(angle[3])
+    b = sin(angle[3])*sin(phi2)
+    cosphi1 = (a*v[1] - b*v[2]) / (1-v[0]**2)
+    phi1 = arccos(cosphi1)
+    bond = dot(Tlab,T)
+    mpos[m+n*1,:] = mpos[m,:] + dot(bond,array([sqrt(sum(bonds[m,:]**2)),0,0]))
+    T1=makeT(angle[2],phi1)
+    T2=makeT(angle[3],phi2)
+    bond = dot(bond,T1)
+    mpos[m+n*2,:] = mpos[m+n*1,:] + dot(bond,array([sqrt(sum(bonds[m+n*1,:]**2)),0,0]))
+    bond = dot(bond,T2)
+    try:
+        mpos[m+n*3,:] = mpos[m+n*2,:] + dot(bond,array([sqrt(sum(bonds[m+n*2,:]**2)),0,0]))
+    except IndexError:
+        pass
+    #T3=makeT(angle[m+2],dihed[m+1])
+    #bond=dot(bond,T3)
+    #bond=dot(bond,array([sqrt(sum(bonds[m+3,:]**2)),0,0]))
+    #phi3=arccos(dot(bond,bonds[m+3])/(dot(bond,bond)*dot(bonds[m+3],bonds[m+3]))**.5)
+    for i in range(m+n*3,end,n):
+        mpos[i+n*1,:]=mpos[i,:]+bonds[i,:]
+        
+    u1=mpos[m+n*1]-mpos[m]
+    u1=u1/sum(u1**2)**.5
+    u2=mpos[m+n*2]-mpos[m+n*1]
+    u2=u2/sum(u2**2)**.5
+    #Jnew=dot(u,cross(u1,u2))
+    #Jnew=sum(Jnew**2)
+    if rand > .5:
+        mpos = mpos[::-1]
+    dihedold=energyfunc.dihedral(mpos123)
+    dihednew=energyfunc.dihedral(mpos)
+    diff=dihednew-dihedold
+    diff=diff[abs(diff)>.000001]
+    print len(diff)
+    pdb.set_trace()
+    return mpos #, (Jnew/Jold)**.5
+    
+def parrot_o(mpos123, m, rand, theta):
+    """Performs a parallel-rotation move"""
+    mpos = mpos123.copy()
+    soln = ones((2,4)) # two possible sets of solutions
+    if rand > .5:
+        mpos = mpos[::-1]
+    angle = energyfunc.angle(mpos)
+    dihed = energyfunc.dihedral(mpos)
+    bonds = mpos[1:len(mpos),:]-mpos[0:-1,:]
+    phi_old=dihed[m-2:m+2]
+    soln[:,0]=dihed[m-2]+theta # new phi0
+    
+    # find phi2_new
+    T0 = makeT(angle[m-1],soln[0,0]) # T(phi0_new)
+    try:
+        u = bonds[m+2,:]/sum(bonds[m+2,:]**2)**.5
+    except IndexError: # need fictitious bonds/angles
+        assert(m == len(mpos) - 3)
+        u = [0,0,1]
+        angle = append(angle,[68*pi/180, 68*pi/180])
+        phi_old = append(phi_old, [0,0])
+
+
+    x=bonds[m-1,:]/sum(bonds[m-1,:]**2)**.5
+    z1=bonds[m-2,:]/sum(bonds[m-2,:]**2)**.5
+    z=cross(x,z1)/sin(pi-angle[m-2])
+    y=cross(z,x)
+    Tlab=vstack((x,y,z))
+    Tlab=transpose(Tlab) # transformation matrix from local coordinate frame of bond 0 to the laboratory frame
+    u = linalg.solve(Tlab,u) # find u in reference frame of bond 0
+    v = linalg.solve(T0,u) 
     cosphi2 = (cos(angle[m])*cos(angle[m+1])-v[0]) / (sin(angle[m+1])*sin(angle[m]))
-    phi2=arccos(cosphi2) # 0, 1, or 2 solutions
-    a = sin(angle[m])*cos(angle[m+1]) + cosphi2*cos(angle[m])*sin(angle[m+1])
+    if abs(cosphi2) > 1:
+        return nan # no solutions
+    soln[0,2] = arccos(cosphi2) 
+    soln[1,2] = 2*pi-arccos(cosphi2)
+    
+    # find unique solution of phi1new
+    soln[0,1] = findphi1(soln[0,2], angle, m, v)
+    soln[1,1] = findphi1(soln[1,2], angle, m, v)
+
+    # test solutions 
+    try:
+        oldT = [makeT(angle[m-1],phi_old[0]), makeT(angle[m],phi_old[1]), makeT(angle[m+1],phi_old[2]), makeT(angle[m+2],phi_old[3])]
+    except IndexError:
+	assert(m == len(mpos) - 4)
+	angle = append(angle, 68*pi/180)
+	phi_old = append(phi_old, 0)
+        oldT = [makeT(angle[m-1],phi_old[0]), makeT(angle[m],phi_old[1]), makeT(angle[m+1],phi_old[2]), makeT(angle[m+2],phi_old[3])]
+    newT = [[makeT(angle[m-1],soln[0,0]), makeT(angle[m],soln[0,1]), makeT(angle[m+1],soln[0,2]), makeT(angle[m+2],soln[0,3])]
+           ,[makeT(angle[m-1],soln[1,0]), makeT(angle[m],soln[1,1]), makeT(angle[m+1],soln[1,2]), makeT(angle[m+2],soln[1,3])]]
+    
+    if not checku(oldT, newT[0]):
+	assert(m==len(mpos)-3)
+	#pdb.set_trace()
+	#checku(oldT, newT[0])
+	#findphi1(soln[0,2], angle, m, v)
+	#soln = delete(soln,s_[0],axis=0)
+    if not checku(oldT, newT[1]):
+        assert(m==len(mpos)-3)
+	#soln = delete(soln,s_[1],axis=0)
+    
+    pos = [findpos(soln[i,:], mpos, m, newT[i], Tlab, bonds) for i in range(len(soln))]
+
+    dihednew = [energyfunc.dihedral(mpos) for mpos in pos]
+    for i in range(len(dihednew)):
+	try:
+	    soln[i,3] = dihednew[i][m+1] # set new phi3
+    	except IndexError:
+	    assert(m==len(mpos)-3 or m==len(mpos)-4)
+    angnew = [energyfunc.angle(mpos) for mpos in pos]
+    for i,T in enumerate(newT):
+	try:
+	    T[3]=makeT(angle[m+2],soln[i,3])
+ 	except IndexError:
+	    assert(m==len(mpos)-3 or m==len(mpos)-4)
+	if not checkuT(oldT,T):
+	    assert(m==len(mpos)-3 or m==len(mpos)-4)
+	    #soln = delete(soln, s_[i], axis=0)
+	checkdihed(dihed,dihednew[i])
+	checkang(angle,angnew[i])
+    if rand > .5:
+	pos[0]=pos[0][::-1]
+    return pos[0]
+        
+
+    # find new coordinates of m+1 and m+2
+    if rand > .5:
+        mpos=mpos[::-1]
+    
+    dihedold=energyfunc.dihedral(mpos123)
+    dihednew=energyfunc.dihedral(mpos)
+    diff=dihednew-dihedold
+    diff=diff[abs(diff)>.000001]
+    #print len(diff)
+    if len(diff)>4:
+        pdb.set_trace()
+    angold=energyfunc.angle(mpos123)
+    angnew=energyfunc.angle(mpos)
+    diff=angnew-angold
+    diff=diff[abs(diff)>.000001]
+    if len(diff):
+        pdb.set_trace()
+        
+    # test u
+    u1=dot(dot(dot(T0,T1),T2),array([1,0,0]))
+    u2=dot(dot(dot(makeT(angle[m-1],dihed[m-2]),makeT(angle[m],dihed[m-1])),makeT(angle[m+1],dihed[m])),array([1,0,0]))
+    
+    uT1=dot(dot(dot(dot(T0,T1),T2),makeT(angle[m+2],phi3)),array([0,1,0]))
+    uT2=dot(dot(dot(dot(makeT(angle[m-1],dihed[m-2]),makeT(angle[m],dihed[m-1])),makeT(angle[m+1],dihed[m])),makeT(angle[m+2],dihed[m+1])),array([0,1,0]))
+    
+    pdb.set_trace()
+    return mpos
+
+def findphi1(phi2, angle, m, v):
+    a = sin(angle[m])*cos(angle[m+1]) + cos(phi2)*cos(angle[m])*sin(angle[m+1])
     b = sin(angle[m+1])*sin(phi2)
     cosphi1 = (a*v[1] - b*v[2])/(1-v[0]**2)
-    phi1 = arccos(cosphi1)
-    bond=dot(Tlab,T)
+    sinphi1 = (b*v[1] + a*v[2])/(1-v[0]**2)
+    a = array([arccos(cosphi1), 2*pi - arccos(cosphi1)])
+    b = array([arcsin(sinphi1), pi - arcsin(sinphi1)])
+    b[b<0] += 2*pi
+    decimal=14
+    phi1=intersect1d(around(a,12),around(b,decimal))
+    while not phi1 and decimal >  8:
+	decimal -= 1
+        phi1=intersect1d(around(a,decimal),around(b,decimal))
+    phi1=phi1[0]
+    return phi1
+
+def checku(Told, Tnew):
+    """Checks whether u = T0*T1*T2*i == T0n*T1n*T2n*i"""
+    u_old = dot(dot(dot(Told[0],Told[1]),Told[2]),array([1,0,0]))
+    u_new = dot(dot(dot(Tnew[0],Tnew[1]),Tnew[2]),array([1,0,0]))
+    diff = u_old-u_new
+    if sum(abs(diff)) < .000001:
+        return True
+    else:
+        return False
+
+def checkuT(Told, Tnew):
+    """Checks whether uT = T0*T1*T2*T3*j == T0n*T1n*T2n*T3n*j"""
+    uT_old = dot(dot(dot(dot(Told[0],Told[1]),Told[2]),Told[3]),array([0,1,0]))
+    uT_new = dot(dot(dot(dot(Tnew[0],Tnew[1]),Tnew[2]),Tnew[3]),array([0,1,0]))
+    diff = uT_old - uT_new
+    if sum(abs(diff)) < .000001:
+        return True
+    else:
+        return False
+
+def findpos(phi, mpos123, m, T, Tlab, bonds):
+    """Finds new bead positions from new phis"""
+    mpos = mpos123.copy()
+    bond=dot(Tlab,T[0])
     mpos[m+1,:]=mpos[m,:]+dot(bond,array([sqrt(sum(bonds[m,:]**2)),0,0]))
-    T1=makeT(angle[m],phi1)
-    T2=makeT(angle[m+1],phi2)
-    bond=dot(bond,T1)
+    bond=dot(bond,T[1])
     mpos[m+2,:]=mpos[m+1,:]+dot(bond,array([sqrt(sum(bonds[m+1,:]**2)),0,0]))
-    bond=dot(bond,T2)
-    mpos[m+3,:]=mpos[m+2,:]+dot(bond,array([sqrt(sum(bonds[m+2,:]**2)),0,0]))
+    bond=dot(bond,T[2])
+    try:
+	mpos[m+3,:]=mpos[m+2,:]+dot(bond,array([sqrt(sum(bonds[m+2,:]**2)),0,0]))
+    except IndexError:
+	assert(m==len(mpos)-3)
     #T3=makeT(angle[m+2],dihed[m+1])
     #bond=dot(bond,T3)
     #bond=dot(bond,array([sqrt(sum(bonds[m+3,:]**2)),0,0]))
     #phi3=arccos(dot(bond,bonds[m+3])/(dot(bond,bond)*dot(bonds[m+3],bonds[m+3]))**.5)
     for i in range(m+3,len(mpos)-1):
         mpos[i+1,:]=mpos[i,:]+bonds[i,:]
-    pdb.set_trace()
-    
-    
-    
-    
-    
-    
-    
+    return mpos
+
+def checkdihed(dihedold, dihednew):
+    diff = dihedold - dihednew
+    if sum(abs(diff) > .00000001) > 4:
+	pdb.set_trace()
+    return
+
+def checkang(angold, angnew):
+    try:
+        diff = angold - angnew
+    except ValueError:
+	return
+    if sum(abs(diff) > .00000001) > 0:
+	pdb.set_trace()
+    return
+

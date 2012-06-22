@@ -1,6 +1,6 @@
 import numpy
 import random
-
+import pdb
 #==========================================
 # PARAMETER READ IN METHODS
 #==========================================
@@ -273,12 +273,16 @@ def bond(mpos):
     bonds = mpos[0:len(mpos)-1,:] - mpos[1:len(mpos),:] #bond=rij=ri-rj
     return bonds		
 
-def angle(mpos):
-    angle = numpy.zeros(len(mpos)-2)
-    for i in xrange(1, len(mpos)-1):
-        BA = mpos[i-1,:] - mpos[i,:]
-        BC = mpos[i+1,:] - mpos[i,:]
-        angle[i-1] = numpy.arccos(numpy.dot(BA,BC)/(numpy.dot(BA,BA)**.5*numpy.dot(BC,BC)**.5))
+def angle(mpos, rnge=None):
+    if not rnge:
+        rnge=xrange(len(mpos)-2)
+    angle = numpy.zeros(len(rnge))
+    for index,i in enumerate(rnge):
+        BA = mpos[i,:] - mpos[i+1,:]
+        BC = mpos[i+2,:] - mpos[i+1,:]
+	dotBA = BA[0]*BA[0] + BA[1]*BA[1] + BA[2]*BA[2]
+	dotBC = BC[0]*BC[0] + BC[1]*BC[1] + BC[2]*BC[2]
+        angle[index] = numpy.arccos((BA[0]*BC[0]+BA[1]*BC[1]+BA[2]*BC[2])/(dotBA*dotBC)**.5)
     return angle
 
 def anglem(mpos,i):
@@ -288,34 +292,24 @@ def anglem(mpos,i):
     return angle
 
 
-def dihedral_n(mpos):
-    newdihed = numpy.zeros(len(mpos)-3)
-    for i in xrange(len(mpos)-3):
+def dihedral(mpos, rnge=None):
+    if not rnge:
+        rnge=xrange(len(mpos)-3)
+    newdihed = numpy.zeros(len(rnge))
+    for index,i in enumerate(rnge):
         AB = mpos[i,:] - mpos[i+1,:] #rij
         BC = mpos[i+2,:] - mpos[i+1,:] #rkj
         CD = mpos[i+2,:] - mpos[i+3,:] #rkl
-        plane1 = cross(AB,BC) #m
-        plane2 = cross(BC,CD) #n
-        newdihed[i] = arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2]) / ((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
+        plane1 = numpy.array([AB[1]*BC[2]-AB[2]*BC[1], AB[2]*BC[0]-AB[0]*BC[2], AB[0]*BC[1]-AB[1]*BC[0]])  #cross(AB,BC)
+        plane2 = numpy.array([BC[1]*CD[2]-BC[2]*CD[1], BC[2]*CD[0]-BC[0]*CD[2], BC[0]*CD[1]-BC[1]*CD[0]]) #cross(CD,BC)
+        dotplane1 = plane1[0]*plane1[0] + plane1[1]*plane1[1] + plane1[2]*plane1[2]
+	dotplane2 = plane2[0]*plane2[0] + plane2[1]*plane2[1] + plane2[2]*plane2[2]
+	newdihed[index] = numpy.arccos((plane1[0]*plane2[0] + plane1[1]*plane2[1] + plane1[2]*plane2[2]) / (dotplane1*dotplane2)**.5)
         if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
-            newdihed[i] = -abs(newdihed[i]) + 2*pi
+            newdihed[index] = -abs(newdihed[index]) + 2*numpy.pi
         else:
-            newdihed[i] = abs(newdihed[i])
+            newdihed[index] = abs(newdihed[index])
     return newdihed
  
-def dihedral(mpos):
-    newdihed = zeros(len(mpos)-3)
-    for i in range(len(mpos)-3):
-        AB = mpos[i+1,:] - mpos[i,:]
-        BC = mpos[i+2,:] - mpos[i+1,:]
-        CD = mpos[i+3,:] - mpos[i+2,:]
-        plane1 = cross(AB,BC)
-        plane2 = cross(BC,CD)
-        newdihed[i] = arccos((plane1[0]*plane2[0]+plane1[1]*plane2[1]+plane1[2]*plane2[2]) / ((plane1[0]**2+plane1[1]**2+plane1[2]**2)**.5*(plane2[0]**2+plane2[1]**2+plane2[2]**2)**.5))
-        if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
-            newdihed[i] = -abs(newdihed[i]) + 2*pi
-        else:
-            newdihed[i] = abs(newdihed[i])
-    return newdihed
 
 
