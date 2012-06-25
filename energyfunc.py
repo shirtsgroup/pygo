@@ -198,13 +198,12 @@ def torsionenergy_nn(mpos, oldE, param, change):
 	CD = mpos[i+3,:] - mpos[i+2,:]
         plane1 = numpy.array([AB[1]*BC[2]-AB[2]*BC[1], AB[2]*BC[0]-AB[0]*BC[2], AB[0]*BC[1]-AB[1]*BC[0]])  #cross(AB,BC)
         plane2 = numpy.array([BC[1]*CD[2]-BC[2]*CD[1], BC[2]*CD[0]-BC[0]*CD[2], BC[0]*CD[1]-BC[1]*CD[0]]) #cross(CD,BC)
-        dotplane1 = plane1[0]*plane1[0] + plane1[1]*plane1[1] + plane1[2]*plane1[2]
-	dotplane2 = plane2[0]*plane2[0] + plane2[1]*plane2[1] + plane2[2]*plane2[2]
-	dihedral = numpy.arccos((plane1[0]*plane2[0] + plane1[1]*plane2[1] + plane1[2]*plane2[2]) / (dotplane1*dotplane2)**.5)
-	if plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2] < 0:
-		dihedral = -abs(dihedral) + 2*numpy.pi
-	else:
-		dihedral = abs(dihedral)
+        AB = (BC[0]**2+BC[1]**2+BC[2]**2)**.5 * AB
+        a = AB[0]*plane2[0] + AB[1]*plane2[1] + AB[2]*plane2[2]
+        b = plane1[0]*plane2[0] + plane1[1]*plane2[1] + plane1[2]*plane2[2]
+        dihedral = numpy.arctan2(a,b)
+        if dihedral < 0:
+           dihedral += 2*numpy.pi
         energy = param[4*i:4*i+4,0] * (1 + numpy.cos(param[4*i:4*i+4,1]*dihedral-param[4*i:4*i+4,2]))
 	newE[i] = numpy.sum(energy)
     return newE
@@ -306,13 +305,12 @@ def dihedral(mpos, rnge=None):
         CD = mpos[i+2,:] - mpos[i+3,:] #rkl
         plane1 = numpy.array([AB[1]*BC[2]-AB[2]*BC[1], AB[2]*BC[0]-AB[0]*BC[2], AB[0]*BC[1]-AB[1]*BC[0]])  #cross(AB,BC)
         plane2 = numpy.array([BC[1]*CD[2]-BC[2]*CD[1], BC[2]*CD[0]-BC[0]*CD[2], BC[0]*CD[1]-BC[1]*CD[0]]) #cross(CD,BC)
-        dotplane1 = plane1[0]*plane1[0] + plane1[1]*plane1[1] + plane1[2]*plane1[2]
-	dotplane2 = plane2[0]*plane2[0] + plane2[1]*plane2[1] + plane2[2]*plane2[2]
-	newdihed[index] = numpy.arccos((plane1[0]*plane2[0] + plane1[1]*plane2[1] + plane1[2]*plane2[2]) / (dotplane1*dotplane2)**.5)
-        if ((plane1[0]*CD[0]+plane1[1]*CD[1]+plane1[2]*CD[2])<0):
-            newdihed[index] = -abs(newdihed[index]) + 2*numpy.pi
-        else:
-            newdihed[index] = abs(newdihed[index])
+        AB = (BC[0]**2+BC[1]**2+BC[2]**2)**.5 * AB
+        a = AB[0]*plane2[0] + AB[1]*plane2[1] + AB[2]*plane2[2]
+        b = plane1[0]*plane2[0] + plane1[1]*plane2[1] + plane1[2]*plane2[2]
+        newdihed[index] = numpy.arctan2(a,b)
+        if newdihed[index] < 0:
+            newdihed[index] += 2*numpy.pi
     return newdihed
  
 
