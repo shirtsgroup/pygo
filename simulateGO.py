@@ -62,7 +62,7 @@ if rmsdfig:
 	
 
 kb=0.0019872041 #kcal/mol/K
-percentmove=[-.2,-.3,-.5,-1] #% bend,% axis torsion,% crankshaft, %local move
+percentmove=[.2,.4,.6,.8] #% bend,% axis torsion,% crankshaft, %local move
 #percentmove=[0,0,0]
 maxtheta=[10*T/300.,10*T/200.,20*T/250.,5.,10.] # bend, axistorsion, crankshaft
 nativecutoff=1.2
@@ -286,8 +286,8 @@ while move<totmoves:
                 newcoord = axistorsion(coord, m, 0, theta)
                 change = [m-2]
             else:
-                newcoord=parrot_o(coord, m, randdir, theta)
-                if any(isnan(newcoord)):
+                newcoord, jac = parrot(coord, m, randdir, theta)
+		if any(isnan(newcoord)):
                     uncloseable = True
                     rejected += 1
                     closure += 1

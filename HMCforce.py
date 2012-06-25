@@ -1,7 +1,7 @@
 import numpy
 import energyfunc
 import pdb
-
+from scipy import weave
 #==========================================
 # FORCE CALCULATION METHODS
 #==========================================
@@ -127,6 +127,7 @@ def nonbondedforces(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
 
 def shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol):
     """Performs SHAKE algorithm to constrain positions"""
+    #pdb.set_trace()
     loops = 0
     conv = numbeads -1
     while conv != 0 and loops < maxloop:
@@ -166,3 +167,82 @@ def rattle(bonds, vel, m, d2, maxloop, numbeads, tol):
     if loops == maxloop:
         conv = False
     return vel, conv
+
+def cshake(bonds, v_half, h, m, d, maxloop, numbeads, tol):
+    """Performs SHAKE algorithm to constrain positions"""
+    loops = numpy.array([0])
+    code="""
+    
+    int conv;
+    double x, y, z, diff, g;
+    while ( conv != 0 && LOOPS1(0) < maxloop) {
+        conv = numbeads - 1;
+
+        for ( int i = 0; i < numbeads-1; i++){
+            
+            x = BONDS2(i,0) + h * (V_HALF2(i,0)-V_HALF2(i+1,0));
+            y = BONDS2(i,1) + h * (V_HALF2(i,1)-V_HALF2(i+1,1));
+            z = BONDS2(i,2) + h * (V_HALF2(i,2)-V_HALF2(i+1,2));
+            diff = x * x + y * y + z * z - D1(i);
+
+            if (fabs(diff) < tol){
+                conv -= 1;
+            }
+            else{
+                g = diff / (2.0*h*(x*BONDS2(i,0)+y*BONDS2(i,1)+z*BONDS2(i,2))*(1.0/M1(i)+1.0/M1(i+1)));
+                V_HALF2(i,0) -= g/M1(i)*BONDS2(i,0);
+                V_HALF2(i,1) -= g/M1(i)*BONDS2(i,1);
+                V_HALF2(i,2) -= g/M1(i)*BONDS2(i,2);
+                V_HALF2(i+1,0) += g/M1(i+1)*BONDS2(i,0);
+                V_HALF2(i+1,1) += g/M1(i+1)*BONDS2(i,1);
+                V_HALF2(i+1,2) += g/M1(i+1)*BONDS2(i,2);
+                
+            }
+        }
+
+        LOOPS1(0) += 1;
+    }
+    """
+    info = weave.inline(code, ['bonds', 'v_half', 'h', 'm', 'd', 'maxloop', 'numbeads', 'tol','loops'], headers=['<math.h>', '<stdlib.h>'])
+    conv = True
+    if loops[0] == maxloop:
+        conv = False
+    return v_half, conv
+
+def crattle(bonds, vel, m, d, maxloop, numbeads, tol):
+    """Performs RATTLE algorithm to constrain velocities"""
+    loops = numpy.array([0])
+    code = """
+    int conv;
+    double diff, k, x, y, z;
+    while ( conv != 0 && LOOPS1(0) < maxloop){
+        conv = numbeads - 1;
+        for ( int i = 0; i < numbeads-1; i++){
+            x = VEL2(i,0) - VEL2(i+1,0);
+            y = VEL2(i,1) - VEL2(i+1,1);
+            z = VEL2(i,2) - VEL2(i+1,2); 
+            diff = BONDS2(i,0)*x + BONDS2(i,1)*y + BONDS2(i,2)*z;
+            if (fabs(diff) < tol){
+                conv -= 1;
+            }
+            else{
+                k = diff / (D1(i) * (1.0/M1(i)+1.0/M1(i+1)));
+                VEL2(i,0) -= k/M1(i)*BONDS2(i,0);
+                VEL2(i,1) -= k/M1(i)*BONDS2(i,1);
+                VEL2(i,2) -= k/M1(i)*BONDS2(i,2);
+                VEL2(i+1,0) += k/M1(i+1)*BONDS2(i,0);
+                VEL2(i+1,1) += k/M1(i+1)*BONDS2(i,1);
+                VEL2(i+1,2) += k/M1(i+1)*BONDS2(i,2);
+            }
+        }
+        LOOPS1(0)++;
+    }
+    """
+    info = weave.inline(code, ['bonds', 'vel', 'm', 'd', 'maxloop', 'numbeads', 'tol', 'loops'], headers=['<math.h>', '<stdlib.h>'])
+    conv = True
+    if loops[0] == maxloop:
+        conv = False
+    return vel, conv
+    
+    
+    

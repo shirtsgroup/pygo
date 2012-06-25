@@ -176,7 +176,7 @@ d2=sum(bonds**2,axis=1)
 d=d2**.5
 force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 a=transpose(force)/m
-vel, conv = HMCforce.rattle(bonds, vel, m, d2, maxloop, numbeads, tol)
+vel, conv = HMCforce.crattle(bonds, vel, m, d2, maxloop, numbeads, tol)
 print 'Potential: '+str(u0)
 ke=.5*m/4.184*sum(vel**2,axis=1)
 print 'Kinetic: '+str(sum(ke))
@@ -190,9 +190,11 @@ K[0]=sum(ke)
 
 
 for e in range(nsteps):
-	v_half = vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
-	v_half, conv = HMCforce.shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # constrained v(t+dt/2)
-	if not conv:
+        #pdb.set_trace()
+        v_half = vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
+        #v_half, conv = HMCforce.shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # constrained v(t+dt/2)
+	v_half, conv = HMCforce.cshake(bonds, v_half, h, m, d2, maxloop, numbeads, tol)
+        if not conv:
 		print 'not converging'
 		break
 	mpos += h * v_half #constrained r(t+dt)
@@ -200,7 +202,7 @@ for e in range(nsteps):
 	force = HMCforce.bondedforces(mpos, torsparam, angleparam, bonds, d2, d, numbeads) +	HMCforce.nonbondedforces(mpos, numint, numbeads, nativeparam_n, nonnativeparam, nnepsil)
 	a = transpose(force)/m
 	vel = v_half + h/2*transpose(a)
-	vel, conv = HMCforce.rattle(bonds, vel, m, d2, maxloop, numbeads, tol)
+	vel, conv = HMCforce.crattle(bonds, vel, m, d2, maxloop, numbeads, tol)
 	if not conv:
 		print 'not converging'
 		break

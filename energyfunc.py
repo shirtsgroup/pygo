@@ -277,12 +277,16 @@ def angle(mpos, rnge=None):
     if not rnge:
         rnge=xrange(len(mpos)-2)
     angle = numpy.zeros(len(rnge))
-    for index,i in enumerate(rnge):
-        BA = mpos[i,:] - mpos[i+1,:]
-        BC = mpos[i+2,:] - mpos[i+1,:]
-	dotBA = BA[0]*BA[0] + BA[1]*BA[1] + BA[2]*BA[2]
-	dotBC = BC[0]*BC[0] + BC[1]*BC[1] + BC[2]*BC[2]
-        angle[index] = numpy.arccos((BA[0]*BC[0]+BA[1]*BC[1]+BA[2]*BC[2])/(dotBA*dotBC)**.5)
+    try:    
+        for index,i in enumerate(rnge):
+            BA = mpos[i,:] - mpos[i+1,:]
+            BC = mpos[i+2,:] - mpos[i+1,:]
+            dotBA = BA[0]*BA[0] + BA[1]*BA[1] + BA[2]*BA[2]
+            dotBC = BC[0]*BC[0] + BC[1]*BC[1] + BC[2]*BC[2]
+            angle[index] = numpy.arccos((BA[0]*BC[0]+BA[1]*BC[1]+BA[2]*BC[2])/(dotBA*dotBC)**.5)
+    except IndexError:
+        angle=angle[0:-1]
+        assert(angle[-1]!=0)
     return angle
 
 def anglem(mpos,i):
