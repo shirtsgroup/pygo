@@ -1,35 +1,34 @@
 from numpy import *
 from random import *
-import scipy.optimize
 import numpy
 import energyfunc
 import HMCforce
 import pdb
 import writetopdb
 
-def crankshaft(mpos123,m,theta): 
-    mpos=mpos123.copy()
+def crankshaft(mpos123, m, theta): 
+    mpos = mpos123.copy()
 
-    AB=mpos[m,:]-mpos[m-1,:]
-    AC=mpos[m+1,:]-mpos[m-1,:]
+    AB = mpos[m,:] - mpos[m-1,:]
+    AC = mpos[m+1,:] - mpos[m-1,:]
     
-    dotAC=AC[0]*AC[0]+AC[1]*AC[1]+AC[2]*AC[2]
+    dotAC = AC[0]*AC[0] + AC[1]*AC[1] + AC[2]*AC[2]
     
-    x=AC/dotAC**.5
-    y=AB-(AB[0]*AC[0]+AB[1]*AC[1]+AB[2]*AC[2])/dotAC*AC
-    y=y/(y[0]*y[0]+y[1]*y[1]+y[2]*y[2])**.5
-    z=[x[1]*y[2]-x[2]*y[1],x[2]*y[0]-x[0]*y[2],x[0]*y[1]-x[1]*y[0]]
+    x = AC / dotAC**.5
+    y = AB - (AB[0]*AC[0] + AB[1]*AC[1] + AB[2]*AC[2]) / dotAC * AC
+    y = y / (y[0]*y[0] + y[1]*y[1] + y[2]*y[2])**.5
+    z = [x[1]*y[2]-x[2]*y[1], x[2]*y[0]-x[0]*y[2], x[0]*y[1]-x[1]*y[0]]
     #transform=array([x,y,z])
     #untransform=transpose(transform)
     
-    c=cos(theta)
-    s=sin(theta)
+    c = cos(theta)
+    s = sin(theta)
     #rotate=array([[1,0,0],[0,c,s],[0,-s,c]])
 
-    AB1=[x[0]*AB[0]+x[1]*AB[1]+x[2]*AB[2],y[0]*AB[0]+y[1]*AB[1]+y[2]*AB[2],z[0]*AB[0]+z[1]*AB[1]+z[2]*AB[2]] #dot(transform,AB.transpose())
-    AB2=[AB1[0],c*AB1[1]+s*AB1[2],-s*AB1[1]+c*AB1[2]] #dot(rotate,AB1)
-    AB=[x[0]*AB2[0]+y[0]*AB2[1]+z[0]*AB2[2],x[1]*AB2[0]+y[1]*AB2[1]+z[1]*AB2[2],x[2]*AB2[0]+y[2]*AB2[1]+z[2]*AB2[2]] #dot(untransform,AB2)
-    mpos[m,:]=mpos[m-1,:]+AB
+    AB1 = [x[0]*AB[0]+x[1]*AB[1]+x[2]*AB[2],y[0]*AB[0]+y[1]*AB[1]+y[2]*AB[2],z[0]*AB[0]+z[1]*AB[1]+z[2]*AB[2]] #dot(transform,AB.transpose())
+    AB2 = [AB1[0],c*AB1[1]+s*AB1[2],-s*AB1[1]+c*AB1[2]] #dot(rotate,AB1)
+    AB = [x[0]*AB2[0]+y[0]*AB2[1]+z[0]*AB2[2],x[1]*AB2[0]+y[1]*AB2[1]+z[1]*AB2[2],x[2]*AB2[0]+y[2]*AB2[1]+z[2]*AB2[2]] #dot(untransform,AB2)
+    mpos[m,:] = mpos[m-1,:] + AB
     return mpos
 
 def axistorsion(mpos123,m,rand,theta):
@@ -414,77 +413,47 @@ def runMD(self,nsteps,h,dict):
 	nnepsil=dict['nnepsil']
 	m=dict['mass']
 	positiontemplate=dict['positiontemplate']
-	
 	#m=120.368 # average mass of all residues
 	tol=1e-8
-	maxloop=100
+	maxloop=1000
 	
 	self.newcoord=self.coord.copy()
 	self.vel=empty((numbeads,3))
 	for i in range(numbeads): self.vel[i,:]=numpy.random.normal(0,(4.184*self.kb*self.T/m[i])**.5,3) #in nm/ps, uses average residue mass
-	bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
+	
+        bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
 	d2=numpy.sum(bonds**2,axis=1)
 	d=d2**.5
-	force=HMCforce.bondedforces(self.coord,torsparam,angleparam,bonds,d2,d)+HMCforce.nonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+	force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.nonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 	a = numpy.transpose(force) / m
-	self.vel, conv = HMCforce.rattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
-	self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
+	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+        self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
 	
 	for e in range(nsteps):
 		#finding r(t+dt)
 		#loops = 0
 		#conv = numpy.ones(numbeads-1)
 		v_half = self.vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
-		v_half, conv = HMCforce.shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # constrained v(t+dt/2)
-		#while numpy.sum(conv) != 0 and loops < maxloop:
-			#for i in range(numbeads-1): # loops through all bonds/constraints
-				#s = bonds[i] + h * (v_half[i,:] - v_half[i+1,:])
-				#diff = s[0]*s[0] + s[1]*s[1] + s[2]*s[2] - d2[i]
-				#if (numpy.abs(diff) < tol):
-					#conv[i] = 0
-				#else:
-					#g = diff / (2 * h * (s[0]*bonds[i,0] + s[1]*bonds[i,1] + s[2]*bonds[i,2]) * (1/m[i] + 1/m[i+1]))
-					#v_half[i,:] -= g / m[i] * bonds[i]
-					#v_half[i+1,:] += g / m[i+1] * bonds[i]
-			#loops += 1
-		#if (loops == maxloop):
-			#break
+		v_half, conv = HMCforce.cshake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # 
 		if not conv:
 			self.uncloseable=True
 			self.rejected += 1
 			break
 		self.newcoord += h * v_half #constrained r(t+dt)
 		bonds = self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
-		force = HMCforce.bondedforces(self.newcoord, torsparam, angleparam, bonds, d2, d) + 		HMCforce.nonbondedforces(self.newcoord, numint, numbeads, nativeparam_n, 		nonnativeparam, nnepsil)
+		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.nonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 		a=transpose(force)/m
 		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
-		self.vel, conv = HMCforce.rattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+		self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
 		if not conv:
 			self.uncloseable=True
 			self.rejected += 1
 			break
-		#finding v(t+dt)
-		#loops=0
-		#conv=numpy.ones(numbeads-1)
-		#a=transpose(force)/m
-		#self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
-		#while numpy.sum(conv)!=0 and loops<maxloop:
-			#for i in range(numbeads-1):
-				#vij=self.vel[i,:]-self.vel[i+1,:]
-				#diff=bonds[i,0]*vij[0]+bonds[i,1]*vij[1]+bonds[i,2]*vij[2]
-				#if (numpy.abs(diff)<tol):
-					#conv[i]=0
-				#else:
-					#k=diff/(d2[i]*(1/m[i]+1/m[i+1]))
-					#self.vel[i] -= k/m[i]*bonds[i,:]
-					#self.vel[i+1] += k/m[i+1]*bonds[i,:]
-			#loops += 1
-		#if (loops==maxloop):
-			#break
-		writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+		#writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
 	#if(loops==maxloop):
 		#self.uncloseable=True
 		#self.rejected += 1
+	#assert all(sum(bonds**2,axis=1)-d2< 1e-7)
 	return self
 
 def enddist(mpos):
@@ -683,7 +652,14 @@ def parrot(mpos123, m, rand, theta):
         c = append(c, [cos(68*pi/180)]*2)
         s = append(s, [sin(68*pi/180)]*2)
     jac_old = parrot_jac(ulab, bonds[m], bonds[m+1])
-
+    try:
+        dihed = energyfunc.dihedral(mpos, [m])
+        if cos(dihed) > .999:
+            Nmn = 1.
+        else:
+            Nmn = 2.
+    except IndexError:
+        Nmn = 2.
     x = bonds[m-1,:]/(bonds[m-1,0]**2+bonds[m-1,1]**2+bonds[m-1,2]**2)**.5
     z1 = bonds[m-2,:]/(bonds[m-2,0]**2+bonds[m-2,1]**2+bonds[m-2,2]**2)**.5
     z = array([x[1]*z1[2]-x[2]*z1[1],x[2]*z1[0]-x[0]*z1[2],x[0]*z1[1]-x[1]*z1[0]])/s[0]
@@ -694,6 +670,11 @@ def parrot(mpos123, m, rand, theta):
     cosphi2 = (c[2]*c[3]-v[0]) / (s[3]*s[2])
     if abs(cosphi2) > 1:
         return nan, nan # no solutions
+    elif abs(cosphi2) > .999:
+        Nnm = 1.
+    else:
+        Nnm = 2.
+    
     if random() < .5:
         soln[2] = arccos(cosphi2)
     else:
@@ -714,7 +695,7 @@ def parrot(mpos123, m, rand, theta):
     
     mpos = findpos(soln, mpos, m, newT, Tlab, bonds)
     jac_new = parrot_jac(ulab, mpos[m+1]-mpos[m], mpos[m+2]-mpos[m+1])
-    jac = jac_old/jac_new
+    jac = jac_old/jac_new*Nmn/Nnm
     if rand > .5:
 	mpos=mpos[::-1]
     return mpos, jac

@@ -208,6 +208,49 @@ def nonbondedforces(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
 
 	return forces * 4.184 # converts force to kJ/mol/K
 
+def cnonbondedforces(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
+	"""Returns the nonbonded forces of a given configuration"""
+	forces = numpy.zeros((numbeads,3))
+	# get distances, square distances, and magnitude distances for all interactions 
+	rvec = energyfunc.cgetforcer(mpos, numint, numbeads) # excludes 12 and 13 neightbors
+	r2 = numpy.sum(rvec**2, axis=1)
+	rr = r2**.5
+	# calculates potential energy gradient for native and nonnative interactions
+	ndV = natparam[:,0] * natparam[:,2] * natparam[:,2] / r2
+	ndV6 = ndV * ndV * ndV
+	ndV = natparam[:,1] * (-156*ndV6*ndV6/rr + 180*ndV6*ndV*ndV/rr - 24*ndV6/rr)
+	nndV = nonnatparam[:,0] * nonnatparam[:,1] * nonnatparam[:,1] / r2
+	nndV = nndV * nndV * nndV
+	nndV = -12 * nnepsil * nndV * nndV / rr
+	# add forces to total force
+	k = 0
+	F = -(ndV+nndV) / rr
+	F = numpy.transpose(F) * numpy.transpose(rvec) # now 3xN instead of Nx3
+	code = """
+        int k = 0;
+        for ( int i = 0; i < numbeads; i++){
+            for ( int j = i+3; j < numbeads; j++){
+                FORCES2(i,0) += F2(0,k);
+                FORCES2(i,1) += F2(1,k);
+                FORCES2(i,2) += F2(2,k);
+                FORCES2(j,0) += -F2(0,k);
+                FORCES2(j,1) += -F2(1,k);
+                FORCES2(j,2) += -F2(2,k);
+                k++;
+            }
+        }
+        """
+        info = weave.inline(code, ['forces', 'F', 'numbeads'], headers=['<math.h>', '<stdlib.h>'])
+
+        #for i in range(numbeads):
+		#for j in range(i+3,numbeads):
+			#forces2[i,:] += F[:,k]
+			#forces2[j,:] += -F[:,k]
+			#k += 1
+
+	return forces * 4.184 # converts force to kJ/mol/K
+
+
 #==========================================
 # BOND CONSTRAINT METHODS
 #==========================================
@@ -255,7 +298,7 @@ def rattle(bonds, vel, m, d2, maxloop, numbeads, tol):
         conv = False
     return vel, conv
 
-def cshake(bonds, v_half, h, m, d, maxloop, numbeads, tol):
+def cshake(bonds, v_half, h, m, dsq, maxloop, numbeads, tol):
     """Performs SHAKE algorithm to constrain positions"""
     loops = numpy.array([0])
     code="""
@@ -268,7 +311,7 @@ def cshake(bonds, v_half, h, m, d, maxloop, numbeads, tol):
             x = BONDS2(i,0) + h * (V_HALF2(i,0)-V_HALF2(i+1,0));
             y = BONDS2(i,1) + h * (V_HALF2(i,1)-V_HALF2(i+1,1));
             z = BONDS2(i,2) + h * (V_HALF2(i,2)-V_HALF2(i+1,2));
-            diff = x * x + y * y + z * z - D1(i);
+            diff = x * x + y * y + z * z - DSQ1(i);
             if (fabs(diff) < tol){
                 conv -= 1;
             }
@@ -285,13 +328,13 @@ def cshake(bonds, v_half, h, m, d, maxloop, numbeads, tol):
         LOOPS1(0) += 1;
     }
     """
-    info = weave.inline(code, ['bonds', 'v_half', 'h', 'm', 'd', 'maxloop', 'numbeads', 'tol','loops'], headers=['<math.h>', '<stdlib.h>'])
+    info = weave.inline(code, ['bonds', 'v_half', 'h', 'm', 'dsq', 'maxloop', 'numbeads', 'tol','loops'], headers=['<math.h>', '<stdlib.h>'])
     conv = True
     if loops[0] == maxloop:
         conv = False
     return v_half, conv
 
-def crattle(bonds, vel, m, d, maxloop, numbeads, tol):
+def crattle(bonds, vel, m, dsq, maxloop, numbeads, tol):
     """Performs RATTLE algorithm to constrain velocities"""
     loops = numpy.array([0])
     code = """
@@ -308,7 +351,7 @@ def crattle(bonds, vel, m, d, maxloop, numbeads, tol):
                 conv -= 1;
             }
             else{
-                k = diff / (D1(i) * (1.0/M1(i)+1.0/M1(i+1)));
+                k = diff / (DSQ1(i) * (1.0/M1(i)+1.0/M1(i+1)));
                 VEL2(i,0) -= k/M1(i)*BONDS2(i,0);
                 VEL2(i,1) -= k/M1(i)*BONDS2(i,1);
                 VEL2(i,2) -= k/M1(i)*BONDS2(i,2);
@@ -320,7 +363,7 @@ def crattle(bonds, vel, m, d, maxloop, numbeads, tol):
         LOOPS1(0)++;
     }
     """
-    info = weave.inline(code, ['bonds', 'vel', 'm', 'd', 'maxloop', 'numbeads', 'tol', 'loops'], headers=['<math.h>', '<stdlib.h>'])
+    info = weave.inline(code, ['bonds', 'vel', 'm', 'dsq', 'maxloop', 'numbeads', 'tol', 'loops'], headers=['<math.h>', '<stdlib.h>'])
     conv = True
     if loops[0] == maxloop:
         conv = False
