@@ -174,7 +174,9 @@ for i in range(numbeads):
 bonds=bond(mpos)
 d2=sum(bonds**2,axis=1)
 d=d2**.5
-force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+#force=bondedforces(mpos,torsparam,angleparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+force=cangleforces(coord,angleparam,bonds,d,numbeads)+cdihedforces(torsparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+
 a=transpose(force)/m
 vel, conv = HMCforce.crattle(bonds, vel, m, d2, maxloop, numbeads, tol)
 print 'Potential: '+str(u0)
@@ -199,7 +201,8 @@ for e in range(nsteps):
 		break
 	mpos += h * v_half #constrained r(t+dt)
 	bonds = mpos[0:numbeads-1,:]-mpos[1:numbeads,:] #rij(t+dt)
-	force = HMCforce.bondedforces(mpos, torsparam, angleparam, bonds, d2, d, numbeads) +	HMCforce.nonbondedforces(mpos, numint, numbeads, nativeparam_n, nonnativeparam, nnepsil)
+	force=cangleforces(coord,angleparam,bonds,d,numbeads)+cdihedforces(torsparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+        #force = HMCforce.bondedforces(mpos, torsparam, angleparam, bonds, d2, d, numbeads) +	HMCforce.nonbondedforces(mpos, numint, numbeads, nativeparam_n, nonnativeparam, nnepsil)
 	a = transpose(force)/m
 	vel = v_half + h/2*transpose(a)
 	vel, conv = HMCforce.crattle(bonds, vel, m, d2, maxloop, numbeads, tol)
