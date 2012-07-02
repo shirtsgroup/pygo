@@ -14,16 +14,31 @@ import moveset
 import energyfunc
 import matplotlib.pyplot as plt
 import pdb
+from sys import stdout
 
 
 def energy(mpos, rsquare, torsE, angE):
     energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
     return energy
 
-
+class SurfaceSimulation(Simulation):
+    def addsurface(self, surf_coord, dist_to_surf):
+        self.surface = surf_coord
+        ## randomly orient protein
+        rotx = numpy.arccos(2*random.random()-1)
+        rotz = 2*numpy.pi*random.random()
+        com = sum(self.coord, axis=0)/float(numbeads)
+        self.coord -= com
+        self.coord = self.coord.transpose()
+        self.coord = numpy.array([self.coord[0,:]*numpy.cos(rotz)+self.coord[1,:]*numpy.sin(rotz), -self.coord[0,:]*numpy.sin(rotz)+self.coord[1,:]*numpy.cos(rotz), self.coord[2,:]])
+        self.coord = numpy.array([self.coord[0,:], numpy.cos(rotx)*self.coord[1,:]+numpy.sin(rotx)*self.coord[2,:], -numpy.sin(rotx)*self.coord[1,:] + numpy.cos(rotx)*self.coord[2,:]])
+        self.coord = self.coord.transpose() + com
+        self.coord[:,2] += (dist_to_surf - min(self.coord[:,2]))
+        
+        
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [.2, .4, .6, .6, .9] # % bend,% axis torsion,% crankshaft, %local move, %ParRot move, %MD
+    percentmove = [.3, .6, .4, .4, .9] # % bend,% axis torsion,% crankshaft, %local move, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
@@ -41,7 +56,7 @@ class Simulation:
                         5. * self.T/300]) # ParRot move
 	self.maxtheta = self.maxtheta * numpy.pi / 180
         self.r2 = energyfunc.cgetLJr2(self.coord, Simulation.numint, Simulation.numbeads)
-        self.torsE = energyfunc.torsionenergy_nn(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
+        self.torsE = energyfunc.ctorsionenergy(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
         self.angE = energyfunc.angleenergy_n(self.coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
         self.u0 = energy(self.coord, self.r2, self.torsE, self.angE)
         self.energyarray[0] = self.u0
@@ -66,7 +81,7 @@ class Simulation:
         self.closure = 0
 	self.pclosure = 0
         self.movetype = ''
-        self.whoami = []
+        #self.whoami = []
 
     def output(self, verbose):
         write = ['-------- %s Simulation Results --------\r\n' % (self.name),
@@ -173,17 +188,17 @@ def run(self, nummoves, dict):
         self.randdir = random.random()
         self.m = random.randint(1, Simulation.numbeads-2) #random bead, not end ones
         self.uncloseable = False
-        #bend
+        
+        # angle bend
         if self.randmove < Simulation.percentmove[0]:
-            self.jac = 1
 	    self.theta = self.maxtheta[0] - 2 * self.maxtheta[0] * random.random()
-            self.newcoord = moveset.anglebend(self.coord, self.m, self.randdir, self.theta)
+            self.newcoord, self.jac = moveset.canglebend(self.coord, self.m, self.randdir, self.theta)
             self.angmoves += 1
             self.movetype = 'a'
             self.change = []
             self.angchange = [self.m-1]
 
-        #axis torsion
+        # axis torsion
         elif self.randmove < Simulation.percentmove[1]:
             self.jac = 1
 	    self.theta = self.maxtheta[1] - 2 * self.maxtheta[1] * random.random()
@@ -200,7 +215,7 @@ def run(self, nummoves, dict):
             else:
                     self.change = [self.m-1]
 
-        #crankshaft
+        # crankshaft
         elif self.randmove < Simulation.percentmove[2]:
             self.jac = 1
 	    self.theta = self.maxtheta[2] - 2 * self.maxtheta[2] * random.random()
@@ -220,7 +235,7 @@ def run(self, nummoves, dict):
                     self.change = numpy.arange(self.m-3, self.m-1)
                     self.angchange = [self.m-2]
 
-        #local move
+        # local move
         elif self.randmove < Simulation.percentmove[3]:
 	    self.jac = 1
             self.theta = self.maxtheta[3] - 2 * self.maxtheta[3] * random.random()
@@ -291,7 +306,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 20, .1, dict)
+            self=moveset.runMD(self, 5, .01, dict)
             self.movetype = 'md'
             self.move += 1
             self.mdmove += 1
@@ -299,11 +314,11 @@ def run(self, nummoves, dict):
         # accept or reject
         if self.uncloseable == False and self.movetype == 'md':
             self.r2new = energyfunc.cgetLJr2(self.newcoord, Simulation.numint, Simulation.numbeads)
-            self.newtorsE = energyfunc.torsionenergy_nn(self.newcoord, numpy.zeros(Simulation.numbeads-3),Simulation.torsparam,numpy.arange(Simulation.numbeads-3))
+            self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, numpy.zeros(Simulation.numbeads-3),Simulation.torsparam,numpy.arange(Simulation.numbeads-3))
             self.newangE = energyfunc.angleenergy_n(self.newcoord, numpy.zeros(Simulation.numbeads-2),Simulation.angleparam,numpy.arange(Simulation.numbeads-2))
             self.u1 = energy(self.newcoord, self.r2new, self.newtorsE, self.newangE)
-            self.newH  =self.u1 + .5 / 4.184 * numpy.sum(mass * numpy.sum(self.vel**2, axis=1))
-            self.boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
+            #self.newH  =self.u1 + .5 / 4.184 * numpy.sum(mass * numpy.sum(self.vel**2, axis=1))
+            self.boltz = numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
             if random.random() < self.boltz:
                 self.accepted += 1
                 self.acceptedmd += 1
@@ -317,7 +332,7 @@ def run(self, nummoves, dict):
         elif(self.uncloseable == False and self.movetype != 'md'):
             self.r2new = energyfunc.cgetLJr2(self.newcoord, Simulation.numint, Simulation.numbeads)
             self.newangE = energyfunc.angleenergy_n(self.newcoord, self.angE, Simulation.angleparam,self.angchange)
-            self.newtorsE = energyfunc.torsionenergy_nn(self.newcoord, self.torsE, Simulation.torsparam,self.change)
+            self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam,self.change)
             self.u1 = energy(self.newcoord, self.r2new, self.newtorsE, self.newangE)
             self.move += 1
             self.boltz = self.jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
@@ -374,7 +389,7 @@ def run_ff(self, nummoves, dict):
         #bend
         if self.randmove < self.percentmove[0]:
             self.theta = self.maxtheta[0] - 2 * self.maxtheta[0] * random.random()
-            self.newcoord = moveset.anglebend(self.coord, self.m, self.randdir, self.theta)
+            self.newcoord, jac = moveset.canglebend(self.coord, self.m, self.randdir, self.theta)
             self.angmoves += 1
             self.movetype = 'a'
 
@@ -438,6 +453,8 @@ def run_ff(self, nummoves, dict):
         # accept or reject
         if self.uncloseable == False:
             self.move += 1
+            stdout.write(str(self.move)+'\r')
+            stdout.flush()
             if random.random() < jac:
                 self.accepted += 1
                 if self.movetype == 'a':
@@ -457,7 +474,7 @@ def run_ff(self, nummoves, dict):
                     #addtopdb(mcoord,positiontemplate,move,pdbfile)
                 self.coord = self.newcoord
         if self.move%Simulation.step == 0:
-            dihed=numpy.array(energyfunc.dihedral(self.coord))
+            dihed=numpy.array(energyfunc.cdihedral(self.coord))
             self.dihedarr=numpy.vstack((self.dihedarr,dihed))
 	    ang=numpy.array(energyfunc.angle(self.coord))
 	    self.angarr=numpy.vstack((self.angarr, ang))

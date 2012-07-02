@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 from sys import stdout
 import random
 import profile
-import scipy.misc
+from scipy.misc import comb
 import os
 import pp
 import pdb
@@ -108,7 +108,7 @@ torsparam = gettorsionparam(paramfile, numbeads)
 mass = getmass('%stop' % (paramfile[0:-5]), numbeads)
 
 #pregenerate list of interactions
-numint = around(scipy.misc.comb(numbeads, 2)) # number of interactions
+numint = around(comb(numbeads, 2)) # number of interactions
 numint = numint - 2 * (numbeads - 2) - 1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
@@ -170,7 +170,7 @@ if (verbose):
     print 'There are %d residues in %s' %(numbeads,filename)
 
 #type 1 switches
-def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
+def tryswap1(Replicas, Swapaccepted, Swaprejected):
     if numreplicas == 1:
         pass
     else:
@@ -183,23 +183,23 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-                Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
-                Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
-                Whoiswhere[Replicas[i].whoami[-1]].append(i)
-                Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
+                #Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
+                #Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
+                #Whoiswhere[Replicas[i].whoami[-1]].append(i)
+                #Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
             else:
                 Swaprejected[i]+=1
-                Replicas[i].whoami.append(Replicas[i].whoami[-1])
-                Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
-                Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
-                Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
-    if numreplicas%2 == 1:
-        Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
-        Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
-    return [Swapaccepted, Swaprejected, Whoiswhere]
+                #Replicas[i].whoami.append(Replicas[i].whoami[-1])
+                #Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
+                #Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
+                #Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
+    #if numreplicas%2 == 1:
+        #Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
+        #Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
+    return [Swapaccepted, Swaprejected]
 
 #type 2 switches
-def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
+def tryswap2(Replicas, Swapaccepted, Swaprejected):
     if numreplicas == 1:
         pass
     else:
@@ -212,26 +212,26 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-                Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
-                Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
-                Whoiswhere[Replicas[i].whoami[-1]].append(i)
-                Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
+                #Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
+                #Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
+                #Whoiswhere[Replicas[i].whoami[-1]].append(i)
+                #Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
             else:
                 Swaprejected[i] += 1
-                Replicas[i].whoami.append(Replicas[i].whoami[-1])
-                Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
-                Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
-                Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
-    Replicas[0].whoami.append(Replicas[0].whoami[-1])
-    Whoiswhere[Replicas[0].whoami[-1]].append(Whoiswhere[Replicas[0].whoami[-1]][-1])
-    if len(Replicas[numreplicas-1].whoami) != len(Replicas[0].whoami):
-        Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
-        Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
-    return [Swapaccepted, Swaprejected, Whoiswhere]
+                #Replicas[i].whoami.append(Replicas[i].whoami[-1])
+                #Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
+                #Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
+                #Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
+    #Replicas[0].whoami.append(Replicas[0].whoami[-1])
+    #Whoiswhere[Replicas[0].whoami[-1]].append(Whoiswhere[Replicas[0].whoami[-1]][-1])
+    #if len(Replicas[numreplicas-1].whoami) != len(Replicas[0].whoami):
+        #Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
+        #Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
+    return [Swapaccepted, Swaprejected]
 
 def pprun(Replicas, Moves, Dict):
     jobs = [job_server.submit(run, (replica, Moves, Dict), (energy, ), ("random", "numpy",
-            "energyfunc", "moveset", "writetopdb", "hmcGO")) for replica in Replicas]
+            "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
     newReplicas = [job() for job in jobs]
     return newReplicas
 
@@ -254,7 +254,7 @@ for i in range(len(T)):
         os.mkdir(direc)
     name = 'replica%i' % i
     replicas.append(Simulation(name, direc, coord, T[i]))
-    replicas[i].whoami.append(i)
+    #replicas[i].whoami.append(i)
     if pdbfile:
         mcoord = moviecoord(coord, transform)
         writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
@@ -270,11 +270,11 @@ move = 0
 swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
 job_server = pp.Server(ppservers=())
-whoiswhere = range(numreplicas)
+#whoiswhere = range(numreplicas)
 
 ########SIMULATE##########
-for i in whoiswhere:
-    whoiswhere[i] = [i]
+#for i in whoiswhere:
+    #whoiswhere[i] = [i]
 
 #for i in range(totmoves/swap):
 	#for replica in replicas: run(replica,swap,dict)
@@ -282,22 +282,23 @@ for i in whoiswhere:
 	#print i
 	
 
-	
+ti = datetime.now()
+print 'Starting simulation...'
 for i in xrange(totmoves/swap):
-    stdout.write(str(i) + '\r')
-    stdout.flush()
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
     if i%2 == 0:
         #type 1 switch
-        [swapaccepted, swaprejected, whoiswhere] = tryswap1(replicas, swapaccepted, swaprejected, whoiswhere)
+        [swapaccepted, swaprejected] = tryswap1(replicas, swapaccepted, swaprejected)
     else:
         #type 2 switch
-        [swapaccepted, swaprejected, whoiswhere] = tryswap2(replicas, swapaccepted, swaprejected, whoiswhere)
-
+        [swapaccepted, swaprejected] = tryswap2(replicas, swapaccepted, swaprejected)
+    t_remain = (datetime.now() - ti)/(i+1)*(totmoves/swap - i - 1)
+    stdout.write(str(t_remain) + '\r')
+    stdout.flush()
 #########OUTPUT##########
 job_server.print_stats()
-numpy.savetxt('./replicaexchange/whoiswhere.txt', whoiswhere)
+#numpy.savetxt('./replicaexchange/whoiswhere.txt', whoiswhere)
 for i in range(len(replicas)):
     replicas[i].output(verbose)
     replicas[i].saveenergy(plot)
@@ -305,11 +306,11 @@ for i in range(len(replicas)):
     replicas[i].savenc(plot)
     replicas[i].savehist(plot)
     #print replica.whoami
-    plt.figure(5)
-    plt.plot(range(len(whoiswhere[i])), whoiswhere[i])
-plt.xlabel('swap')
-plt.ylabel('replica')
-plt.savefig('./replicaexchange/whoiswhere.png')
+    #plt.figure(5)
+    #plt.plot(range(len(whoiswhere[i])), whoiswhere[i])
+#plt.xlabel('swap')
+#plt.ylabel('replica')
+#plt.savefig('./replicaexchange/whoiswhere.png')
 
 if verbose:
     for i in range(numreplicas-1):

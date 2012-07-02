@@ -1,3 +1,4 @@
+from scipy import weave
 import numpy
 import random
 import pdb
@@ -138,6 +139,41 @@ def getLJr2(mpos, numint, numbeads):
         k = knew
     return r2array #r^2 values for every interaction
 
+def cgetLJr2(mpos, numint, numbeads):
+    r2array = numpy.empty(numint)
+    code = """
+    int k = 0;
+    double x, y, z;
+    for ( int i = 0; i < numbeads; i++){
+        for ( int j = i+3; j < numbeads; j++){
+	    x = MPOS2(i,0) - MPOS2(j,0);
+	    y = MPOS2(i,1) - MPOS2(j,1);
+	    z = MPOS2(i,2) - MPOS2(j,2);
+	    R2ARRAY1(k) = x*x + y*y + z*z;
+	    k++;
+	}
+    }
+    """
+    info = weave.inline(code, ['mpos','numint','numbeads','r2array'], headers=['<math.h>', '<stdlib.h>'])
+    return r2array
+
+def cgetforcer(mpos, numint, numbeads):
+    r2array = numpy.empty((numint,3))
+    code = """
+    int k = 0;
+    double x, y, z;
+    for ( int i = 0; i < numbeads; i++){
+        for ( int j = i+3; j < numbeads; j++){
+	    R2ARRAY2(k,0) = MPOS2(i,0) - MPOS2(j,0);
+	    R2ARRAY2(k,1) = MPOS2(i,1) - MPOS2(j,1);
+	    R2ARRAY2(k,2) = MPOS2(i,2) - MPOS2(j,2);
+	    k++;
+	}
+    }
+    """
+    info = weave.inline(code, ['mpos','numint','numbeads','r2array'], headers=['<math.h>', '<stdlib.h>'])
+    return r2array
+
 #speed up version
 def LJenergy(r2, natparam, nonnatparam, nnepsil):
     #native calculation
@@ -205,7 +241,37 @@ def torsionenergy_nn(mpos, oldE, param, change):
         if dihedral < 0:
            dihedral += 2*numpy.pi
         energy = param[4*i:4*i+4,0] * (1 + numpy.cos(param[4*i:4*i+4,1]*dihedral-param[4*i:4*i+4,2]))
-	newE[i] = numpy.sum(energy)
+	newE[i] = energy[0]+energy[1]+energy[2]+energy[3]
+    return newE
+
+def ctorsionenergy(mpos, oldE, param, change):
+    newE = oldE.copy()
+    n = len(change)
+    change = numpy.array(change)
+    #bonds = mpos[0:-1,:]-mpos[1:len(mpos),:]
+    code = """
+    int i;
+    double x1, x2, x3, y1, y2, y3, z1, z2, z3;
+    double mx, my, mz, nx, ny, nz;
+    double magBC, a, b, dihed;
+    for ( int j = 0; j < n; j++){
+        i = CHANGE1(j);
+        x1 = MPOS2(i,0) - MPOS2(i+1,0); y1 = MPOS2(i,1) - MPOS2(i+1,1); z1 = MPOS2(i,2) - MPOS2(i+1,2);
+        x2 = MPOS2(i+2,0) - MPOS2(i+1,0); y2 = MPOS2(i+2,1) - MPOS2(i+1,1); z2 = MPOS2(i+2,2) - MPOS2(i+1,2);
+        x3 = MPOS2(i+2,0) - MPOS2(i+3,0); y3 = MPOS2(i+2,1) - MPOS2(i+3,1); z3 = MPOS2(i+2,2) - MPOS2(i+3,2);
+        mx = y1*z2 - z1*y2; my = z1*x2 - x1*z2; mz = x1*y2 - y1*x2;
+        nx = y2*z3 - z2*y3; ny = z2*x3 - x2*z3; nz = x2*y3 - y2*x3;
+        magBC = sqrt(x2*x2 + y2*y2 + z2*z2);
+        a = magBC*(x1*nx + y1*ny + z1*nz);
+        b = mx*nx + my*ny + mz*nz;
+        dihed = atan2(a,b);
+        if ( dihed < 0){
+            dihed += 2*M_PI;
+        }
+        NEWE1(i) = PARAM2(4*i,0)*(1+cos(PARAM2(4*i,1)*dihed-PARAM2(4*i,2))) + PARAM2(4*i+1,0)*(1+cos(PARAM2(4*i+1,1)*dihed-PARAM2(4*i+1,2))) + PARAM2(4*i+2,0)*(1+cos(PARAM2(4*i+2,1)*dihed-PARAM2(4*i+2,2))) + PARAM2(4*i+3,0)*(1+cos(PARAM2(4*i+3,1)*dihed-PARAM2(4*i+3,2)));
+    }
+    """
+    info = weave.inline(code, ['param', 'newE', 'mpos', 'change','n'], headers=['<math.h>', '<stdlib.h>'])
     return newE
 
 #used in simulatepolymer
@@ -313,5 +379,34 @@ def dihedral(mpos, rnge=None):
             newdihed[index] += 2*numpy.pi
     return newdihed
  
-
+def cdihedral(mpos, rnge=None):
+    if not rnge:
+        rnge = numpy.arange(len(mpos)-3)
+    else:
+        rnge = numpy.array(rnge)
+    n = len(rnge)
+    newdihed = numpy.zeros(n)
+    code = """
+    int i;
+    double x1, x2, x3, y1, y2, y3, z1, z2, z3;
+    double mx, my, mz, nx, ny, nz;
+    double magBC, a, b;
+    for ( int j = 0; j < n; j++){
+        i = RNGE1(j);
+        x1 = MPOS2(i,0) - MPOS2(i+1,0); y1 = MPOS2(i,1) - MPOS2(i+1,1); z1 = MPOS2(i,2) - MPOS2(i+1,2);
+        x2 = MPOS2(i+2,0) - MPOS2(i+1,0); y2 = MPOS2(i+2,1) - MPOS2(i+1,1); z2 = MPOS2(i+2,2) - MPOS2(i+1,2);
+        x3 = MPOS2(i+2,0) - MPOS2(i+3,0); y3 = MPOS2(i+2,1) - MPOS2(i+3,1); z3 = MPOS2(i+2,2) - MPOS2(i+3,2);
+        mx = y1*z2 - z1*y2; my = z1*x2 - x1*z2; mz = x1*y2 - y1*x2;
+        nx = y2*z3 - z2*y3; ny = z2*x3 - x2*z3; nz = x2*y3 - y2*x3;
+        magBC = sqrt(x2*x2 + y2*y2 + z2*z2);
+        a = magBC*(x1*nx + y1*ny + z1*nz);
+        b = mx*nx + my*ny + mz*nz;
+        NEWDIHED1(i) = atan2(a,b);
+        if ( NEWDIHED1(i) < 0){
+            NEWDIHED1(i) += 2*M_PI;
+        }
+    }
+    """
+    info = weave.inline(code, ['mpos', 'n', 'rnge'], headers=['<math.h>', '<stdlib.h>'])
+    return newdihed
 

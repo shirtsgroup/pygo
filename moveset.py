@@ -5,6 +5,7 @@ import energyfunc
 import HMCforce
 import pdb
 import writetopdb
+from scipy import weave
 
 def crankshaft(mpos123, m, theta): 
     mpos = mpos123.copy()
@@ -115,8 +116,55 @@ def anglebend(mpos123,m,rand,theta):
 		   bond=dot(rotate,bond)
 		   bond=dot(untransform,bond)
 		   mpos[i+n,:]=mpos[i,:]+bond
-	return mpos 
+	angle = pi - arccos((AB[0]*BC[0]+AB[1]*BC[1]+AB[2]*BC[2])/(dotAB*(BC[0]*BC[0]+BC[1]*BC[1]+BC[2]*BC[2]))**.5)
+        jac = sin(angle-theta)/sin(angle)
+        return mpos, jac
 
+def canglebend(mposs, m, rand, theta):
+        mpos = mposs.copy()
+	jac = numpy.array([0.])
+	numbeads = len(mposs)
+        code = """
+        int n, end;
+        double c, s, dotAB, dotABBC, mag, angle;
+        double xAB, yAB, zAB, xBC, yBC, zBC;
+	double xx, xy, xz, yx, yy, yz, zx, zy, zz;
+	double bx, by, bz, btx, bty, btz;
+        double brx, bry, brz, bxx, byy, bzz;
+        c = cos(theta);
+	s = sin(theta);
+	if (rand < .5){
+		n = 1;
+		end = numbeads - 1;
+	}
+	else{
+		n = -1;
+		end = 0;
+	}	
+
+	xAB = MPOS2(m,0) - MPOS2(m-n,0); yAB = MPOS2(m,1) - MPOS2(m-n,1); zAB = MPOS2(m,2) - MPOS2(m-n,2);
+        xBC = MPOS2(m+n,0) - MPOS2(m,0); yBC = MPOS2(m+n,1) - MPOS2(m,1); zBC = MPOS2(m+n,2) - MPOS2(m,2);
+	dotAB = xAB*xAB + yAB*yAB + zAB*zAB;
+	dotABBC = xAB*xBC + yAB*yBC + zAB*zBC;
+	mag = sqrt(dotAB);
+	zx = xAB/mag; zy = yAB/mag; zz = zAB/mag;
+	mag = dotABBC/dotAB;
+	yx = xBC - mag*xAB; yy = yBC - mag*yAB; yz = zBC - mag*zAB;
+	mag = sqrt(yx*yx+yy*yy+yz*yz);
+	yx = yx/mag; yy = yy/mag; yz = yz/mag;
+	xx = zy*yz - zz*yy; xy = zz*yx - zx*yz; xz = zx*yy - zy*yx;
+	for( int i = m; i != end; i += n){
+		bx = MPOSS2(i+n,0) - MPOSS2(i,0); by = MPOSS2(i+n,1) - MPOSS2(i,1); bz = MPOSS2(i+n,2) - MPOSS2(i,2);
+		btx = xx*bx + xy*by + xz*bz; bty = yx*bx + yy*by + yz*bz; btz = zx*bx + zy*by + zz*bz;
+		brx = btx; bry = c*bty + s*btz; brz = -s*bty + c*btz;
+		bxx = xx*brx + yx*bry + zx*brz; byy = xy*brx + yy*bry + zy*brz; bzz = xz*brx + yz*bry + zz*brz;
+		MPOS2(i+n,0) = MPOS2(i,0) + bxx; MPOS2(i+n,1) = MPOS2(i,1) + byy; MPOS2(i+n,2) = MPOS2(i,2) + bzz;
+	}
+	angle = M_PI - acos(dotABBC/sqrt(dotAB*(xBC*xBC+yBC*yBC+zBC*zBC)));
+	JAC1(0) = sin(angle-(double)theta)/sin(angle);
+	"""
+	info = weave.inline(code,['mposs','mpos','m','rand','theta','jac','numbeads'], headers=['<math.h>', '<stdlib.h>'])
+	return mpos, jac[0]
 
 def reptation(mpos123):
     mpos=mpos123.copy()
@@ -137,7 +185,7 @@ def reptation(mpos123):
 
 #new
 #def bend_n(mpos123,m,rand,theta,phi):
-	#mpos=mpos123.copy()
+	#mpos=mpos12u3.copy()
 	#polar=array([cos(theta)*sin(phi),sin(theta)*sin(phi),cos(phi)])
 	#if rand<.5:
 		#x=1
@@ -427,7 +475,7 @@ def runMD(self,nsteps,h,dict):
 	force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.nonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 	a = numpy.transpose(force) / m
 	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
-        self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
+        #self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
 	
 	for e in range(nsteps):
 		#finding r(t+dt)
@@ -466,81 +514,6 @@ def makeT(c,s,cp,sp):
     #T = array([[-cos(angle),sin(angle),0], [-cos(phi)*sin(angle),-cos(phi)*cos(angle),-sin(phi)], [-sin(phi)*sin(angle),-sin(phi)*cos(angle),cos(phi)]])
     return T
 
-
-def parrot_old(mpos123, m, rand, theta):
-    """Performs a parallel-rotation move"""
-    mpos = mpos123.copy()
-    if rand > .5: # backward
-        mpos = mpos[::-1]
-    #if rand < .5: #forward
-    n = 1
-    end = len(mpos) - 1
-    angle = energyfunc.angle(mpos,range(m-2,m+2))
-    dihed = energyfunc.dihedral(mpos, [m-2])
-    bonds = mpos[1:len(mpos),:]-mpos[0:-1,:]
-    #else: # backward
-        #n = -1
-        #end = 0
-        #angle = energyfunc.angle(mpos, range(m,m-4,-1))
-        #dihed = energyfunc.dihedral(mpos, [m-1])
-        #bonds = mpos[0:-1,:] - mpos[1:len(mpos),:]
-    #u1=bonds[m]/sum(bonds[m]**2)**.5
-    #u2=bonds[m+n*1]/sum(bonds[m+n*1]**2)**.5
-    phi0=dihed[0]+theta
-    T = makeT(angle[1],phi0)
-    u = bonds[m+n*2,:]/sum(bonds[m+n*2,:]**2)**.5
-    #Jold=dot(u,cross(u1,u2))
-    #Jold=sum(Jold**2)
-    x=bonds[m-n*1,:]/sum(bonds[m-n*1,:]**2)**.5
-    z1=bonds[m-n*2,:]/sum(bonds[m-n*2,:]**2)**.5
-    z=cross(x,z1)/sin(pi-angle[0])
-    y=cross(z,x)
-    Tlab=vstack((x,y,z))
-    Tlab=transpose(Tlab)
-    u = linalg.solve(Tlab,u)
-    v = linalg.solve(T,u)
-    cosphi2 = (cos(angle[2])*cos(angle[3])-v[0]) / (sin(angle[3])*sin(angle[2]))
-    if abs(cosphi2) > 1:
-        return nan
-    phi2 = arccos(cosphi2) # 0, 1, or 2 solutions
-    a = sin(angle[2])*cos(angle[3]) + cosphi2*cos(angle[2])*sin(angle[3])
-    b = sin(angle[3])*sin(phi2)
-    cosphi1 = (a*v[1] - b*v[2]) / (1-v[0]**2)
-    phi1 = arccos(cosphi1)
-    bond = dot(Tlab,T)
-    mpos[m+n*1,:] = mpos[m,:] + dot(bond,array([sqrt(sum(bonds[m,:]**2)),0,0]))
-    T1=makeT(angle[2],phi1)
-    T2=makeT(angle[3],phi2)
-    bond = dot(bond,T1)
-    mpos[m+n*2,:] = mpos[m+n*1,:] + dot(bond,array([sqrt(sum(bonds[m+n*1,:]**2)),0,0]))
-    bond = dot(bond,T2)
-    try:
-        mpos[m+n*3,:] = mpos[m+n*2,:] + dot(bond,array([sqrt(sum(bonds[m+n*2,:]**2)),0,0]))
-    except IndexError:
-        pass
-    #T3=makeT(angle[m+2],dihed[m+1])
-    #bond=dot(bond,T3)
-    #bond=dot(bond,array([sqrt(sum(bonds[m+3,:]**2)),0,0]))
-    #phi3=arccos(dot(bond,bonds[m+3])/(dot(bond,bond)*dot(bonds[m+3],bonds[m+3]))**.5)
-    for i in range(m+n*3,end,n):
-        mpos[i+n*1,:]=mpos[i,:]+bonds[i,:]
-        
-    u1=mpos[m+n*1]-mpos[m]
-    u1=u1/sum(u1**2)**.5
-    u2=mpos[m+n*2]-mpos[m+n*1]
-    u2=u2/sum(u2**2)**.5
-    #Jnew=dot(u,cross(u1,u2))
-    #Jnew=sum(Jnew**2)
-    if rand > .5:
-        mpos = mpos[::-1]
-    dihedold=energyfunc.dihedral(mpos123)
-    dihednew=energyfunc.dihedral(mpos)
-    diff=dihednew-dihedold
-    diff=diff[abs(diff)>.000001]
-    print len(diff)
-    pdb.set_trace()
-    return mpos #, (Jnew/Jold)**.5
-    
 def parrot_older(mpos123, m, rand, theta):
     """Performs a parallel-rotation move"""
     mpos = mpos123.copy()
@@ -717,8 +690,8 @@ def findphi1(phi2, c, s, v):
     b = array([arcsin(sinphi1), pi - arcsin(sinphi1)])
     b[b<0] += 2*pi
     decimal=14
-    phi1=intersect1d(around(a,12),around(b,decimal))
-    while not phi1 and decimal >  5:
+    phi1=intersect1d(around(a,decimal),around(b,decimal))
+    while not phi1.any() and decimal >  5:
 	decimal -= 1
         phi1=intersect1d(around(a,decimal),around(b,decimal))
     try:

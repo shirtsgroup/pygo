@@ -131,6 +131,10 @@ nsigma2=nativecutoff*nativecutoff*nativeparam_n[:,2]*nativeparam_n[:,2]
 nonnatindex=-1*(nativeparam_n[:,0]-1) # array of ones and zeros
 nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnative sigma]
 
+# periodic boundary condition settings
+xlength = 100
+ylength = 100
+
 if verbose:
 	print 'verbosity is %s' %(str(verbose))
 	print 'temperature is %f' %(T)
@@ -153,8 +157,9 @@ def energy(mpos,rsquare,torsE,angE):
 #========================================================================================================
 # SIMULATE
 #========================================================================================================
-r2=getLJr2(coord,numint,numbeads)
-torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+r2=cgetLJr2(coord,numint,numbeads)
+torsE=ctorsionenergy(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 print u0
@@ -191,6 +196,21 @@ move=0
 closure=0
 
 while move<totmoves:
+        if xlength:
+            if all(coord[:,0] > .5*xlength): 
+                coord[:,0] -= xlength
+                print move
+            if all(coord[:,0] < -.5*xlength): 
+                coord[:,0] += xlength
+                print move
+        if ylength:
+            if all(coord[:,1] > .5*ylength): 
+                coord[:,1] -= ylength
+                print move
+            if all(coord[:,1] < -.5*ylength): 
+                coord[:,1] += ylength
+                print move
+        
         randmove=random()
 	randdir=random()
 	m=randint(1,numbeads-2) #random bead, not end ones
@@ -198,8 +218,8 @@ while move<totmoves:
 	#bend
 	if randmove < percentmove[0]:
 	    theta=maxtheta[0]/180.*pi-random()*maxtheta[0]*pi/180.*2
-            newcoord=anglebend(coord,m,randdir,theta)
-	    angmoves += 1
+            newcoord, jac = canglebend(coord,m,randdir,theta)
+            angmoves += 1
 	    movetype='a'
 	    change=[]
 	    angchange=[m-1]
@@ -296,16 +316,16 @@ while move<totmoves:
                     change = arange(m-2,m+2)
                     change = change[change<(numbeads-3)]
                 else:
-                    change = arange(m-4,m)
+                    change = arange(numbeads-1-m-4,numbeads-1-m)
                     change = change[change>-1]
                     change = change[change<(numbeads-3)]
                 
 	if(uncloseable==False):
-		r2new=getLJr2(newcoord,numint,numbeads)
+                r2new=cgetLJr2(newcoord,numint,numbeads)
 		newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
-		newtorsE=torsionenergy_nn(newcoord,torsE,torsparam,change)
+		newtorsE=ctorsionenergy(newcoord,torsE,torsparam,change)
 		u1=energy(newcoord,r2new,newtorsE,newangE)
-		move += 1
+                move += 1
 		stdout.write(str(move)+'\r')
 		stdout.flush()
 		boltz=exp(-(u1-u0)/(kb*T))
@@ -324,22 +344,22 @@ while move<totmoves:
 				acceptedlm +=1
                         else:
                             acceptedp += 1
-			if pdbfile:
-				#mcoord=moviecoord(newcoord,transform)
-				#writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
-				addtopdb(coord,positiontemplate,move,pdbfile)
 			r2=r2new
 			coord=newcoord
 			torsE=newtorsE
 			angE=newangE
 			u0=u1
+                        if pdbfile:
+                            addtopdb(coord,positiontemplate,move,pdbfile)
 		else:
 			rejected += 1
 
 	if move%step==0:
 	    energyarray[move/step]=u0
 	    nc[move/step]=nativecontact(r2,nativeparam_n,nsigma2)
-	    if (rmsdfig != ''):
+	    #if pdbfile:
+           #     addtopdb(coord,positiontemplate,move/step,pdbfile)
+            if rmsdfig:
 	    	mcoord=moviecoord(coord,transform)
 	    	rmsd_array[move/step]=rmsd(coord_nat,mcoord)
 t2=datetime.now()
