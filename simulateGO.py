@@ -143,7 +143,7 @@ if verbose:
 	print 'There are %d residues in %s' %(numbeads,filename)
 
 def energyprint(mpos,rsquare,torsE,angE):
-	LJ=LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+        LJ = cLJenergy(rsquare,nativeparam_n,nonnativeparam,nnepsil)
 	energy=sum(angE)+sum(torsE)+LJ
 	print 'Angle energy: ' + str(sum(angE))
 	print 'Torsion energy: '+str(sum(torsE))
@@ -151,7 +151,8 @@ def energyprint(mpos,rsquare,torsE,angE):
 	return energy
 
 def energy(mpos,rsquare,torsE,angE):
-	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+        LJ = cLJenergy(rsquare,nativeparam_n,nonnativeparam,nnepsil)
+        energy=sum(angE)+sum(torsE)+LJ
 	return energy
 
 #========================================================================================================
@@ -159,7 +160,6 @@ def energy(mpos,rsquare,torsE,angE):
 #========================================================================================================
 r2=cgetLJr2(coord,numint,numbeads)
 torsE=ctorsionenergy(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
-
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 print u0
@@ -227,7 +227,7 @@ while move<totmoves:
 	#torsion
 	elif randmove < percentmove[1]:
 	    theta=maxtheta[1]/180.*pi-random()*pi*maxtheta[1]/180.*2
-	    newcoord=axistorsion(coord,m,randdir,theta)
+            newcoord = caxistorsion(coord, m, randdir, theta)
 	    movetype='at'
 	    atormoves += 1
 	    angchange=[]

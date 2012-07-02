@@ -199,6 +199,24 @@ def LJenergy_n(r2, natparam, nonnatparam, nnepsil):
     energy = numpy.sum(nE) + numpy.sum(nnE)
     return energy
 
+def cLJenergy(r2, natparam, nonnatparam, nnepsil):
+    numint = len(r2)
+    energy = numpy.array([0.0])
+    code = """
+    double nE, nE6, nnE;
+    for ( int i = 0; i < numint; i++){
+        nE = NATPARAM2(i,0)*NATPARAM2(i,2)*NATPARAM2(i,2)/R21(i);
+        nE6 = nE*nE*nE;
+        nE = NATPARAM2(i,1)*(13*nE6*nE6-18*nE6*nE*nE+4*nE6);
+        nnE = NONNATPARAM2(i,0)*NONNATPARAM2(i,1)*NONNATPARAM2(i,1)/R21(i);
+        nnE = nnE*nnE;
+        nnE = nnepsil*nnE*nnE*nnE;
+        ENERGY1(0) += (nE + nnE);
+    }
+    """
+    info = weave.inline(code, ['r2','natparam','numint','energy','nonnatparam','nnepsil'], headers=['<math.h>', '<stdlib.h>'])
+    return energy[0]
+
 def LJenergy_CHARMM(r2, natparam, nonnatparam, nnepsil):
     #native calculation
     nE = natparam[:,0] * natparam[:,2] * natparam[:,2] / r2 #sigma2/r2

@@ -61,6 +61,48 @@ def axistorsion(mpos123,m,rand,theta):
 		   mpos[i+n,:]=mpos[i,:]+bond
 	return mpos 
 
+def caxistorsion(mposs,m,rand,theta):
+    mpos = mposs.copy()
+    numbeads = len(mpos)
+    code = """
+    int n, end;
+    double c, s, dotAB, dotABBC, mag, angle;
+    double xAB, yAB, zAB, xBC, yBC, zBC;
+    double xx, xy, xz, yx, yy, yz, zx, zy, zz;
+    double bx, by, bz, btx, bty, btz;
+    double brx, bry, brz, bxx, byy, bzz;
+    c = cos(theta);
+    s = sin(theta);
+    if (rand < .5){
+        n = 1;
+        end = numbeads - 1;
+    }
+    else{
+        n = -1;
+        end = 0;
+    }
+    xAB = MPOS2(m,0) - MPOS2(m-n,0); yAB = MPOS2(m,1) - MPOS2(m-n,1); zAB = MPOS2(m,2) - MPOS2(m-n,2);
+    xBC = MPOS2(m+n,0) - MPOS2(m,0); yBC = MPOS2(m+n,1) - MPOS2(m,1); zBC = MPOS2(m+n,2) - MPOS2(m,2);
+    dotAB = xAB*xAB + yAB*yAB + zAB*zAB;
+    dotABBC = xAB*xBC + yAB*yBC + zAB*zBC;
+    mag = sqrt(dotAB);
+    xx = xAB/mag; xy = yAB/mag; xz = zAB/mag;
+    mag = dotABBC/dotAB;
+    yx = xBC - mag*xAB; yy = yBC - mag*yAB; yz = zBC - mag*zAB;
+    mag = sqrt(yx*yx+yy*yy+yz*yz);
+    yx = yx/mag; yy = yy/mag; yz = yz/mag;
+    zx = xy*yz - xz*yy; zy = xz*yx - xx*yz; zz = xx*yy - xy*yx;
+    for( int i = m; i != end; i += n){
+            bx = MPOSS2(i+n,0) - MPOSS2(i,0); by = MPOSS2(i+n,1) - MPOSS2(i,1); bz = MPOSS2(i+n,2) - MPOSS2(i,2);
+            btx = xx*bx + xy*by + xz*bz; bty = yx*bx + yy*by + yz*bz; btz = zx*bx + zy*by + zz*bz;
+            brx = btx; bry = c*bty + s*btz; brz = -s*bty + c*btz;
+            bxx = xx*brx + yx*bry + zx*brz; byy = xy*brx + yy*bry + zy*brz; bzz = xz*brx + yz*bry + zz*brz;
+            MPOS2(i+n,0) = MPOS2(i,0) + bxx; MPOS2(i+n,1) = MPOS2(i,1) + byy; MPOS2(i+n,2) = MPOS2(i,2) + bzz;
+    }
+    """
+    info = weave.inline(code,['mposs','mpos','m','rand','theta','numbeads'], headers=['<math.h>', '<stdlib.h>'])
+    return mpos
+
 #def axistorsion_n(mpos123,m,rand,theta):
 	#mpos=mpos123.copy()
 	#c=cos(theta)

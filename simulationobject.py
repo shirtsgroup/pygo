@@ -18,22 +18,10 @@ from sys import stdout
 
 
 def energy(mpos, rsquare, torsE, angE):
-    energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+    energy = sum(angE) + sum(torsE) + energyfunc.cLJenergy(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
     return energy
 
-class SurfaceSimulation(Simulation):
-    def addsurface(self, surf_coord, dist_to_surf):
-        self.surface = surf_coord
-        ## randomly orient protein
-        rotx = numpy.arccos(2*random.random()-1)
-        rotz = 2*numpy.pi*random.random()
-        com = sum(self.coord, axis=0)/float(numbeads)
-        self.coord -= com
-        self.coord = self.coord.transpose()
-        self.coord = numpy.array([self.coord[0,:]*numpy.cos(rotz)+self.coord[1,:]*numpy.sin(rotz), -self.coord[0,:]*numpy.sin(rotz)+self.coord[1,:]*numpy.cos(rotz), self.coord[2,:]])
-        self.coord = numpy.array([self.coord[0,:], numpy.cos(rotx)*self.coord[1,:]+numpy.sin(rotx)*self.coord[2,:], -numpy.sin(rotx)*self.coord[1,:] + numpy.cos(rotx)*self.coord[2,:]])
-        self.coord = self.coord.transpose() + com
-        self.coord[:,2] += (dist_to_surf - min(self.coord[:,2]))
+
         
         
 class Simulation:
@@ -166,6 +154,20 @@ class Simulation:
             fig.savefig(plotname)
             #print 'energy histogram saved to %s' %(plotname)
 	
+class SurfaceSimulation(Simulation):
+    def addsurface(self, surf_coord, dist_to_surf):
+        self.surface = surf_coord
+        ## randomly orient protein
+        rotx = numpy.arccos(2*random.random()-1)
+        rotz = 2*numpy.pi*random.random()
+        com = sum(self.coord, axis=0)/float(numbeads)
+        self.coord -= com
+        self.coord = self.coord.transpose()
+        self.coord = numpy.array([self.coord[0,:]*numpy.cos(rotz)+self.coord[1,:]*numpy.sin(rotz), -self.coord[0,:]*numpy.sin(rotz)+self.coord[1,:]*numpy.cos(rotz), self.coord[2,:]])
+        self.coord = numpy.array([self.coord[0,:], numpy.cos(rotx)*self.coord[1,:]+numpy.sin(rotx)*self.coord[2,:], -numpy.sin(rotx)*self.coord[1,:] + numpy.cos(rotx)*self.coord[2,:]])
+        #self.coord = self.coord.transpose() + com
+        self.coord[:,2] += (dist_to_surf - min(self.coord[:,2]))
+        
 def run(self, nummoves, dict):
     Simulation.numbeads = dict['numbeads']
     Simulation.step = dict['step']
@@ -202,7 +204,7 @@ def run(self, nummoves, dict):
         elif self.randmove < Simulation.percentmove[1]:
             self.jac = 1
 	    self.theta = self.maxtheta[1] - 2 * self.maxtheta[1] * random.random()
-            self.newcoord = moveset.axistorsion(self.coord, self.m, self.randdir, self.theta)
+            self.newcoord = moveset.caxistorsion(self.coord, self.m, self.randdir, self.theta)
             self.movetype = 'at'
             self.atormoves += 1
             self.angchange = []
@@ -242,11 +244,11 @@ def run(self, nummoves, dict):
             self.movetype = 'lm'
             self.lmoves += 1
             if self.m < 5 and self.randdir > .5:
-                self.newcoord = moveset.axistorsion(self.coord, self.m, self.randdir, self.theta)
+                self.newcoord = moveset.caxistorsion(self.coord, self.m, self.randdir, self.theta)
                 self.angchange = []
                 self.change = [self.m-1]
             elif self.m > Simulation.numbeads-6 and self.randdir < .5:
-                self.newcoord = moveset.axistorsion(self.coord, self.m, self.randdir, self.theta)
+                self.newcoord = moveset.caxistorsion(self.coord, self.m, self.randdir, self.theta)
                 self.angchange = []
                 self.change = [self.m-2]
             else:
@@ -279,11 +281,11 @@ def run(self, nummoves, dict):
 	    self.pmoves += 1
 	    self.angchange = []
 	    if self.m == 1:
-		self.newcoord = moveset.axistorsion(self.coord, self.m, 1, self.theta)
+		self.newcoord = moveset.caxistorsion(self.coord, self.m, 1, self.theta)
 		self.change = [0]
 		self.jac = 1
 	    elif self.m == Simulation.numbeads - 2:
-		self.newcoord = moveset.axistorsion(self.coord, self.m, 0, self.theta)
+		self.newcoord = moveset.caxistorsion(self.coord, self.m, 0, self.theta)
 		self.change = [self.m-2]
 		self.jac = 1
 	    else:
@@ -396,7 +398,7 @@ def run_ff(self, nummoves, dict):
         #axis torsion
         elif self.randmove < self.percentmove[1]:
             self.theta = self.maxtheta[1] - 2 * self.maxtheta[1] * random.random()
-            self.newcoord = moveset.axistorsion(self.coord, self.m, self.randdir, self.theta)
+            self.newcoord = moveset.caxistorsion(self.coord, self.m, self.randdir, self.theta)
             self.movetype = 'at'
             self.atormoves += 1
 
@@ -413,9 +415,9 @@ def run_ff(self, nummoves, dict):
             self.movetype = 'lm'
             self.lmoves += 1
             if self.m < 5 and self.randdir > .5:
-                self.newcoord = moveset.axistorsion(self.coord, self.m, self.randdir, self.theta)
+                self.newcoord = moveset.caxistorsion(self.coord, self.m, self.randdir, self.theta)
             elif self.m > Simulation.numbeads-6 and self.randdir < .5:
-                self.newcoord = moveset.axistorsion(self.coord, self.m, self.randdir, self.theta)
+                self.newcoord = moveset.caxistorsion(self.coord, self.m, self.randdir, self.theta)
             else:
                 self.newcoord = moveset.localmove(self.coord, self.m, self.randdir, self.theta)
                 if numpy.any(numpy.isnan(self.newcoord)):
@@ -430,10 +432,10 @@ def run_ff(self, nummoves, dict):
             self.movetype = 'p'
             self.pmoves += 1
             if self.m == 1:
-                self.newcoord = moveset.axistorsion(self.coord, self.m, 1, self.theta)
+                self.newcoord = moveset.caxistorsion(self.coord, self.m, 1, self.theta)
                 jac = 1
             elif self.m == Simulation.numbeads-2:
-                self.newcoord = moveset.axistorsion(self.coord, self.m, 0, self.theta)
+                self.newcoord = moveset.caxistorsion(self.coord, self.m, 0, self.theta)
                 jac = 1
             else:
                 self.newcoord, jac = moveset.parrot(self.coord, self.m, self.randdir, self.theta)
