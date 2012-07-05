@@ -243,7 +243,28 @@ def angleenergy_n(mpos, oldE, param, change):
         newE[i] = ktheta * (angle - optangle)**2
     #print('angle energy: '+str(energy))
     return newE
-    
+
+def cangleenergy(mpos, oldE, param, change):
+	newE = oldE.copy()
+	n = len(change)
+	code = """
+	int i;
+	double x1, x2, y1, y2, z1, z2;
+	double dot12, dot1, dot2, angle;
+	for (int j = 0; j < n; j++){
+		i = CHANGE1(j);
+        	x1 = MPOS2(i,0) - MPOS2(i+1,0); y1 = MPOS2(i,1) - MPOS2(i+1,1); z1 = MPOS2(i,2) - MPOS2(i+1,2);
+        	x2 = MPOS2(i+2,0) - MPOS2(i+1,0); y2 = MPOS2(i+2,1) - MPOS2(i+1,1); z2 = MPOS2(i+2,2) - MPOS2(i+1,2);
+		dot12 = x1*x2 + y1*y2 + z1*z2;
+		dot1 = x1*x1 + y1*y1 + z1*z1;
+		dot2 = x2*x2 + y2*y2 + z2*z2;
+		angle = acos(dot12/sqrt(dot1*dot2));
+		NEWE1(i) = PARAM2(i,0)*(angle-PARAM2(i,1))*(angle-PARAM2(i,1));
+	}
+	"""
+    	info = weave.inline(code, ['param', 'newE', 'mpos', 'change','n'], headers=['<math.h>', '<stdlib.h>'])
+    	return newE
+
 def torsionenergy_nn(mpos, oldE, param, change):
     newE=oldE.copy()
     for i in change:
@@ -265,8 +286,6 @@ def torsionenergy_nn(mpos, oldE, param, change):
 def ctorsionenergy(mpos, oldE, param, change):
     newE = oldE.copy()
     n = len(change)
-    change = numpy.array(change)
-    #bonds = mpos[0:-1,:]-mpos[1:len(mpos),:]
     code = """
     int i;
     double x1, x2, x3, y1, y2, y3, z1, z2, z3;
@@ -425,6 +444,6 @@ def cdihedral(mpos, rnge=None):
         }
     }
     """
-    info = weave.inline(code, ['mpos', 'n', 'rnge'], headers=['<math.h>', '<stdlib.h>'])
+    info = weave.inline(code, ['mpos', 'n', 'rnge','newdihed'], headers=['<math.h>', '<stdlib.h>'])
     return newdihed
 

@@ -62,8 +62,7 @@ if rmsdfig:
 	
 
 kb=0.0019872041 #kcal/mol/K
-percentmove=[.2,.4,.6,.8] #% bend,% axis torsion,% crankshaft, %local move
-#percentmove=[0,0,0]
+percentmove=[1./7, 2./7, 3./7, 4./7, 5./7, 6./7] # % bend, % axis torsion, % crankshaft, % global crankshaft,  % local move, % parrot move, '% MD
 maxtheta=[10*T/300.,10*T/200.,20*T/250.,5.,10.] # bend, axistorsion, crankshaft
 nativecutoff=1.2
 
@@ -115,7 +114,7 @@ if rmsdfig:
 #Get parameters from .param file
 angleparam=getangleparam(paramfile,numbeads)
 torsparam=gettorsionparam(paramfile,numbeads)
-
+mass = getmass('%stop' % (paramfile[0:-5]), numbeads)
 
 #speed up terms
 numint=around(scipy.misc.comb(numbeads,2)) # number of interactions
@@ -134,6 +133,12 @@ nonnativeparam=column_stack((nonnatindex,nonnativesig)) #[ones and zeros, nonnat
 # periodic boundary condition settings
 xlength = 100
 ylength = 100
+
+# MD settings
+maxloop = 1000
+tol = 1e-8
+mdstep = 5
+mdstepsize = .01
 
 if verbose:
 	print 'verbosity is %s' %(str(verbose))
@@ -160,7 +165,7 @@ def energy(mpos,rsquare,torsE,angE):
 #========================================================================================================
 r2=cgetLJr2(coord,numint,numbeads)
 torsE=ctorsionenergy(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
-angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+angE=cangleenergy(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 print u0
 energyarray[0]=u0
@@ -178,22 +183,27 @@ if pdbfile:
 	writepdb(coord,wordtemplate,ATOMlinenum,0,pdbfile)
 	print 'writing trajectory to %s...' %(pdbfile)
 
+
 # constants for move stats
-angmoves=0
-crankmoves=0
-atormoves=0
-lmoves=0
-pmoves=0
-acceptedp=0
-acceptedlm=0
-acceptedat=0
-accepteda=0
-acceptedc=0
-accepted=0
-rejected=0
-movetype=''
-move=0
-closure=0
+angmoves = 0
+crankmoves = 0
+atormoves = 0
+lmoves = 0
+pmoves = 0
+gcmoves = 0
+mdmoves = 0
+acceptedmd = 0
+acceptedgc = 0
+acceptedp = 0
+acceptedlm = 0
+acceptedat = 0
+accepteda = 0
+acceptedc = 0
+accepted = 0
+rejected = 0
+movetype = ''
+move = 0
+closure = 0
 
 while move<totmoves:
         if xlength:
@@ -217,6 +227,7 @@ while move<totmoves:
 	uncloseable=False
 	#bend
 	if randmove < percentmove[0]:
+	    jac = 1
 	    theta=maxtheta[0]/180.*pi-random()*maxtheta[0]*pi/180.*2
             newcoord, jac = canglebend(coord,m,randdir,theta)
             angmoves += 1
@@ -227,6 +238,7 @@ while move<totmoves:
 	#torsion
 	elif randmove < percentmove[1]:
 	    theta=maxtheta[1]/180.*pi-random()*pi*maxtheta[1]/180.*2
+	    jac = 1
             newcoord = caxistorsion(coord, m, randdir, theta)
 	    movetype='at'
 	    atormoves += 1
@@ -244,6 +256,7 @@ while move<totmoves:
 	elif randmove < percentmove[2]:
 	    theta=maxtheta[2]/180.*pi-random()*maxtheta[2]*pi/180.*2
 	    newcoord=crankshaft(coord,m,theta)
+	    jac = 1
 	    crankmoves += 1
 	    movetype='c'
 	    change=arange(m-3,m+1)
@@ -258,17 +271,29 @@ while move<totmoves:
 	    elif m==numbeads-2:
 		    change=arange(m-3,m-1)
 		    angchange=[m-2]
-	#local move
+
+        # global crank        
 	elif randmove < percentmove[3]:
+            theta = numpy.random.normal(0, pi/180, numbeads-2)
+	    jac = 1
+	    newcoord = cglobalcrank(coord,theta)
+	    angchange = arange(numbeads-2)
+	    change = arange(numbeads-3)
+	    movetype = 'gc'
+	    gcmoves += 1
+            
+	#local move
+	elif randmove < percentmove[4]:
+		jac = 1
 		theta=maxtheta[3]/180.*pi-random()*maxtheta[3]/180.*pi*2
 		movetype='lm'
 		lmoves +=1
 		if m<5 and randdir>.5:
-			newcoord=axistorsion(coord,m,randdir,theta)
+			newcoord=caxistorsion(coord,m,randdir,theta)
 			angchange=[]
 			change=[m-1]
 		elif m>numbeads-6 and randdir<.5:
-			newcoord=axistorsion(coord,m,randdir,theta)
+			newcoord=caxistorsion(coord,m,randdir,theta)
 			angchange=[]
 			change=[m-2]
 		else:
@@ -294,16 +319,18 @@ while move<totmoves:
 				change=change[change<(numbeads-3)]
 
         # parrot
-        else:
+        elif randmove < percentmove[5]:
             theta = maxtheta[4]/180.*pi-random()*maxtheta[4]/180.*pi*2
             movetype = 'p'
             pmoves += 1
             angchange=[]
             if m == 1:
-                newcoord = axistorsion(coord, m, 1, theta)
+                newcoord = caxistorsion(coord, m, 1, theta)
+		jac = 1
                 change = [0]
             elif m == numbeads-2:
-                newcoord = axistorsion(coord, m, 0, theta)
+                newcoord = caxistorsion(coord, m, 0, theta)
+		jac = 1
                 change = [m-2]
             else:
                 newcoord, jac = parrot(coord, m, randdir, theta)
@@ -319,17 +346,31 @@ while move<totmoves:
                     change = arange(numbeads-1-m-4,numbeads-1-m)
                     change = change[change>-1]
                     change = change[change<(numbeads-3)]
-                
+        # run MD
+        else:
+	    movetype = 'md'
+	    jac = 1
+	    mdmoves += 1
+            newcoord = runMD_noreplica(mdstep, mdstepsize, coord, numbeads, numint, angleparam, torsparam, nativeparam_n, nonnativeparam, nnepsil, mass, kb, T, tol, maxloop)
+	    if any(isnan(newcoord)):
+		uncloseable = True
+		rejected += 1
+		closure += 1
+		move += 1
+	    else:
+		change = arange(numbeads-3)
+		angchange = arange(numbeads-2)
+
 	if(uncloseable==False):
                 r2new=cgetLJr2(newcoord,numint,numbeads)
-		newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
+		newangE=cangleenergy(newcoord,angE,angleparam,angchange)
 		newtorsE=ctorsionenergy(newcoord,torsE,torsparam,change)
 		u1=energy(newcoord,r2new,newtorsE,newangE)
                 move += 1
 		stdout.write(str(move)+'\r')
 		stdout.flush()
-		boltz=exp(-(u1-u0)/(kb*T))
-		if u1< u0 or random() < boltz:
+		boltz = jac*exp(-(u1-u0)/(kb*T))
+		if random() < boltz:
 			accepted += 1
 			if movetype=='a':
 				accepteda += 1
@@ -342,8 +383,12 @@ while move<totmoves:
 				acceptedc += 1
 			elif movetype=='lm':
 				acceptedlm +=1
-                        else:
+                        elif movetype =='p':
                             acceptedp += 1
+			elif movetype == 'md':
+			    acceptedmd += 1
+			else:
+			    acceptedgc += 1
 			r2=r2new
 			coord=newcoord
 			torsE=newtorsE
@@ -433,7 +478,9 @@ if(verbose):
 	print 'torsion: %d moves accepted out of %d tries' %(acceptedat,atormoves)
 	print 'local move: %d moves accepted out of %d tries' %(acceptedlm,lmoves)
         print 'parrot move: %d moves accepted out of %d tries' %(acceptedp,pmoves)
-	print '%d local moves rejected due to chain closure' %(closure)
+	print 'MD moves: %d moves accepted out of %d tries' %(acceptedmd, mdmoves)
+	print '%d local moves/parrot moves/md moves rejected due to chain closure' %(closure)
+	print 'global crankshaft: %d moves accepted out of %d tries' %(acceptedgc,gcmoves)
 	print('Simulation time: '+str(t2-t1))
 
 #x=range(len(rmsd_array))
