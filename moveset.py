@@ -593,6 +593,59 @@ def runMD(self,nsteps,h,dict):
 	#assert all(sum(bonds**2,axis=1)-d2< 1e-7)
 	return self
 
+def runMD_surf(self,nsteps,h,dict):
+	numbeads=dict['numbeads']
+	numint=dict['numint']
+	angleparam=dict['angleparam']
+	torsparam=dict['torsparam']
+	nativeparam_n=dict['nativeparam_n']
+	nonnativeparam=dict['nonnativeparam']
+	nnepsil=dict['nnepsil']
+	m=dict['mass']
+        surface = dict['surface']
+        surfparam = dict['surfparam']
+        nspint = dict['nspint']
+	positiontemplate=dict['positiontemplate']
+	#m=120.368 # average mass of all residues
+	tol=1e-8
+	maxloop=1000
+	
+	self.newcoord=self.coord.copy()
+	self.vel=empty((numbeads,3))
+	for i in range(numbeads): self.vel[i,:]=numpy.random.normal(0,(4.184*self.kb*self.T/m[i])**.5,3) #in nm/ps, uses average residue mass
+	
+        bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
+	d2=numpy.sum(bonds**2,axis=1)
+	d=d2**.5
+	force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.getsurfforce(self.coord, surface, nspint, numbeads, surfparam)
+	a = numpy.transpose(force) / m
+	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+        #self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
+	
+	for e in range(nsteps):
+		#finding r(t+dt)
+		#loops = 0
+		#conv = numpy.ones(numbeads-1)
+		v_half = self.vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
+		v_half, conv = HMCforce.cshake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # 
+		if not conv:
+			self.uncloseable=True
+			self.rejected += 1
+			break
+		self.newcoord += h * v_half #constrained r(t+dt)
+		bonds = self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
+		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.getsurfforce(self.coord, surface, nspint, numbeads, surfparam)
+		a=transpose(force)/m
+		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
+		self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+		if not conv:
+			self.uncloseable=True
+			self.rejected += 1
+			break
+	return self
+
+
+
 def runMD_noreplica(nsteps, h, coord, numbeads, numint, angleparam, torsparam, nativeparam_n, nonnativeparam, nnepsil, mass, kb, T, tol, maxloop):
 	newcoord = coord.copy()
 	vel = empty((numbeads,3))
@@ -822,7 +875,7 @@ def findphi1(phi2, c, s, v):
     return phi1
 
 def checku(Told, Tnew):
-    """Checks whether u = T0*T1*T2*i == T0n*T1n*T2n*i"""
+    """Checks whether u = T0*T1*T2*i == T0n*T1n*T2n*i in ParRot move"""
     u_old = dot(dot(dot(Told[0],Told[1]),Told[2]),array([1,0,0]))
     u_new = dot(dot(dot(Tnew[0],Tnew[1]),Tnew[2]),array([1,0,0]))
     diff = u_old-u_new
@@ -832,7 +885,7 @@ def checku(Told, Tnew):
         return False
 
 def checkuT(Told, Tnew):
-    """Checks whether uT = T0*T1*T2*T3*j == T0n*T1n*T2n*T3n*j"""
+    """Checks whether uT = T0*T1*T2*T3*j == T0n*T1n*T2n*T3n*j in ParRot move"""
     uT_old = dot(dot(dot(dot(Told[0],Told[1]),Told[2]),Told[3]),array([0,1,0]))
     uT_new = dot(dot(dot(dot(Tnew[0],Tnew[1]),Tnew[2]),Tnew[3]),array([0,1,0]))
     diff = uT_old - uT_new
@@ -842,7 +895,7 @@ def checkuT(Told, Tnew):
         return False
 
 def findpos(phi, mpos123, m, T, Tlab, bonds):
-    """Finds new bead positions from new phis"""
+    """Finds new bead positions from new phis for ParRot move"""
     mpos = mpos123.copy()
     bond=dot(Tlab,T[0])
     mpos[m+1,:] = mpos[m,:] + bond[:,0]*(bonds[m,0]**2+bonds[m,1]**2+bonds[m,2]**2)**.5 #dot(bond,array([sqrt(sum(bonds[m,:]**2)),0,0]))
@@ -876,3 +929,27 @@ def checkang(angold, angnew):
 	pdb.set_trace()
     return
 
+def translation(coord_old, x, y, z):
+    """Used in SurfaceSimulation to translate protein"""
+    coord = coord_old.copy()
+    coord[:,0] += x
+    coord[:,1] += y
+    coord[:,2] += z
+    return coord
+
+def rotation(coord_old, alpha, beta, gamma):
+    """Used in SurfaceSimulation to rotate protein"""
+    coord = coord_old.copy()
+    com = sum(coord, axis = 0)/len(coord) # center of mass
+    coord -= com # rotation performed around CoM 
+    ca = cos(alpha) 
+    sa = sin(alpha)
+    cb = cos(beta)
+    sb = sin(beta)
+    cg = cos(gamma)
+    sg = sin(gamma)
+    rotation_matrix = numpy.array([[cb*cg, cb*sg, -sb], [sa*sb*cg-ca*sg, sa*sb*sg+ca*cg, sa*cb], [ca*sb*cg+sa*sg, ca*sb*sg-sa*cg, ca*cb]])
+    coord = dot(coord,rotation_matrix)
+    coord = coord + com
+    return coord
+    

@@ -115,9 +115,33 @@ def getnativefix_n(paramfile, numint, numbeads):
             param[intindex,:] = numpy.array([1,-ep,sig])
     return param
 
+def getsurfparam(numint):
+    ep = numpy.random.random(numint)
+    sig = numpy.random.normal(9.,1.,numint)
+    param = numpy.vstack((ep,sig))
+    return param.transpose()
+
 #==========================================
 # ENERGY CALCULATION METHODS
 #==========================================
+
+
+def getr2surf(prot_coord, surf_coord, numbeads, numint):
+    r2_array = numpy.zeros(numint)
+    for i in range(len(surf_coord)):
+        r2 = surf_coord[i,:] - prot_coord
+        r2 = numpy.sum(r2**2, axis=1)
+        r2_array[i*numbeads:i*numbeads+numbeads] = r2
+    return r2_array
+
+def surfenergy(r2, param):
+    #native calculation
+    nE = param[:,1] * param[:,1] / r2 #sigma2/r2
+    nE6 = nE * nE * nE
+    #nE = param[:,0] * (13 * nE6 * nE6 - 18 * nE6 * nE * nE + 4 * nE6)
+    nE = param[:,0]*(nE6*nE6 - 2*nE6)
+    return numpy.sum(nE)
+
 
 def getforcer(mpos, numint, numbeads):
     r2array = numpy.empty((numint,3)) # distance vectors
@@ -363,7 +387,14 @@ def rmsd(crds1, crds2):
   	rmsd_sq = (E0 - 2.0*sum(s)) / float(n_vec)
   	rmsd_sq = max([rmsd_sq, 0.0])
  	return rmsd_sq**.5
-	
+
+def radgyr(mpos):
+	n = len(mpos)
+	com = numpy.sum(mpos, axis=0) / n
+	rad = mpos - com
+	rad = numpy.sum(rad**2) / n
+	return rad**.5
+
 def nativecontact(r2,nativeparam,nsigma2):
 	# native contact if ij pair is native and if rij < 1.2 sigmaij
 	r2 = r2 * nativeparam[:,0]
