@@ -184,71 +184,87 @@ def nonbondedforces(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
 	k = 0
 	F = -(ndV+nndV) / rr
 	F = numpy.transpose(F) * numpy.transpose(rvec) # now 3xN instead of Nx3
-	code = """
+        F = F.transpose()
+        #for i in range(numbeads):
+		#for j in range(i+3,numbeads):
+			#forces[i,:] += F[:,k]
+			#forces[j,:] += -F[:,k]
+			#k += 1
+                        
+        code = """
         int k = 0;
         for ( int i = 0; i < numbeads; i++){
             for ( int j = i+3; j < numbeads; j++){
-                FORCES2(i,0) += F2(0,k);
-                FORCES2(i,1) += F2(1,k);
-                FORCES2(i,2) += F2(2,k);
-                FORCES2(j,0) += -F2(0,k);
-                FORCES2(j,1) += -F2(1,k);
-                FORCES2(j,2) += -F2(2,k);
+                FORCES2(i,0) += F2(k,0);
+                FORCES2(i,1) += F2(k,1);
+                FORCES2(i,2) += F2(k,2);
+                FORCES2(j,0) += -F2(k,0);
+                FORCES2(j,1) += -F2(k,1);
+                FORCES2(j,2) += -F2(k,2);
                 k++;
             }
         }
         """
         info = weave.inline(code, ['forces', 'F', 'numbeads'], headers=['<math.h>', '<stdlib.h>'])
-
-        #for i in range(numbeads):
-		#for j in range(i+3,numbeads):
-			#forces2[i,:] += F[:,k]
-			#forces2[j,:] += -F[:,k]
-			#k += 1
-
 	return forces * 4.184 # converts force to kJ/mol/K
 
 def cnonbondedforces(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
 	"""Returns the nonbonded forces of a given configuration"""
 	forces = numpy.zeros((numbeads,3))
 	# get distances, square distances, and magnitude distances for all interactions 
-	rvec = energyfunc.cgetforcer(mpos, numint, numbeads) # excludes 12 and 13 neightbors
-	r2 = numpy.sum(rvec**2, axis=1)
-	rr = r2**.5
-	# calculates potential energy gradient for native and nonnative interactions
-	ndV = natparam[:,0] * natparam[:,2] * natparam[:,2] / r2
-	ndV6 = ndV * ndV * ndV
-	ndV = natparam[:,1] * (-156*ndV6*ndV6/rr + 180*ndV6*ndV*ndV/rr - 24*ndV6/rr)
-	nndV = nonnatparam[:,0] * nonnatparam[:,1] * nonnatparam[:,1] / r2
-	nndV = nndV * nndV * nndV
-	nndV = -12 * nnepsil * nndV * nndV / rr
-	# add forces to total force
-	k = 0
-	F = -(ndV+nndV) / rr
-	F = numpy.transpose(F) * numpy.transpose(rvec) # now 3xN instead of Nx3
+	#rvec = energyfunc.cgetforcer(mpos, numint, numbeads) # excludes 12 and 13 neightbors
 	code = """
         int k = 0;
+        double r2, r, ndV, ndV6, F,x,y,z;
         for ( int i = 0; i < numbeads; i++){
             for ( int j = i+3; j < numbeads; j++){
-                FORCES2(i,0) += F2(0,k);
-                FORCES2(i,1) += F2(1,k);
-                FORCES2(i,2) += F2(2,k);
-                FORCES2(j,0) += -F2(0,k);
-                FORCES2(j,1) += -F2(1,k);
-                FORCES2(j,2) += -F2(2,k);
+                x = MPOS2(i,0) - MPOS2(j,0);
+                y = MPOS2(i,1) - MPOS2(j,1);
+                z = MPOS2(i,2) - MPOS2(j,2);
+                r2 = x*x + y*y + z*z;
+                r = sqrt(r2);
+                if (NATPARAM2(k,0) == 1){
+                    ndV = NATPARAM2(k,2)*NATPARAM2(k,2)/r2;
+                    ndV6 = ndV*ndV*ndV;
+                    ndV = NATPARAM2(k,1)*(-156*ndV6*ndV6/r + 180*ndV6*ndV*ndV/r - 24*ndV6/r);
+                }
+                else{
+                    ndV = NONNATPARAM2(k,1)*NONNATPARAM2(k,1)/r2;
+                    ndV = ndV*ndV*ndV;
+                    ndV = -12*nnepsil*ndV*ndV/r;
+                }
+                F = -ndV/r;
+                FORCES2(i,0) += F*x;
+                FORCES2(i,1) += F*y;
+                FORCES2(i,2) += F*z;
+                FORCES2(j,0) += -F*x;
+                FORCES2(j,1) += -F*y;
+                FORCES2(j,2) += -F*z;
                 k++;
             }
         }
         """
-        info = weave.inline(code, ['forces', 'F', 'numbeads'], headers=['<math.h>', '<stdlib.h>'])
-
-        #for i in range(numbeads):
-		#for j in range(i+3,numbeads):
-			#forces2[i,:] += F[:,k]
-			#forces2[j,:] += -F[:,k]
-			#k += 1
+        info = weave.inline(code, ['forces', 'mpos', 'numbeads', 'natparam', 'nonnatparam', 'nnepsil'], headers=['<math.h>', '<stdlib.h>'])
 
 	return forces * 4.184 # converts force to kJ/mol/K
+
+def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
+    rvec = numpy.zeros((numint,3))
+    for i in range(len(surf_coord)):
+        rvec[i*numbeads:i*numbeads+numbeads] = surf_coord[i,:] - prot_coord
+    r2 = numpy.sum(rvec**2,axis = 1)
+    r = r2**.5
+    ndV = param[:,1]*param[:,1]/r2
+    ndV6 = ndV*ndV*ndV
+    ndV = param[:,0]*(-156*ndV6*ndV6/r+180*ndV6*ndV*ndV/r - 24*ndV6/r)
+    F = -ndV/r
+    F = numpy.transpose(F)*numpy.transpose(rvec)
+    F = F.transpose()
+    forces = numpy.zeros((numbeads,3))
+    for i in range(len(surf_coord)):
+   	forces += -F[i*numbeads:i*numbeads+numbeads,:]
+    return forces*4.184
+
 
 
 #==========================================

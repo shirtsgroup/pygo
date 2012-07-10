@@ -121,6 +121,12 @@ def getsurfparam(numint):
     param = numpy.vstack((ep,sig))
     return param.transpose()
 
+def getsurfparam(file,numbeads,numint):
+	f = open(file, 'r')
+	while 1:
+		line = f.readline()
+		pass	
+
 #==========================================
 # ENERGY CALCULATION METHODS
 #==========================================

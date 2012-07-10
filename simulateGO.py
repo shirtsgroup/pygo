@@ -164,8 +164,11 @@ def energy(mpos,rsquare,torsE,angE):
 # SIMULATE
 #========================================================================================================
 r2=cgetLJr2(coord,numint,numbeads)
+r2=getLJr2(coord,numint,numbeads)
 torsE=ctorsionenergy(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
 angE=cangleenergy(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u0=energyprint(coord,r2,torsE,angE)
 print u0
 energyarray[0]=u0
@@ -230,6 +233,7 @@ while move<totmoves:
 	    jac = 1
 	    theta=maxtheta[0]/180.*pi-random()*maxtheta[0]*pi/180.*2
             newcoord, jac = canglebend(coord,m,randdir,theta)
+            newcoord, jac = anglebend(coord,m,randdir,theta)
             angmoves += 1
 	    movetype='a'
 	    change=[]
@@ -240,6 +244,7 @@ while move<totmoves:
 	    theta=maxtheta[1]/180.*pi-random()*pi*maxtheta[1]/180.*2
 	    jac = 1
             newcoord = caxistorsion(coord, m, randdir, theta)
+            newcoord = axistorsion(coord, m, randdir, theta)
 	    movetype='at'
 	    atormoves += 1
 	    angchange=[]
@@ -277,6 +282,7 @@ while move<totmoves:
             theta = numpy.random.normal(0, pi/180, numbeads-2)
 	    jac = 1
 	    newcoord = cglobalcrank(coord,theta)
+	    newcoord = globalcrank(coord,theta)
 	    angchange = arange(numbeads-2)
 	    change = arange(numbeads-3)
 	    movetype = 'gc'
@@ -290,10 +296,12 @@ while move<totmoves:
 		lmoves +=1
 		if m<5 and randdir>.5:
 			newcoord=caxistorsion(coord,m,randdir,theta)
+			newcoord=axistorsion(coord,m,randdir,theta)
 			angchange=[]
 			change=[m-1]
 		elif m>numbeads-6 and randdir<.5:
 			newcoord=caxistorsion(coord,m,randdir,theta)
+			newcoord=axistorsion(coord,m,randdir,theta)
 			angchange=[]
 			change=[m-2]
 		else:
@@ -326,10 +334,12 @@ while move<totmoves:
             angchange=[]
             if m == 1:
                 newcoord = caxistorsion(coord, m, 1, theta)
+                newcoord = axistorsion(coord, m, 1, theta)
 		jac = 1
                 change = [0]
             elif m == numbeads-2:
                 newcoord = caxistorsion(coord, m, 0, theta)
+                newcoord = axistorsion(coord, m, 0, theta)
 		jac = 1
                 change = [m-2]
             else:
@@ -363,8 +373,11 @@ while move<totmoves:
 
 	if(uncloseable==False):
                 r2new=cgetLJr2(newcoord,numint,numbeads)
+                r2new=getLJr2(newcoord,numint,numbeads)
 		newangE=cangleenergy(newcoord,angE,angleparam,angchange)
+		newangE=angleenergy_n(newcoord,angE,angleparam,angchange)
 		newtorsE=ctorsionenergy(newcoord,torsE,torsparam,change)
+		newtorsE=torsionenergy_nn(newcoord,torsE,torsparam,change)
 		u1=energy(newcoord,r2new,newtorsE,newangE)
                 move += 1
 		stdout.write(str(move)+'\r')

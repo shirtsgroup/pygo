@@ -196,7 +196,7 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected):
     #if numreplicas%2 == 1:
         #Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
         #Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
-    return [Swapaccepted, Swaprejected]
+    return Swapaccepted, Swaprejected
 
 #type 2 switches
 def tryswap2(Replicas, Swapaccepted, Swaprejected):
@@ -227,7 +227,15 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected):
     #if len(Replicas[numreplicas-1].whoami) != len(Replicas[0].whoami):
         #Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
         #Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
-    return [Swapaccepted, Swaprejected]
+    return Swapaccepted, Swaprejected
+
+def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected):
+	if numreplicas == 1:
+		return Swapaccepted, Swaprejected
+	for k in range(50): # try swapping 100 times
+		Swapaccepted, Swaprejected = tryswap1(Replicas, Swapaccepted, Swaprejected)
+		Swapaccepted, Swaprejected = tryswap2(Replicas, Swapaccepted, Swaprejected)
+	return Swapaccepted, Swaprejected
 
 def pprun(Replicas, Moves, Dict):
     jobs = [job_server.submit(run, (replica, Moves, Dict), (energy, ), ("random", "numpy",
@@ -287,12 +295,13 @@ print 'Starting simulation...'
 for i in xrange(totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
-    if i%2 == 0:
-        #type 1 switch
-        [swapaccepted, swaprejected] = tryswap1(replicas, swapaccepted, swaprejected)
-    else:
-        #type 2 switch
-        [swapaccepted, swaprejected] = tryswap2(replicas, swapaccepted, swaprejected)
+    swapaccepted, swaprejected = tryrepeatedswaps(replicas, swapaccepted, swaprejected)
+    #if i%2 == 0:
+        ##type 1 switch
+        #[swapaccepted, swaprejected] = tryswap1(replicas, swapaccepted, swaprejected)
+    #else:
+        ##type 2 switch
+        #[swapaccepted, swaprejected] = tryswap2(replicas, swapaccepted, swaprejected)
     t_remain = (datetime.now() - ti)/(i+1)*(totmoves/swap - i - 1)
     stdout.write(str(t_remain) + '\r')
     stdout.flush()
