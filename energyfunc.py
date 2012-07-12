@@ -115,17 +115,103 @@ def getnativefix_n(paramfile, numint, numbeads):
             param[intindex,:] = numpy.array([1,-ep,sig])
     return param
 
-def getsurfparam(numint):
-    ep = numpy.random.random(numint)
-    sig = numpy.random.normal(9.,1.,numint)
-    param = numpy.vstack((ep,sig))
-    return param.transpose()
+#def getsurfparam(numint):
+#    ep = numpy.random.random(numint)
+#    sig = numpy.random.normal(9.,1.,numint)
+#    param = numpy.vstack((ep,sig))
+#    return param.transpose()
 
-def getsurfparam(file,numbeads,numint):
+def getindex(res):
+	if res == 'ALA':
+		return 0
+	if res == 'ARG':
+		return 1
+	if res == 'ASN':
+		return 2
+	if res == 'ASP':
+		return 3
+	if res == 'CYS' or res == 'CSD':
+		return 4
+	if res == 'GLU':
+		return 5
+	if res == 'GLN':
+		return 6
+	if res == 'GLY':
+		return 7
+	if res == 'HIS': # uncharged with a proton of ND1
+		return 8
+	if res == 'ILE':
+		return 9
+	if res == 'LEU':
+		return 10
+	if res == 'LYS':
+		return 11
+	if res == 'MET':
+		return 12
+	if res == 'PHE':
+		return 13
+	if res == 'PRO':
+		return 14
+	if res == 'SER':
+		return 15
+	if res == 'THR':
+		return 16
+	if res == 'TRP':
+		return 17
+	if res == 'TYR':
+		return 18
+	if res == 'VAL':
+		return 19
+	if res == 'HSC': # protonated HIS
+		return 20
+	if res == 'HSD': # uncharged with a proton on NE2; an isomer of HIS
+		return 21
+	else:
+		print res
+
+def getsurfparam(file, numbeads, nsurf, numint):
+	"""
+	Gets all surface-protein interaction parameters
+		Needs original .pdb file of protein to get sequence of residues
+		Uses matrix of epsilon and simga parameters for all possible residue interactions
+	"""
+	param = numpy.zeros((numint,2))
+	ep_all = numpy.loadtxt('avgep.txt')
+	sig_all = numpy.loadtxt('avgsig.txt')
+	# get sequence of residues
 	f = open(file, 'r')
+	missingres = []
+	res = []
 	while 1:
 		line = f.readline()
-		pass	
+		if not line:
+			break
+		if line.startswith('REMARK 465'):
+			try:
+				missingres.append(int(line[21:-1])-1)
+			except: pass
+		if line.startswith('SEQRES'):
+			words = line.split(' ')
+			words = [x for x in words if x]
+			res.extend(words[4:-1])
+	res = [res[i] for i in range(len(res)) if i not in missingres]
+	assert(len(res)==numbeads)
+	index = [getindex(residue) for residue in res]
+	ep = []
+	sig = []
+	for j in index:
+		i = 10 # all LEU surface
+		if i > j:
+			i, j = j, i
+		if i == None or j == None:
+			pdb.set_trace()
+		ep.append(-ep_all[i,j])
+		sig.append(sig_all[i,j])
+	ep = ep*nsurf
+	sig = sig*nsurf
+	param[:,0] = ep
+	param[:,1] = sig
+	return param
 
 #==========================================
 # ENERGY CALCULATION METHODS
@@ -140,6 +226,20 @@ def getr2surf(prot_coord, surf_coord, numbeads, numint):
         r2_array[i*numbeads:i*numbeads+numbeads] = r2
     return r2_array
 
+def cgetr2surf(prot_coord, surf_coord, numbeads, numint):
+    r2_array = numpy.zeros(numint)
+    code = """
+    double x, y, z;
+    for (int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        r2_array[i] = x*x + y*y + z*z;
+    }
+    """
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'r2_array'], headers=['<math.h>', '<stdlib.h>'])
+    return r2_array
+
 def surfenergy(r2, param):
     #native calculation
     nE = param[:,1] * param[:,1] / r2 #sigma2/r2
@@ -148,6 +248,47 @@ def surfenergy(r2, param):
     nE = param[:,0]*(nE6*nE6 - 2*nE6)
     return numpy.sum(nE)
 
+
+    
+def csurfenergyoo(prot_coord, surf_coord, numbeads, numint, param):
+    energy = numpy.zeros(numbeads)
+    r2_array = numpy.zeros(numint)
+    code = """
+    double x, y, z, e;
+    for (int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        R2_ARRAY1(i) = x*x + y*y + z*z;
+        e = PARAM2(i,1)*PARAM2(i,1)/R2_ARRAY1(i);
+        e = e*e*e;
+        e = PARAM2(i,0)*(e*e-2*e);
+        ENERGY1(i % numbeads) += e;
+    }
+    """
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy', 'r2_array'], headers=['<math.h>', '<stdlib.h>'])
+    return r2_array, energy
+    
+def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, r2old, surfEnew, change):
+    r2new = r2old.copy()
+    n = len(change)
+    code = """
+    int i;
+    double x, y, z, e;
+    for (int j = 0; j < n; j++){
+        i = CHANGE1(j);
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        R2NEW1(i) = x*x + y*y + z*z;
+        e = PARAM2(i,1)*PARAM2(i,1)/R2NEW1(i);
+        e = e*e*e;
+        e = PARAM2(i,0)*(e*e-2*e);
+        SURFENEW1(i % numbeads) += e;
+    }
+    """
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'change', 'surfEnew', 'r2new', 'n'], headers=['<math.h>', '<stdlib.h>'])
+    return r2new, surfEnew
 
 def getforcer(mpos, numint, numbeads):
     r2array = numpy.empty((numint,3)) # distance vectors
@@ -246,6 +387,33 @@ def cLJenergy(r2, natparam, nonnatparam, nnepsil):
     """
     info = weave.inline(code, ['r2','natparam','numint','energy','nonnatparam','nnepsil'], headers=['<math.h>', '<stdlib.h>'])
     return energy[0]
+
+def cgetLJenergy(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
+    energy = numpy.array([0.0])
+    r2_array = numpy.empty(numint)
+    code = """
+    int k = 0;
+    double x, y, z, nE, nE6, nnE;
+    for ( int i = 0; i < numbeads; i++){
+        for ( int j = i+3; j < numbeads; j++){
+	    x = MPOS2(i,0) - MPOS2(j,0);
+	    y = MPOS2(i,1) - MPOS2(j,1);
+	    z = MPOS2(i,2) - MPOS2(j,2);
+	    R2_ARRAY1(k) = x*x + y*y + z*z;
+            nE = NATPARAM2(k,0)*NATPARAM2(k,2)*NATPARAM2(k,2)/R2_ARRAY1(k);
+            nE6 = nE*nE*nE;
+            nE = NATPARAM2(k,1)*(13*nE6*nE6-18*nE6*nE*nE+4*nE6);
+            nnE = NONNATPARAM2(k,0)*NONNATPARAM2(k,1)*NONNATPARAM2(k,1)/R2_ARRAY1(k);
+            nnE = nnE*nnE;
+            nnE = nnepsil*nnE*nnE*nnE;
+            ENERGY1(0) += (nE + nnE);
+            k++;
+	}
+    }
+    """
+    info = weave.inline(code, ['mpos', 'numint', 'numbeads', 'natparam', 'energy', 'nonnatparam', 'nnepsil', 'r2_array'], headers=['<math.h>', '<stdlib.h>'])
+    return r2_array, energy[0]
+
 
 def LJenergy_CHARMM(r2, natparam, nonnatparam, nnepsil):
     #native calculation

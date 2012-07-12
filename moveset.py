@@ -617,7 +617,7 @@ def runMD_surf(self,nsteps,h,dict):
         bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
 	d2=numpy.sum(bonds**2,axis=1)
 	d=d2**.5
-	force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.getsurfforce(self.coord, surface, nspint, numbeads, surfparam)
+        force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.cgetsurfforce(self.coord, surface, nspint, numbeads, surfparam)
 	a = numpy.transpose(force) / m
 	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
         #self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
@@ -634,7 +634,7 @@ def runMD_surf(self,nsteps,h,dict):
 			break
 		self.newcoord += h * v_half #constrained r(t+dt)
 		bonds = self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
-		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.getsurfforce(self.coord, surface, nspint, numbeads, surfparam)
+		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.cgetsurfforce(self.coord, surface, nspint, numbeads, surfparam)
 		a=transpose(force)/m
 		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
 		self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
@@ -685,92 +685,92 @@ def makeT(c,s,cp,sp):
     #T = array([[-cos(angle),sin(angle),0], [-cos(phi)*sin(angle),-cos(phi)*cos(angle),-sin(phi)], [-sin(phi)*sin(angle),-sin(phi)*cos(angle),cos(phi)]])
     return T
 
-def parrot_older(mpos123, m, rand, theta):
-    """Performs a parallel-rotation move"""
-    mpos = mpos123.copy()
-    soln = ones((2,4)) # two possible sets of solutions
-    if rand > .5:
-        mpos = mpos[::-1]
-    angle = energyfunc.angle(mpos)
-    dihed = energyfunc.dihedral(mpos)
-    bonds = mpos[1:len(mpos),:]-mpos[0:-1,:]
-    phi_old=dihed[m-2:m+2]
-    soln[:,0]=dihed[m-2]+theta # new phi0
+#def parrot_older(mpos123, m, rand, theta):
+    #"""Performs a parallel-rotation move"""
+    #mpos = mpos123.copy()
+    #soln = ones((2,4)) # two possible sets of solutions
+    #if rand > .5:
+        #mpos = mpos[::-1]
+    #angle = energyfunc.angle(mpos)
+    #dihed = energyfunc.dihedral(mpos)
+    #bonds = mpos[1:len(mpos),:]-mpos[0:-1,:]
+    #phi_old=dihed[m-2:m+2]
+    #soln[:,0]=dihed[m-2]+theta # new phi0
     
-    # find phi2_new
-    T0 = makeT(angle[m-1],soln[0,0]) # T(phi0_new)
-    try:
-        ulab = bonds[m+2,:]/sum(bonds[m+2,:]**2)**.5
-    except IndexError: # need fictitious bonds/angles
-        assert(m == len(mpos) - 3)
-        ulab = [0,0,1]
-        angle = append(angle,[68*pi/180, 68*pi/180])
-        phi_old = append(phi_old, [0,0])
-    jac_old = parrot_jac(ulab, bonds[m], bonds[m+1])
+    ## find phi2_new
+    #T0 = makeT(angle[m-1],soln[0,0]) # T(phi0_new)
+    #try:
+        #ulab = bonds[m+2,:]/sum(bonds[m+2,:]**2)**.5
+    #except IndexError: # need fictitious bonds/angles
+        #assert(m == len(mpos) - 3)
+        #ulab = [0,0,1]
+        #angle = append(angle,[68*pi/180, 68*pi/180])
+        #phi_old = append(phi_old, [0,0])
+    #jac_old = parrot_jac(ulab, bonds[m], bonds[m+1])
 
-    x=bonds[m-1,:]/sum(bonds[m-1,:]**2)**.5
-    z1=bonds[m-2,:]/sum(bonds[m-2,:]**2)**.5
-    z=cross(x,z1)/sin(pi-angle[m-2])
-    y=cross(z,x)
-    Tlab=vstack((x,y,z))
-    Tlab=transpose(Tlab) # transformation matrix from local coordinate frame of bond 0 to the laboratory frame
-    u = linalg.solve(Tlab,ulab) # find u in reference frame of bond 0
-    v = linalg.solve(T0,u) 
-    cosphi2 = (cos(angle[m])*cos(angle[m+1])-v[0]) / (sin(angle[m+1])*sin(angle[m]))
-    if abs(cosphi2) > 1:
-        return nan, nan # no solutions
-    soln[0,2] = arccos(cosphi2) 
-    soln[1,2] = 2*pi-arccos(cosphi2)
+    #x=bonds[m-1,:]/sum(bonds[m-1,:]**2)**.5
+    #z1=bonds[m-2,:]/sum(bonds[m-2,:]**2)**.5
+    #z=cross(x,z1)/sin(pi-angle[m-2])
+    #y=cross(z,x)
+    #Tlab=vstack((x,y,z))
+    #Tlab=transpose(Tlab) # transformation matrix from local coordinate frame of bond 0 to the laboratory frame
+    #u = linalg.solve(Tlab,ulab) # find u in reference frame of bond 0
+    #v = linalg.solve(T0,u) 
+    #cosphi2 = (cos(angle[m])*cos(angle[m+1])-v[0]) / (sin(angle[m+1])*sin(angle[m]))
+    #if abs(cosphi2) > 1:
+        #return nan, nan # no solutions
+    #soln[0,2] = arccos(cosphi2) 
+    #soln[1,2] = 2*pi-arccos(cosphi2)
     
-    # find unique solution of phi1new
-    soln[0,1] = findphi1(soln[0,2], angle, m, v)
-    soln[1,1] = findphi1(soln[1,2], angle, m, v)
+    ## find unique solution of phi1new
+    #soln[0,1] = findphi1(soln[0,2], angle, m, v)
+    #soln[1,1] = findphi1(soln[1,2], angle, m, v)
 
-    # test solutions 
-    try:
-        oldT = [makeT(angle[m-1],phi_old[0]), makeT(angle[m],phi_old[1]), makeT(angle[m+1],phi_old[2]), makeT(angle[m+2],phi_old[3])]
-    except IndexError:
-	assert(m == len(mpos) - 4)
-	angle = append(angle, 68*pi/180)
-	phi_old = append(phi_old, 0)
-        oldT = [makeT(angle[m-1],phi_old[0]), makeT(angle[m],phi_old[1]), makeT(angle[m+1],phi_old[2]), makeT(angle[m+2],phi_old[3])]
-    newT = [[makeT(angle[m-1],soln[0,0]), makeT(angle[m],soln[0,1]), makeT(angle[m+1],soln[0,2]), makeT(angle[m+2],soln[0,3])]
-           ,[makeT(angle[m-1],soln[1,0]), makeT(angle[m],soln[1,1]), makeT(angle[m+1],soln[1,2]), makeT(angle[m+2],soln[1,3])]]
+    ## test solutions 
+    #try:
+        #oldT = [makeT(angle[m-1],phi_old[0]), makeT(angle[m],phi_old[1]), makeT(angle[m+1],phi_old[2]), makeT(angle[m+2],phi_old[3])]
+    #except IndexError:
+	#assert(m == len(mpos) - 4)
+	#angle = append(angle, 68*pi/180)
+	#phi_old = append(phi_old, 0)
+        #oldT = [makeT(angle[m-1],phi_old[0]), makeT(angle[m],phi_old[1]), makeT(angle[m+1],phi_old[2]), makeT(angle[m+2],phi_old[3])]
+    #newT = [[makeT(angle[m-1],soln[0,0]), makeT(angle[m],soln[0,1]), makeT(angle[m+1],soln[0,2]), makeT(angle[m+2],soln[0,3])]
+           #,[makeT(angle[m-1],soln[1,0]), makeT(angle[m],soln[1,1]), makeT(angle[m+1],soln[1,2]), makeT(angle[m+2],soln[1,3])]]
     
-    if not checku(oldT, newT[0]):
-	assert(m==len(mpos)-3)
-	#pdb.set_trace()
-	#checku(oldT, newT[0])
-	#findphi1(soln[0,2], angle, m, v)
-	#soln = delete(soln,s_[0],axis=0)
-    if not checku(oldT, newT[1]):
-        assert(m==len(mpos)-3)
-	#soln = delete(soln,s_[1],axis=0)
+    #if not checku(oldT, newT[0]):
+	#assert(m==len(mpos)-3)
+	##pdb.set_trace()
+	##checku(oldT, newT[0])
+	##findphi1(soln[0,2], angle, m, v)
+	##soln = delete(soln,s_[0],axis=0)
+    #if not checku(oldT, newT[1]):
+        #assert(m==len(mpos)-3)
+	##soln = delete(soln,s_[1],axis=0)
     
-    pos = [findpos(soln[i,:], mpos, m, newT[i], Tlab, bonds) for i in range(len(soln))]
+    #pos = [findpos(soln[i,:], mpos, m, newT[i], Tlab, bonds) for i in range(len(soln))]
 
-    dihednew = [energyfunc.dihedral(mpos) for mpos in pos]
-    for i in range(len(dihednew)):
-	try:
-	    soln[i,3] = dihednew[i][m+1] # set new phi3
-    	except IndexError:
-	    assert(m==len(mpos)-3 or m==len(mpos)-4)
-    angnew = [energyfunc.angle(mpos) for mpos in pos]
-    for i,T in enumerate(newT):
-	try:
-	    T[3]=makeT(angle[m+2],soln[i,3])
- 	except IndexError:
-	    assert(m==len(mpos)-3 or m==len(mpos)-4)
-	if not checkuT(oldT,T):
-	    assert(m==len(mpos)-3 or m==len(mpos)-4)
-	    #soln = delete(soln, s_[i], axis=0)
-	checkdihed(dihed,dihednew[i])
-	checkang(angle,angnew[i])
-    jac_new = parrot_jac(ulab, mpos[m+1]-mpos[m], mpos[m+2]-mpos[m])
-    jac = jac_new/jac_old
-    if rand > .5:
-	pos[0]=pos[0][::-1]
-    return pos[0], jac
+    #dihednew = [energyfunc.dihedral(mpos) for mpos in pos]
+    #for i in range(len(dihednew)):
+	#try:
+	    #soln[i,3] = dihednew[i][m+1] # set new phi3
+    	#except IndexError:
+	    #assert(m==len(mpos)-3 or m==len(mpos)-4)
+    #angnew = [energyfunc.angle(mpos) for mpos in pos]
+    #for i,T in enumerate(newT):
+	#try:
+	    #T[3]=makeT(angle[m+2],soln[i,3])
+ 	#except IndexError:
+	    #assert(m==len(mpos)-3 or m==len(mpos)-4)
+	#if not checkuT(oldT,T):
+	    #assert(m==len(mpos)-3 or m==len(mpos)-4)
+	    ##soln = delete(soln, s_[i], axis=0)
+	#checkdihed(dihed,dihednew[i])
+	#checkang(angle,angnew[i])
+    #jac_new = parrot_jac(ulab, mpos[m+1]-mpos[m], mpos[m+2]-mpos[m])
+    #jac = jac_new/jac_old
+    #if rand > .5:
+	#pos[0]=pos[0][::-1]
+    #return pos[0], jac
 
 def parrot(mpos123, m, rand, theta):
     """Performs a parallel-rotation move"""

@@ -237,17 +237,26 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected):
 		Swapaccepted, Swaprejected = tryswap2(Replicas, Swapaccepted, Swaprejected)
 	return Swapaccepted, Swaprejected
 
+#def update_energy(self, torschange, angchange):
+    #self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
+    #self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
+    #self.u1 = sum(self.newtorsE)+sum(self.newangE) + energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+    #return self
+
 def pprun(Replicas, Moves, Dict):
-    jobs = [job_server.submit(run, (replica, Moves, Dict), (energy, ), ("random", "numpy",
+    if len(Replicas) == 1:
+        newReplicas = [run(Replicas[0], Moves, Dict)]
+    else:
+        jobs = [job_server.submit(run, (replica, Moves, Dict), (update_energy, ), ("random", "numpy",
             "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
-    newReplicas = [job() for job in jobs]
+        newReplicas = [job() for job in jobs]
     return newReplicas
 
-def energy(mpos, rsquare, torsE, angE):
-    """Returns the total energy of a configurat"""
-    energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n,
-             Simulation.nonnativeparam, Simulation.nnepsil)
-    return energy
+#def energy(mpos, rsquare, torsE, angE):
+    #"""Returns the total energy of a configurat"""
+    #energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n,
+             #Simulation.nonnativeparam, Simulation.nnepsil)
+    #return energy
 
 
 #=======================================================================================================
@@ -305,6 +314,8 @@ for i in xrange(totmoves/swap):
     t_remain = (datetime.now() - ti)/(i+1)*(totmoves/swap - i - 1)
     stdout.write(str(t_remain) + '\r')
     stdout.flush()
+
+
 #########OUTPUT##########
 job_server.print_stats()
 #numpy.savetxt('./replicaexchange/whoiswhere.txt', whoiswhere)

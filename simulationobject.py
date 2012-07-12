@@ -18,10 +18,15 @@ from sys import stdout
 
 
 def energy(mpos, rsquare, torsE, angE):
-    energy = sum(angE) + sum(torsE) + energyfunc.cLJenergy(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+    energy = numpy.sum(angE) + numpy.sum(torsE) + energyfunc.cLJenergy(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
     return energy
 
-
+def update_energy(self, torschange, angchange):
+    self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
+    self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
+    self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+    self.u1 += sum(self.newtorsE)+sum(self.newangE)
+    return self
         
         
 class Simulation:
@@ -44,13 +49,13 @@ class Simulation:
                         5. * self.T / 300 * 60 / Simulation.numbeads, # local move
                         5. * self.T/300 * 60 / Simulation.numbeads]) # ParRot move
 	self.maxtheta = self.maxtheta * numpy.pi / 180
-        self.r2 = energyfunc.cgetLJr2(self.coord, Simulation.numint, Simulation.numbeads)
+        self.r2, self.u0 = energyfunc.cgetLJenergy(self.coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
         self.torsE = energyfunc.ctorsionenergy(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
         self.angE = energyfunc.cangleenergy(self.coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
-        self.u0 = energy(self.coord, self.r2, self.torsE, self.angE)
+        self.u0 += numpy.sum(self.angE) + numpy.sum(self.torsE)
         self.energyarray[0] = self.u0
         self.rmsd_array[0] = 0.0
-        self.nc[0] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
+        self.nc[0] = Simulation.totnc
 
         # Instantiate constants for move stats
         self.angmoves = 0
@@ -309,32 +314,14 @@ def run(self, nummoves, dict):
         else:
             self=moveset.runMD(self, 5, .01, dict)
             movetype = 'md'
-            self.move += 1
             self.mdmove += 1
+            torschange = numpy.arange(Simulation.numbeads - 3)
+            angchange = numpy.arange(Simulation.numbeads - 2)
+            jac = 1
 
         # accept or reject
-        if uncloseable == False and movetype == 'md':
-            self.r2new = energyfunc.cgetLJr2(self.newcoord, Simulation.numint, Simulation.numbeads)
-            self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, numpy.zeros(Simulation.numbeads-3), Simulation.torsparam, numpy.arange(Simulation.numbeads-3))
-            self.newangE = energyfunc.cangleenergy(self.newcoord, numpy.zeros(Simulation.numbeads-2), Simulation.angleparam, numpy.arange(Simulation.numbeads-2))
-            self.u1 = energy(self.newcoord, self.r2new, self.newtorsE, self.newangE)
-            #self.newH  =self.u1 + .5 / 4.184 * numpy.sum(mass * numpy.sum(self.vel**2, axis=1))
-            boltz = numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
-            if random.random() < boltz:
-                self.accepted += 1
-                self.acceptedmd += 1
-                self.r2 = self.r2new
-                self.coord = self.newcoord
-                self.torsE = self.newtorsE
-                self.angE = self.newangE
-                self.u0 = self.u1
-            else:
-                self.rejected += 1
-        elif(uncloseable == False and movetype != 'md'):
-            self.r2new = energyfunc.cgetLJr2(self.newcoord, Simulation.numint, Simulation.numbeads)
-            self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
-            self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
-            self.u1 = energy(self.newcoord, self.r2new, self.newtorsE, self.newangE)
+        if not uncloseable:
+            self = self.update_energy(self, torschange, angchange)
             self.move += 1
             boltz = jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
             if random.random() < boltz:
@@ -351,8 +338,10 @@ def run(self, nummoves, dict):
                     self.acceptedgc += 1
                 elif movetype == 'lm':
                     self.acceptedlm += 1
-		else:
+		elif movetype == 'p':
 		    self.acceptedp += 1
+                else:
+                    self.acceptedmd += 1
                 #if (pdbfile != ''):
                     #mcoord=moviecoord(newcoord,transform)
                     ##writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)

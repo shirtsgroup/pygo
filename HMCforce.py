@@ -256,7 +256,8 @@ def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
     r = r2**.5
     ndV = param[:,1]*param[:,1]/r2
     ndV6 = ndV*ndV*ndV
-    ndV = param[:,0]*(-156*ndV6*ndV6/r+180*ndV6*ndV*ndV/r - 24*ndV6/r)
+    #ndV = param[:,0]*(-156*ndV6*ndV6/r+180*ndV6*ndV*ndV/r - 24*ndV6/r)
+    ndV = param[:,0]*(-12*ndV6*ndV6/r + 12*ndV6/r)
     F = -ndV/r
     F = numpy.transpose(F)*numpy.transpose(rvec)
     F = F.transpose()
@@ -265,7 +266,28 @@ def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
    	forces += -F[i*numbeads:i*numbeads+numbeads,:]
     return forces*4.184
 
-
+def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param):
+    forces = numpy.zeros((numbeads,3))
+    code = """
+    double x, y, z, r2, r, dV, F;
+    for ( int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        r2 = x*x + y*y + z*z;
+        r = sqrt(r2);
+        dV = PARAM2(i,1)*PARAM2(i,1)/r2;
+        dV = dV*dV*dV;
+        dV = PARAM2(i,0)*(-12*dV*dV/r + 12*dV/r);
+        F = -dV/r;
+        x = F*x; y = F*y; z = F*z;
+        FORCES2(i % numbeads, 0) -= x;
+        FORCES2(i % numbeads, 1) -= y;
+        FORCES2(i % numbeads, 2) -= z;
+    }
+    """
+    info = weave.inline(code, ['forces', 'prot_coord', 'surf_coord', 'numbeads', 'numint', 'param'], headers=['<math.h>', '<stdlib.h>'])
+    return forces*4.184
 
 #==========================================
 # BOND CONSTRAINT METHODS

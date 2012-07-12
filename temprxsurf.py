@@ -23,8 +23,8 @@ from surfacesimulation import *
 t1=datetime.now()
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="GO_protein.pdb", help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_protein.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafile", default="GO_1PGB.pdb", help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_1PGB.param', help="protein .param file")
 parser.add_option("-t", "--temprange", nargs=2, default=[300.0,300.0], type="float", dest="temprange", help="temperature range of replicas")
 parser.add_option("-r", "--replicas", default=1, type="int",dest="replicas", help="number of replicas")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -102,7 +102,11 @@ transform = transpose(untransform)
 coord_nat = moviecoord(coord,transform)
 
 # Make surface
-surface = getsurf(150,150,10)
+xlength = 135
+ylength = 135
+spacing = 10
+yspacing = spacing*3.**.5
+surface = getsurf(xlength+15,ylength+15,spacing)
 writesurf('surface.pdb',surface)
 nsurf = len(surface)
 nspint = nsurf*numbeads # surface-protein interactions
@@ -111,7 +115,7 @@ nspint = nsurf*numbeads # surface-protein interactions
 angleparam = getangleparam(paramfile, numbeads)
 torsparam = gettorsionparam(paramfile, numbeads)
 mass = getmass('%stop' % (paramfile[0:-5]), numbeads)
-surfparam = getsurfparam(nspint)
+surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint)
 
 
 #pregenerate list of interactions
@@ -149,14 +153,17 @@ Simulation.transform = transform
 #Simulation.coord_nat = coord_nat
 Simulation.mass = mass
 
-
 SurfaceSimulation.surface = surface
 SurfaceSimulation.nsurf = nsurf
 SurfaceSimulation.nspint = nspint
 SurfaceSimulation.surfparam = surfparam
+#SurfaceSimulation.xlength = xlength
+#SurfaceSimulation.ylength = ylength
+#SurfaceSimulation.spacing = spacing
+#SurfaceSimulation.yspacing = yspacing
 
 # put class variables in a dictionary for threading
-dict = {'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass, 'nspint':nspint, 'nsurf':nsurf, 'surfparam':surfparam, 'surface':surface}
+dict = {'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass, 'nspint':nspint, 'nsurf':nsurf, 'surfparam':surfparam, 'surface':surface, 'xlength':xlength, 'ylength':ylength, 'spacing':spacing, 'yspacing':yspacing}
 
 # Calculate temperature distribution
 if numreplicas == 1:
@@ -194,13 +201,13 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected):
                 Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
                 Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
+                Replicas[i].r2surf, Replicas[i+1].r2surf = Replicas[i+1].r2surf, Replicas[i].r2surf
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
                 Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE
-                Replicas[i].r2surf, Replicas[i+1].r2surf = Replicas[i+1].r2surf, Replicas[i].r2surf
             else:
                 Swaprejected[i]+=1
-    return [Swapaccepted, Swaprejected]
+    return Swapaccepted, Swaprejected
 
 #type 2 switches
 def tryswap2(Replicas, Swapaccepted, Swaprejected):
@@ -214,24 +221,43 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected):
                 Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
                 Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
+                Replicas[i].r2surf, Replicas[i+1].r2surf = Replicas[i+1].r2surf, Replicas[i].r2surf
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
                 Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE
-                Replicas[i].r2surf, Replicas[i+1].r2surf = Replicas[i+1].r2surf, Replicas[i].r2surf
             else:
                 Swaprejected[i] += 1
-    return [Swapaccepted, Swaprejected]
+    return Swapaccepted, Swaprejected
 
-def energy(rsquare, torsE, angE, surfE):
-    """Returns the total energy of a configuration"""
-    energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n,
-             Simulation.nonnativeparam, Simulation.nnepsil) + surfE
-    return energy
+def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected):
+	if numreplicas == 1:
+		return Swapaccepted, Swaprejected
+	for k in range(50): # try swapping 100 times
+		Swapaccepted, Swaprejected = tryswap1(Replicas, Swapaccepted, Swaprejected)
+		Swapaccepted, Swaprejected = tryswap2(Replicas, Swapaccepted, Swaprejected)
+	return Swapaccepted, Swaprejected
+
+#def energy(rsquare, torsE, angE, surfE):
+    #"""Returns the total energy of a configuration"""
+    #energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n,
+             #Simulation.nonnativeparam, Simulation.nnepsil) + surfE
+    #return energy
+
+#def update_energy(self, torschange, angchange):
+    #self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
+    #self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
+    #self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+    #self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+    #self.u1 += sum(self.newtorsE) + sum(self.newangE) + self.newsurfE
+    #return self
 
 def pprun(Replicas, Moves, Dict):
-    jobs = [job_server.submit(run_surf, (replica, Moves, Dict), (energy, ), ("random", "numpy",
+    if len(Replicas) == 1:
+        newReplicas = [run_surf(Replicas[0],Moves,Dict)]
+    else:
+        jobs = [job_server.submit(run_surf, (replica, Moves, Dict), (update_energy, save), ("random", "numpy",
             "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
-    newReplicas = [job() for job in jobs]
+        newReplicas = [job() for job in jobs]
     return newReplicas
 
 #=======================================================================================================
@@ -241,7 +267,7 @@ def pprun(Replicas, Moves, Dict):
 # instantiate replicas
 replicas = []
 for i in range(len(T)):
-    direc = './replicaexchange/replica%i' % i
+    direc = './surface_replica_exchange/replica%i' % i
     if not os.path.exists(direc):
         os.mkdir(direc)
     name = 'replica%i' % i
@@ -272,30 +298,20 @@ print 'Starting simulation...'
 for i in xrange(totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
-    if i%2 == 0:
-        #type 1 switch
-        [swapaccepted, swaprejected] = tryswap1(replicas, swapaccepted, swaprejected)
-    else:
-        #type 2 switch
-        [swapaccepted, swaprejected] = tryswap2(replicas, swapaccepted, swaprejected)
+    swapaccepted, swaprejected = tryrepeatedswaps(replicas, swapaccepted, swaprejected)
     t_remain = (datetime.now() - ti)/(i+1)*(totmoves/swap - i - 1)
     stdout.write(str(t_remain) + '\r')
     stdout.flush()
 #########OUTPUT##########
 job_server.print_stats()
-#numpy.savetxt('./replicaexchange/whoiswhere.txt', whoiswhere)
 for i in range(len(replicas)):
     replicas[i].output(verbose)
     replicas[i].saveenergy(plot)
     replicas[i].savermsd(plot)
     replicas[i].savenc(plot)
     replicas[i].savehist(plot)
-    #print replica.whoami
-    #plt.figure(5)
-    #plt.plot(range(len(whoiswhere[i])), whoiswhere[i])
-#plt.xlabel('swap')
-#plt.ylabel('replica')
-#plt.savefig('./replicaexchange/whoiswhere.png')
+    replicas[i].savesurfenergy(plot)
+    replicas[i].saveradgyr(plot)
 
 if verbose:
     for i in range(numreplicas-1):
@@ -306,6 +322,3 @@ if verbose:
 
 t2 = datetime.now()
 print 'Simulation time: '+str(t2-t1)
-
-
-pdb.set_trace()
