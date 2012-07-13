@@ -33,17 +33,17 @@ def writesurf(filename, surf_coord):
         fout.write("".join(line))
     fout.close()
 
-def update_energy(self, torschange, angchange, surfchange):
+def update_energy(self, torschange, angchange):
     self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
     self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
-    self.newr2surf, self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam, self.r2surf, self.newsurfE, surfchange)
+    self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
     self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
-    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+numpy.sum(self.newsurfE)
+    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+self.newsurfE
     return self
 
 def save(self):
     self.energyarray[self.move/Simulation.step] = self.u0
-    self.surfE_array[self.move/Simulation.step] = numpy.sum(self.surfE)
+    self.surfE_array[self.move/Simulation.step] = self.surfE
     self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
     self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
@@ -60,9 +60,9 @@ class SurfaceSimulation(Simulation):
     def __init__(self, name, outputdirectory, coord, temp, surf_coord):
         Simulation.__init__(self, name, outputdirectory, coord, temp)
         self.addsurface(surf_coord)
-        self.r2surf, self.surfE = energyfunc.csurfenergyoo(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+        self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
         self.surfE_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
-        self.surfE_array[0] = numpy.sum(self.surfE)
+        self.surfE_array[0] = self.surfE
         self.radgyr = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.radgyr[0] = energyfunc.radgyr(self.coord)
         self.moveparam = numpy.array([5. * self.T / 350 * 50 / Simulation.numbeads, # translation
@@ -71,7 +71,7 @@ class SurfaceSimulation(Simulation):
                         10. * self.T / 400 * 60 / Simulation.numbeads * numpy.pi / 180, # torsion
                         1. * self.T / 400 * 60 / Simulation.numbeads * numpy.pi / 180, # global crankshaft
                         5. * self.T / 300 * 60 / Simulation.numbeads * numpy.pi / 180]) # ParRot move
-        self.u0 += numpy.sum(self.surfE)
+        self.u0 += self.surfE
         self.energyarray[0] = self.u0
         self.rmsd_array[0] = 0.0
         self.coord_nat = writetopdb.moviecoord(self.coord, Simulation.transform)
@@ -180,7 +180,6 @@ def run_surf(self, nummoves, dict):
             movetype = 'tr'
             torschange = numpy.array([])
             angchange = numpy.array([])
-            surfchange = numpy.arange(SurfaceSimulation.nspint)
         
         # rotation
         elif randmove < SurfaceSimulation.percentmove[1]:
@@ -191,7 +190,6 @@ def run_surf(self, nummoves, dict):
             movetype = 'rot'
             torschange = numpy.array([])
             angchange = numpy.array([])
-            surfchange = numpy.arange(SurfaceSimulation.nspint)
 
             
         # angle bend
@@ -203,11 +201,6 @@ def run_surf(self, nummoves, dict):
             movetype = 'a'
             torschange = numpy.array([])
             angchange = numpy.array([m-1])
-            if randdir < .5:
-                # which beads have moved
-                surfchange = numpy.arange(m+1, Simulation.numbeads)
-            else:
-                surfchange = numpy.arange(m)
 
         # axis torsion
         elif randmove < SurfaceSimulation.percentmove[3]:
@@ -219,15 +212,12 @@ def run_surf(self, nummoves, dict):
             self.atormoves += 1
             angchange = numpy.array([])
             if randdir < .5:
-                surfchange = numpy.arange(m+1, Simulation.numbeads)
                 torschange = numpy.array([m-2])
                 if m < 2:
                     torschange = numpy.array([])
             elif m == Simulation.numbeads - 2:
-                surfchange = numpy.arange(m)
                 torschange = numpy.array([])
             else:
-                surfchange = numpy.arange(m)
                 torschange = numpy.array([m-1])
 
         # global crankshaft
@@ -239,7 +229,6 @@ def run_surf(self, nummoves, dict):
 		movetype = 'gc'
 		torschange = numpy.arange(Simulation.numbeads-3)
 		angchange = numpy.arange(Simulation.numbeads-2)
-                surfchange = numpy.arange(SurfaceSimulation.nspint)
 
 	# parrot move
 	elif randmove < SurfaceSimulation.percentmove[5]:
@@ -252,12 +241,10 @@ def run_surf(self, nummoves, dict):
 		self.newcoord = moveset.caxistorsion(self.coord, m, 1, theta)
 		torschange = numpy.array([0])
 		jac = 1
-                surfchange = numpy.array([0])
 	    elif m == Simulation.numbeads - 2:
 		self.newcoord = moveset.caxistorsion(self.coord, m, 0, theta)
 		torschange = numpy.array([m-2])
 		jac = 1
-                surfchange = numpy.array([Simulation.numbeads-1])
 	    else:
 		self.newcoord, jac = moveset.parrot(self.coord, m, randdir, theta)
 		if numpy.any(numpy.isnan(self.newcoord)):
@@ -270,12 +257,10 @@ def run_surf(self, nummoves, dict):
 	        elif randdir < .5:
 		    torschange = numpy.arange(m-2,m+2)
 		    torschange = torschange[torschange<(Simulation.numbeads-3)]
-                    surfchange = numpy.arange(m+1,Simulation.numbeads)
 		else:
                     torschange = numpy.arange(Simulation.numbeads-m-5,Simulation.numbeads-m-1)
 		    torschange = torschange[torschange>-1]
 		    torschange = torschange[torschange<(Simulation.numbeads-3)]
-                    surfchange = numpy.arange(Simulation.numbeads-m-1)
 
         # run molecular dynamics
         else:
@@ -284,18 +269,8 @@ def run_surf(self, nummoves, dict):
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads-3)
             angchange = numpy.arange(Simulation.numbeads-2)
-            surfchange = numpy.arange(SurfaceSimulation.nspint)
             jac = 1
         
-        # reformulate surfchange from beads that changed to interactions that changed
-        if len(surfchange) != SurfaceSimulation.nspint and not uncloseable:
-            self.newsurfE = self.surfE.copy()
-	    try:
-           	 self.newsurfE[surfchange] = 0.
-            except: pdb.set_trace()
-	    surfchange = numpy.array([x+Simulation.numbeads*n for n in range(SurfaceSimulation.nsurf) for x in surfchange])
-        else:
-            self.newsurfE = numpy.zeros(Simulation.numbeads)
         
         # check boundary conditions
         if not uncloseable:
@@ -317,7 +292,7 @@ def run_surf(self, nummoves, dict):
 
         # accept or reject
         if not uncloseable:
-            self = update_energy(self, torschange, angchange, surfchange)
+            self = update_energy(self, torschange, angchange)
             self.move += 1
             boltz = jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
             if random.random() < boltz:
@@ -337,7 +312,6 @@ def run_surf(self, nummoves, dict):
                 else:
                     self.acceptedmd += 1
                 self.r2 = self.r2new
-                self.r2surf = self.newr2surf
                 self.surfE = self.newsurfE
                 self.coord = self.newcoord
                 self.torsE = self.newtorsE

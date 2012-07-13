@@ -102,8 +102,8 @@ transform = transpose(untransform)
 coord_nat = moviecoord(coord,transform)
 
 # Make surface
-xlength = 135
-ylength = 135
+xlength = 500
+ylength = 500
 spacing = 10
 yspacing = spacing*3.**.5
 surface = getsurf(xlength+15,ylength+15,spacing)
@@ -201,7 +201,6 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected):
                 Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
                 Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
-                Replicas[i].r2surf, Replicas[i+1].r2surf = Replicas[i+1].r2surf, Replicas[i].r2surf
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
                 Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE
@@ -221,7 +220,6 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected):
                 Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
                 Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
-                Replicas[i].r2surf, Replicas[i+1].r2surf = Replicas[i+1].r2surf, Replicas[i].r2surf
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
                 Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE

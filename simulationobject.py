@@ -31,7 +31,7 @@ def update_energy(self, torschange, angchange):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [.2, .4, 0, .75, 0.75, .99] # % bend,% axis torsion,% crankshaft, % global crankshaft, %local move, %ParRot move, %MD
+    percentmove = [.2, .4, 0, .75, 0.75, .9] # % bend,% axis torsion,% crankshaft, % global crankshaft, %local move, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
@@ -321,7 +321,7 @@ def run(self, nummoves, dict):
 
         # accept or reject
         if not uncloseable:
-            self = self.update_energy(self, torschange, angchange)
+            self = update_energy(self, torschange, angchange)
             self.move += 1
             boltz = jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
             if random.random() < boltz:

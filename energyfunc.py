@@ -219,6 +219,7 @@ def getsurfparam(file, numbeads, nsurf, numint):
 
 
 def getr2surf(prot_coord, surf_coord, numbeads, numint):
+    """Deprecated"""
     r2_array = numpy.zeros(numint)
     for i in range(len(surf_coord)):
         r2 = surf_coord[i,:] - prot_coord
@@ -226,7 +227,9 @@ def getr2surf(prot_coord, surf_coord, numbeads, numint):
         r2_array[i*numbeads:i*numbeads+numbeads] = r2
     return r2_array
 
+
 def cgetr2surf(prot_coord, surf_coord, numbeads, numint):
+    """Deprecated"""
     r2_array = numpy.zeros(numint)
     code = """
     double x, y, z;
@@ -248,9 +251,8 @@ def surfenergy(r2, param):
     nE = param[:,0]*(nE6*nE6 - 2*nE6)
     return numpy.sum(nE)
 
-
-    
-def csurfenergyoo(prot_coord, surf_coord, numbeads, numint, param):
+def csurfenergy_withr2(prot_coord, surf_coord, numbeads, numint, param):
+    """Used in surfacesimulationbig for large proteins, keeps track of energies and r2"""
     energy = numpy.zeros(numbeads)
     r2_array = numpy.zeros(numint)
     code = """
@@ -269,7 +271,8 @@ def csurfenergyoo(prot_coord, surf_coord, numbeads, numint, param):
     info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy', 'r2_array'], headers=['<math.h>', '<stdlib.h>'])
     return r2_array, energy
     
-def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, r2old, surfEnew, change):
+def csurfenergy_updater2(prot_coord, surf_coord, numbeads, numint, param, r2old, surfEnew, change):
+    """Used in surfacesimulationbig for large proteins, keeps track of energies and r2"""
     r2new = r2old.copy()
     n = len(change)
     code = """
@@ -289,6 +292,24 @@ def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, r2old, surfEnew
     """
     info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'change', 'surfEnew', 'r2new', 'n'], headers=['<math.h>', '<stdlib.h>'])
     return r2new, surfEnew
+
+def csurfenergy(prot_coord, surf_coord, numbeads, numint, param):
+    energy = numpy.array([0.])
+    code = """
+    double x, y, z, r2, e;
+    for (int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        r2 = x*x + y*y + z*z;
+        e = PARAM2(i,1)*PARAM2(i,1)/r2;
+        e = e*e*e;
+        e = PARAM2(i,0)*(e*e-2*e);
+        ENERGY1(0) += e;
+    }
+    """
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy'], headers=['<math.h>', '<stdlib.h>'])
+    return energy[0]
 
 def getforcer(mpos, numint, numbeads):
     r2array = numpy.empty((numint,3)) # distance vectors
