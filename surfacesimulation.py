@@ -5,7 +5,9 @@ import random
 import energyfunc
 import moveset
 import writetopdb
-import matplotlib.pyplot as plt
+try:
+	import matplotlib.pyplot as plt
+except: pass
 
 def getsurf(xsize, ysize, spacing):
     """Generates coordinates for a surface given surface parameters; uses hexangonal packing"""

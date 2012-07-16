@@ -1,10 +1,3 @@
-#from numpy import *
-#from writetopdb import *
-#from moveset import *
-#from energyfunc import *
-import matplotlib.pyplot as plt
-#from sys import stdout
-#from random import *
 import random
 import profile
 import scipy.misc
@@ -12,7 +5,9 @@ import numpy
 import writetopdb
 import moveset
 import energyfunc
-import matplotlib.pyplot as plt
+try:
+	import matplotlib.pyplot as plt
+except: pass
 import pdb
 from sys import stdout
 

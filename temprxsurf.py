@@ -6,7 +6,10 @@
 from datetime import datetime
 import numpy
 from optparse import OptionParser
-import matplotlib.pyplot as plt
+try:
+	import matplotlib.pyplot as plt
+except:
+	plot = False
 from sys import stdout
 import random
 import profile
@@ -279,7 +282,15 @@ for i in range(len(T)):
 move = 0
 swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
-job_server = pp.Server(ppservers=())
+try:
+	# running on the cluster
+	f = open('nodefile.txt','r')
+	ppservers = f.readlines()
+	ppservers = tuple(ppservers)
+	job_server = pp.Server(ppservers=ppservers)
+except:
+	# running on one machine
+	job_server = pp.Server(ppservers=())
 #whoiswhere = range(numreplicas)
 
 ########SIMULATE##########
