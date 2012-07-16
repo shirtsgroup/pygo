@@ -33,7 +33,7 @@ parser.add_option("-n", "--moves", dest="totmoves", type="int", default='100', h
 parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between save operations")
 parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', help="number of moves between swap moves")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
-parser.add_option("-a", "--plot", action="store_true", default=True, help="plots energy, rmsd, fractional nativeness")
+parser.add_option("-a", "--plot", action="store_false", default=True, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
 #parser.add_option("-e", "--percentmove", nargs=2, dest="percentmove", type="float",default=[.33,.66], help="the output pdb file")
 
@@ -102,8 +102,8 @@ transform = transpose(untransform)
 coord_nat = moviecoord(coord,transform)
 
 # Make surface
-xlength = 500
-ylength = 500
+xlength = 135
+ylength = 135
 spacing = 10
 yspacing = spacing*3.**.5
 surface = getsurf(xlength+15,ylength+15,spacing)
@@ -188,6 +188,8 @@ if (verbose):
     print T
     print 'the replica exchange interval is %d steps' %(swap)
     print 'There are %d residues in %s' %(numbeads,filename)
+    print 'percentmove is'
+    print SurfaceSimulation.percentmove
 
 #type 1 switches
 def tryswap1(Replicas, Swapaccepted, Swaprejected):
@@ -253,8 +255,7 @@ def pprun(Replicas, Moves, Dict):
     if len(Replicas) == 1:
         newReplicas = [run_surf(Replicas[0],Moves,Dict)]
     else:
-        jobs = [job_server.submit(run_surf, (replica, Moves, Dict), (update_energy, save), ("random", "numpy",
-            "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
+        jobs = [job_server.submit(run_surf, (replica, Moves, Dict), (update_energy, save), ("random", "numpy", "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
         newReplicas = [job() for job in jobs]
     return newReplicas
 

@@ -33,7 +33,7 @@ parser.add_option("-n", "--moves", dest="totmoves", type="int", default='100', h
 parser.add_option("-s", "--stepsize", dest="step", type="int", default='100', help="number of moves between save operations")
 parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', help="number of moves between swap moves")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
-parser.add_option("-a", "--plot", action="store_true", default=True, help="plots energy, rmsd, fractional nativeness")
+parser.add_option("-a", "--plot", action="store_false", default=True, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
 #parser.add_option("-e", "--percentmove", nargs=2, dest="percentmove", type="float",default=[.33,.66], help="the output pdb file")
 
@@ -168,6 +168,8 @@ if (verbose):
     print T
     print 'the replica exchange interval is %d steps' %(swap)
     print 'There are %d residues in %s' %(numbeads,filename)
+    print 'percent move is'
+    print Simulation.percentmove
 
 #type 1 switches
 def tryswap1(Replicas, Swapaccepted, Swaprejected):
@@ -276,17 +278,15 @@ for i in range(len(T)):
         mcoord = moviecoord(coord, transform)
         writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 	
-#result=replicas[0].run(1000,replicas[0].coord)
-#job_server=pp.Server()
-#print job_server
-#jobs=job_server.submit(replicas[0].run,(1000,replicas[0].coord,numbeads,step,totmoves,numint,angleparam,torsparam,nativeparam_n,nonnativeparam,nnepsil,nsigma2,transform,coord_nat),(energy,energyprint),modules=('random','numpy','energyfunc','moveset','writetopdb'))
-#result=jobs()
-#print result
 
 move = 0
 swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
+
+	
 job_server = pp.Server(ppservers=())
+
+
 #whoiswhere = range(numreplicas)
 
 ########SIMULATE##########

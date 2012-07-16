@@ -27,11 +27,20 @@ def update_energy(self, torschange, angchange):
     self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
     self.u1 += sum(self.newtorsE)+sum(self.newangE)
     return self
-        
+
+def save(self):
+    self.energyarray[self.move/Simulation.step] = self.u0
+    self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
+    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
+    self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(self.coord_nat, self.mcoord)
+    if (Simulation.pdbfile):
+        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+    return self
+
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [.2, .4, 0, .75, 0.75, .9] # % bend,% axis torsion,% crankshaft, % global crankshaft, %local move, %ParRot move, %MD
+    percentmove = [.2, .4, 0, .75, 0.75, .99] # % bend,% axis torsion,% crankshaft, % global crankshaft, %local move, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
@@ -312,15 +321,29 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 5, .01, dict)
+            self=moveset.runMD(self, 100, .1, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
             angchange = numpy.arange(Simulation.numbeads - 2)
-            jac = 1
 
         # accept or reject
-        if not uncloseable:
+        if not uncloseable and movetype=='md':
+            self = update_energy(self, torschange, angchange)
+            self.newH=self.u1+.5/4.184*numpy.sum(mass*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
+            self.move += 1
+            boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
+            if random.random() < boltz:
+                self.accepted += 1
+                self.acceptedmd += 1
+                self.r2 = self.r2new
+                self.coord = self.newcoord
+                self.torsE = self.newtorsE
+                self.angE = self.newangE
+                self.u0 = self.u1
+            else:
+                self.rejected += 1
+        elif not uncloseable:
             self = update_energy(self, torschange, angchange)
             self.move += 1
             boltz = jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
@@ -338,14 +361,8 @@ def run(self, nummoves, dict):
                     self.acceptedgc += 1
                 elif movetype == 'lm':
                     self.acceptedlm += 1
-		elif movetype == 'p':
+		else:
 		    self.acceptedp += 1
-                else:
-                    self.acceptedmd += 1
-                #if (pdbfile != ''):
-                    #mcoord=moviecoord(newcoord,transform)
-                    ##writeseqpdb(mcoord,wordtemplate,ATOMlinenum,accepted)
-                    #addtopdb(mcoord,positiontemplate,move,pdbfile)
                 self.r2 = self.r2new
                 self.coord = self.newcoord
                 self.torsE = self.newtorsE
@@ -354,15 +371,7 @@ def run(self, nummoves, dict):
             else:
                 self.rejected += 1
         if self.move % Simulation.step == 0:
-            # energy array
-            self.energyarray[self.move/Simulation.step] = self.u0
-            # native contact array
-            self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
-            # rmsd array
-            self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
-            self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(Simulation.coord_nat, self.mcoord)
-            if (Simulation.pdbfile):
-                writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+            self = save(self)
     return self
 
 def run_ff(self, nummoves, dict):

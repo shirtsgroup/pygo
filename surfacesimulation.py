@@ -164,6 +164,7 @@ def run_surf(self, nummoves, dict):
     ylength = dict['ylength']
     spacing = dict['spacing']
     yspacing = dict['yspacing']
+    mass = dict['mass']
     
     for i in xrange(nummoves):
         randmove = random.random()
@@ -271,7 +272,6 @@ def run_surf(self, nummoves, dict):
             angchange = numpy.arange(Simulation.numbeads-2)
             jac = 1
         
-        
         # check boundary conditions
         if not uncloseable:
 		# x direction
@@ -291,6 +291,22 @@ def run_surf(self, nummoves, dict):
 			self.newcoord[:,1] += numpy.ceil((-.5*ylength-min)/yspacing)*yspacing
 
         # accept or reject
+        if not uncloseable and movetype=='md':
+            self = update_energy(self, torschange, angchange)
+            self.newH=self.u1+.5/4.184*numpy.sum(mass*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
+            self.move += 1
+            boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
+            if random.random() < boltz:
+                self.accepted += 1
+                self.acceptedmd += 1
+                self.r2 = self.r2new
+                self.surfE = self.newsurfE
+                self.coord = self.newcoord
+                self.torsE = self.newtorsE
+                self.angE = self.newangE
+                self.u0 = self.u1
+            else:
+                self.rejected += 1
         if not uncloseable:
             self = update_energy(self, torschange, angchange)
             self.move += 1
@@ -307,10 +323,8 @@ def run_surf(self, nummoves, dict):
                     self.acceptedat += 1
                 elif movetype == 'gc':
                     self.acceptedgc += 1
-		elif movetype == 'p':
+		else:
 		    self.acceptedp += 1
-                else:
-                    self.acceptedmd += 1
                 self.r2 = self.r2new
                 self.surfE = self.newsurfE
                 self.coord = self.newcoord
