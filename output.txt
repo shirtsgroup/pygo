@@ -1,0 +1,544 @@
+localstorage is in /state/partition1/pbstmp.1658271.lc5.itc.virginia.edu
+Starting on lc5-compute-3-16.local at Mon Jul 16 13:50:09 EDT 2012
+
+Job is running on node(s): 
+------------------------
+lc5-compute-1-28 lc5-compute-3-10 lc5-compute-3-16 lc5-compute-3-3
+------------------------
+verbosity is True
+total number of moves is 1000
+autocorrelation step size is 10 moves
+there are 32 replicas
+Temperature: 
+[ 300.          303.9496292   307.95125698  312.00556791  316.11325558
+  320.27502274  324.49158135  328.76365277  333.09196785  337.47726707
+  341.92030063  346.42182865  350.98262122  355.60345859  360.28513128
+  365.0284402   369.83419683  374.70322331  379.63635262  384.63442871
+  389.69830662  394.82885266  400.02694455  405.29347156  410.62933467
+  416.03544671  421.51273254  427.06212921  432.68458607  438.38106499
+  444.15254052  450.        ]
+the replica exchange interval is 1000 steps
+There are 369 residues in GO_2QUG.pdb
+percent move is
+[0.20000000000000001, 0.40000000000000002, 0, 0.75, 0.75, 0.98999999999999999]
+('lc5-compute-3-16:23335', 'lc5-compute-1-28:23335', 'lc5-compute-3-3:23335', 'lc5-compute-3-10:23335')
+Starting simulation...
+0:00:00Job execution statistics:
+ job count | % of all jobs | job time sum | time per job | job server
+        32 |        100.00 |     830.2726 |    25.946018 | local
+Time elapsed since server creation 39.8150670528
+
+-------- replica0 Simulation Results --------
+total accepted moves: 498 
+total rejected moves: 502 
+ParRot move: 108 moves accepted out of 258 tries... that is 41 percent 
+4 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 57 moves accepted out of 208 tries... that is 27 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 271 moves accepted out of 335 tries... that is 80 percent 
+torsion: 60 moves accepted out of 193 tries... that is 31 percent 
+MD moves: 2 moves accepted out of 6 tries... that is 33  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.993226
+-------- replica1 Simulation Results --------
+total accepted moves: 500 
+total rejected moves: 500 
+ParRot move: 87 moves accepted out of 247 tries... that is 35 percent 
+2 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 51 moves accepted out of 198 tries... that is 25 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 305 moves accepted out of 361 tries... that is 84 percent 
+torsion: 55 moves accepted out of 190 tries... that is 28 percent 
+MD moves: 2 moves accepted out of 4 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.998733
+-------- replica2 Simulation Results --------
+total accepted moves: 500 
+total rejected moves: 500 
+ParRot move: 95 moves accepted out of 248 tries... that is 38 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 66 moves accepted out of 203 tries... that is 32 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 258 moves accepted out of 316 tries... that is 81 percent 
+torsion: 75 moves accepted out of 220 tries... that is 34 percent 
+MD moves: 6 moves accepted out of 13 tries... that is 46  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.976112
+-------- replica3 Simulation Results --------
+total accepted moves: 486 
+total rejected moves: 514 
+ParRot move: 80 moves accepted out of 233 tries... that is 34 percent 
+4 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 49 moves accepted out of 200 tries... that is 24 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 289 moves accepted out of 363 tries... that is 79 percent 
+torsion: 62 moves accepted out of 193 tries... that is 32 percent 
+MD moves: 6 moves accepted out of 11 tries... that is 54  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.985083
+-------- replica4 Simulation Results --------
+total accepted moves: 491 
+total rejected moves: 509 
+ParRot move: 79 moves accepted out of 235 tries... that is 33 percent 
+4 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 64 moves accepted out of 218 tries... that is 29 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 266 moves accepted out of 346 tries... that is 76 percent 
+torsion: 73 moves accepted out of 187 tries... that is 39 percent 
+MD moves: 9 moves accepted out of 14 tries... that is 64  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.960057
+-------- replica5 Simulation Results --------
+total accepted moves: 483 
+total rejected moves: 517 
+ParRot move: 77 moves accepted out of 222 tries... that is 34 percent 
+5 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 54 moves accepted out of 192 tries... that is 28 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 279 moves accepted out of 352 tries... that is 79 percent 
+torsion: 70 moves accepted out of 225 tries... that is 31 percent 
+MD moves: 3 moves accepted out of 9 tries... that is 33  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.974819
+-------- replica6 Simulation Results --------
+total accepted moves: 506 
+total rejected moves: 494 
+ParRot move: 89 moves accepted out of 229 tries... that is 38 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 68 moves accepted out of 207 tries... that is 32 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 271 moves accepted out of 337 tries... that is 80 percent 
+torsion: 73 moves accepted out of 217 tries... that is 33 percent 
+MD moves: 5 moves accepted out of 10 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.982459
+-------- replica7 Simulation Results --------
+total accepted moves: 480 
+total rejected moves: 520 
+ParRot move: 81 moves accepted out of 234 tries... that is 34 percent 
+2 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 54 moves accepted out of 209 tries... that is 25 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 268 moves accepted out of 357 tries... that is 75 percent 
+torsion: 72 moves accepted out of 190 tries... that is 37 percent 
+MD moves: 5 moves accepted out of 10 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.975659
+-------- replica8 Simulation Results --------
+total accepted moves: 501 
+total rejected moves: 499 
+ParRot move: 71 moves accepted out of 228 tries... that is 31 percent 
+2 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 44 moves accepted out of 176 tries... that is 25 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 319 moves accepted out of 388 tries... that is 82 percent 
+torsion: 65 moves accepted out of 200 tries... that is 32 percent 
+MD moves: 2 moves accepted out of 8 tries... that is 25  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.991960
+-------- replica9 Simulation Results --------
+total accepted moves: 482 
+total rejected moves: 518 
+ParRot move: 99 moves accepted out of 247 tries... that is 40 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 44 moves accepted out of 192 tries... that is 22 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 259 moves accepted out of 336 tries... that is 77 percent 
+torsion: 73 moves accepted out of 213 tries... that is 34 percent 
+MD moves: 7 moves accepted out of 12 tries... that is 58  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.962991
+-------- replica10 Simulation Results --------
+total accepted moves: 489 
+total rejected moves: 511 
+ParRot move: 94 moves accepted out of 251 tries... that is 37 percent 
+11 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 60 moves accepted out of 199 tries... that is 30 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 252 moves accepted out of 318 tries... that is 79 percent 
+torsion: 81 moves accepted out of 225 tries... that is 36 percent 
+MD moves: 2 moves accepted out of 7 tries... that is 28  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.991249
+-------- replica11 Simulation Results --------
+total accepted moves: 501 
+total rejected moves: 499 
+ParRot move: 81 moves accepted out of 223 tries... that is 36 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 51 moves accepted out of 221 tries... that is 23 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 309 moves accepted out of 367 tries... that is 84 percent 
+torsion: 59 moves accepted out of 183 tries... that is 32 percent 
+MD moves: 1 moves accepted out of 6 tries... that is 16  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.995657
+-------- replica12 Simulation Results --------
+total accepted moves: 489 
+total rejected moves: 511 
+ParRot move: 87 moves accepted out of 232 tries... that is 37 percent 
+1 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 57 moves accepted out of 202 tries... that is 28 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 272 moves accepted out of 350 tries... that is 77 percent 
+torsion: 69 moves accepted out of 205 tries... that is 33 percent 
+MD moves: 4 moves accepted out of 11 tries... that is 36  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.967567
+-------- replica13 Simulation Results --------
+total accepted moves: 479 
+total rejected moves: 521 
+ParRot move: 77 moves accepted out of 222 tries... that is 34 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 68 moves accepted out of 230 tries... that is 29 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 266 moves accepted out of 345 tries... that is 77 percent 
+torsion: 64 moves accepted out of 195 tries... that is 32 percent 
+MD moves: 4 moves accepted out of 8 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.976978
+-------- replica14 Simulation Results --------
+total accepted moves: 514 
+total rejected moves: 486 
+ParRot move: 93 moves accepted out of 231 tries... that is 40 percent 
+2 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 76 moves accepted out of 201 tries... that is 37 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 285 moves accepted out of 370 tries... that is 77 percent 
+torsion: 54 moves accepted out of 189 tries... that is 28 percent 
+MD moves: 6 moves accepted out of 9 tries... that is 66  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.960264
+-------- replica15 Simulation Results --------
+total accepted moves: 481 
+total rejected moves: 519 
+ParRot move: 80 moves accepted out of 249 tries... that is 32 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 57 moves accepted out of 202 tries... that is 28 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 262 moves accepted out of 333 tries... that is 78 percent 
+torsion: 77 moves accepted out of 204 tries... that is 37 percent 
+MD moves: 5 moves accepted out of 12 tries... that is 41  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.964387
+-------- replica16 Simulation Results --------
+total accepted moves: 490 
+total rejected moves: 510 
+ParRot move: 96 moves accepted out of 244 tries... that is 39 percent 
+1 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 51 moves accepted out of 196 tries... that is 26 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 286 moves accepted out of 362 tries... that is 79 percent 
+torsion: 56 moves accepted out of 192 tries... that is 29 percent 
+MD moves: 1 moves accepted out of 6 tries... that is 16  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.998294
+-------- replica17 Simulation Results --------
+total accepted moves: 507 
+total rejected moves: 493 
+ParRot move: 98 moves accepted out of 239 tries... that is 41 percent 
+6 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 59 moves accepted out of 192 tries... that is 30 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 288 moves accepted out of 361 tries... that is 79 percent 
+torsion: 57 moves accepted out of 198 tries... that is 28 percent 
+MD moves: 5 moves accepted out of 10 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.961039
+-------- replica18 Simulation Results --------
+total accepted moves: 495 
+total rejected moves: 505 
+ParRot move: 88 moves accepted out of 250 tries... that is 35 percent 
+7 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 44 moves accepted out of 185 tries... that is 23 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 300 moves accepted out of 375 tries... that is 80 percent 
+torsion: 57 moves accepted out of 178 tries... that is 32 percent 
+MD moves: 6 moves accepted out of 12 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.979602
+-------- replica19 Simulation Results --------
+total accepted moves: 500 
+total rejected moves: 500 
+ParRot move: 84 moves accepted out of 219 tries... that is 38 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 63 moves accepted out of 213 tries... that is 29 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 287 moves accepted out of 367 tries... that is 78 percent 
+torsion: 63 moves accepted out of 191 tries... that is 32 percent 
+MD moves: 3 moves accepted out of 10 tries... that is 30  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.975181
+-------- replica20 Simulation Results --------
+total accepted moves: 489 
+total rejected moves: 511 
+ParRot move: 86 moves accepted out of 256 tries... that is 33 percent 
+6 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 51 moves accepted out of 193 tries... that is 26 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 288 moves accepted out of 362 tries... that is 79 percent 
+torsion: 59 moves accepted out of 180 tries... that is 32 percent 
+MD moves: 5 moves accepted out of 9 tries... that is 55  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.976745
+-------- replica21 Simulation Results --------
+total accepted moves: 501 
+total rejected moves: 499 
+ParRot move: 92 moves accepted out of 227 tries... that is 40 percent 
+5 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 54 moves accepted out of 192 tries... that is 28 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 285 moves accepted out of 365 tries... that is 78 percent 
+torsion: 68 moves accepted out of 204 tries... that is 33 percent 
+MD moves: 2 moves accepted out of 12 tries... that is 16  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.980261
+-------- replica22 Simulation Results --------
+total accepted moves: 487 
+total rejected moves: 513 
+ParRot move: 89 moves accepted out of 249 tries... that is 35 percent 
+8 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 41 moves accepted out of 163 tries... that is 25 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 280 moves accepted out of 361 tries... that is 77 percent 
+torsion: 69 moves accepted out of 213 tries... that is 32 percent 
+MD moves: 8 moves accepted out of 14 tries... that is 57  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.968537
+-------- replica23 Simulation Results --------
+total accepted moves: 474 
+total rejected moves: 526 
+ParRot move: 88 moves accepted out of 225 tries... that is 39 percent 
+8 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 51 moves accepted out of 207 tries... that is 24 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 260 moves accepted out of 338 tries... that is 76 percent 
+torsion: 73 moves accepted out of 219 tries... that is 33 percent 
+MD moves: 2 moves accepted out of 11 tries... that is 18  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.958725
+-------- replica24 Simulation Results --------
+total accepted moves: 445 
+total rejected moves: 555 
+ParRot move: 76 moves accepted out of 238 tries... that is 31 percent 
+8 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 52 moves accepted out of 209 tries... that is 24 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 256 moves accepted out of 338 tries... that is 75 percent 
+torsion: 55 moves accepted out of 208 tries... that is 26 percent 
+MD moves: 6 moves accepted out of 7 tries... that is 85  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.959113
+-------- replica25 Simulation Results --------
+total accepted moves: 481 
+total rejected moves: 519 
+ParRot move: 91 moves accepted out of 253 tries... that is 35 percent 
+5 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 48 moves accepted out of 191 tries... that is 25 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 284 moves accepted out of 371 tries... that is 76 percent 
+torsion: 52 moves accepted out of 176 tries... that is 29 percent 
+MD moves: 6 moves accepted out of 9 tries... that is 66  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.958751
+-------- replica26 Simulation Results --------
+total accepted moves: 469 
+total rejected moves: 531 
+ParRot move: 78 moves accepted out of 232 tries... that is 33 percent 
+2 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 43 moves accepted out of 206 tries... that is 20 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 272 moves accepted out of 349 tries... that is 77 percent 
+torsion: 71 moves accepted out of 201 tries... that is 35 percent 
+MD moves: 5 moves accepted out of 12 tries... that is 41  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.987784
+-------- replica27 Simulation Results --------
+total accepted moves: 483 
+total rejected moves: 517 
+ParRot move: 83 moves accepted out of 235 tries... that is 35 percent 
+5 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 69 moves accepted out of 218 tries... that is 31 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 257 moves accepted out of 328 tries... that is 78 percent 
+torsion: 68 moves accepted out of 207 tries... that is 32 percent 
+MD moves: 6 moves accepted out of 12 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.934604
+-------- replica28 Simulation Results --------
+total accepted moves: 484 
+total rejected moves: 516 
+ParRot move: 75 moves accepted out of 246 tries... that is 30 percent 
+7 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 47 moves accepted out of 175 tries... that is 26 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 300 moves accepted out of 372 tries... that is 80 percent 
+torsion: 60 moves accepted out of 197 tries... that is 30 percent 
+MD moves: 2 moves accepted out of 10 tries... that is 20  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.986311
+-------- replica29 Simulation Results --------
+total accepted moves: 468 
+total rejected moves: 532 
+ParRot move: 75 moves accepted out of 225 tries... that is 33 percent 
+3 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 41 moves accepted out of 191 tries... that is 21 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 302 moves accepted out of 392 tries... that is 77 percent 
+torsion: 48 moves accepted out of 184 tries... that is 26 percent 
+MD moves: 2 moves accepted out of 8 tries... that is 25  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.990602
+-------- replica30 Simulation Results --------
+total accepted moves: 465 
+total rejected moves: 535 
+ParRot move: 86 moves accepted out of 217 tries... that is 39 percent 
+4 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 57 moves accepted out of 209 tries... that is 27 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 257 moves accepted out of 331 tries... that is 77 percent 
+torsion: 58 moves accepted out of 230 tries... that is 25 percent 
+MD moves: 7 moves accepted out of 13 tries... that is 53  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.959604
+-------- replica31 Simulation Results --------
+total accepted moves: 463 
+total rejected moves: 537 
+ParRot move: 97 moves accepted out of 264 tries... that is 36 percent 
+8 ParRot moves rejected due to chain closure 
+local move: 0 moves accepted out of 0 tries 
+0 local moves rejected due to chain closure 
+angle bend: 60 moves accepted out of 209 tries... that is 28 percent 
+crankshaft: 0 moves accepted out of 0 tries 
+global crankshaft: 229 moves accepted out of 314 tries... that is 72 percent 
+torsion: 72 moves accepted out of 203 tries... that is 35 percent 
+MD moves: 5 moves accepted out of 10 tries... that is 50  percent 
+
+excluding first 20 out of 101 fractional nativeness values from average
+the average fractional nativeness is 0.944635
+Swaps accepted between replica0 and replica1: 80.00 percent
+Swaps accepted between replica1 and replica2: 86.00 percent
+Swaps accepted between replica2 and replica3: 70.00 percent
+Swaps accepted between replica3 and replica4: 68.00 percent
+Swaps accepted between replica4 and replica5: 78.00 percent
+Swaps accepted between replica5 and replica6: 76.00 percent
+Swaps accepted between replica6 and replica7: 78.00 percent
+Swaps accepted between replica7 and replica8: 88.00 percent
+Swaps accepted between replica8 and replica9: 80.00 percent
+Swaps accepted between replica9 and replica10: 84.00 percent
+Swaps accepted between replica10 and replica11: 84.00 percent
+Swaps accepted between replica11 and replica12: 90.00 percent
+Swaps accepted between replica12 and replica13: 90.00 percent
+Swaps accepted between replica13 and replica14: 78.00 percent
+Swaps accepted between replica14 and replica15: 86.00 percent
+Swaps accepted between replica15 and replica16: 86.00 percent
+Swaps accepted between replica16 and replica17: 88.00 percent
+Swaps accepted between replica17 and replica18: 86.00 percent
+Swaps accepted between replica18 and replica19: 86.00 percent
+Swaps accepted between replica19 and replica20: 80.00 percent
+Swaps accepted between replica20 and replica21: 86.00 percent
+Swaps accepted between replica21 and replica22: 76.00 percent
+Swaps accepted between replica22 and replica23: 86.00 percent
+Swaps accepted between replica23 and replica24: 66.00 percent
+Swaps accepted between replica24 and replica25: 72.00 percent
+Swaps accepted between replica25 and replica26: 76.00 percent
+Swaps accepted between replica26 and replica27: 84.00 percent
+Swaps accepted between replica27 and replica28: 80.00 percent
+Swaps accepted between replica28 and replica29: 82.00 percent
+Swaps accepted between replica29 and replica30: 68.00 percent
+Swaps accepted between replica30 and replica31: 86.00 percent
+Total swaps accepted: 1252
+Total swaps rejected: 298
+Simulation time: 0:00:42.330758

@@ -1,4 +1,3 @@
-
 #=======================================================================================================
 # IMPORTS
 #=======================================================================================================
@@ -26,8 +25,8 @@ from simulationobject import *
 t1=datetime.now()
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="GO_protein.pdb", help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_protein.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafile", default="GO_1PGB.pdb", help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_1PGB.param', help="protein .param file")
 parser.add_option("-t", "--temprange", nargs=2, default=[300.0,300.0], type="float", dest="temprange", help="temperature range of replicas")
 parser.add_option("-r", "--replicas", default=1, type="int",dest="replicas", help="number of replicas")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -252,7 +251,7 @@ def pprun(Replicas, Moves, Dict):
     if len(Replicas) == 1:
         newReplicas = [run(Replicas[0], Moves, Dict)]
     else:
-        jobs = [job_server.submit(run, (replica, Moves, Dict), (update_energy, ), ("random", "numpy",
+        jobs = [job_server.submit(run, (replica, Moves, Dict), (update_energy, save), ("random", "numpy",
             "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
         newReplicas = [job() for job in jobs]
     return newReplicas
@@ -289,8 +288,12 @@ swaprejected = numpy.zeros(numreplicas-1)
 try:
 	# running on the cluster
 	f = open('nodefile.txt','r')
-	ppservers = f.readlines()
+	ppservers = f.readline()
+	ppservers = ppservers.split(' ')
+	ppservers[-1] = ppservers[-1][0:-1]
+	ppservers = [server+':23335' for server in ppservers]
 	ppservers = tuple(ppservers)
+	print ppservers
 	job_server = pp.Server(ppservers=ppservers)
 except:
 	# running on one machine

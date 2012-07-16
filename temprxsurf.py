@@ -285,8 +285,11 @@ swaprejected = numpy.zeros(numreplicas-1)
 try:
 	# running on the cluster
 	f = open('nodefile.txt','r')
-	ppservers = f.readlines()
+	ppservers = f.readline()
+	ppservers = ppservers.split(' ')
+	ppservers[-1] = ppservers[-1][0:-1]
 	ppservers = tuple(ppservers)
+	print ppservers	
 	job_server = pp.Server(ppservers=ppservers)
 except:
 	# running on one machine
