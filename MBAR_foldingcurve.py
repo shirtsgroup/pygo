@@ -16,11 +16,11 @@ import pdb  # for debugging
 # CONSTANTS
 #=========================================================
 #simulation = sys.argv[1]   #This program takes the argument of the simulation top directory
-kB = 0.00831447  #Boltzmann constant (Gas constant) in kJ/(mol*K)
+kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
-NumTemps = 16          # Last TEMP # + 1 (start counting at 1)
-NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
+NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
+NumIterations = 10000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
 
@@ -107,8 +107,8 @@ print("Preparing data:")
 #E_from_file = read_total_energies(simulation)
 #K = len(T_from_file)
 
-trange = [300.0, 600.0]
-numreplicas = 16
+trange = [300.0, 450.0]
+numreplicas = 8
 T = numpy.empty(numreplicas)
 alpha = (trange[1]/trange[0])**(1/float(numreplicas-1))
 T[0]=trange[0]
@@ -116,8 +116,27 @@ for i in range(1,numreplicas):
 	T[i]=T[i-1]*alpha
 print T
 files=[]
+surf=[]
 for i in range(len(T)):
-	files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
+	files.append('results/1PGB/surface/energy'+str(int(T[i]))+'.txt')
+	surf.append('results/1PGB/surface/surfenergy'+str(int(T[i]))+'.txt')
+
+
+nc=numpy.loadtxt(files[0])
+
+for i,file in enumerate(files):
+	nctemp=numpy.loadtxt(file)
+	ncsurf=numpy.loadtxt(surf[i])
+	#nctemp -= ncsurf # uncomment this line to get protein-only energies
+	nc=numpy.vstack((nc,nctemp))
+nc=nc[1:numreplicas+1,:]
+nc = nc[:,-10000:-1]
+T_from_file = T
+E_from_file = nc.copy()
+K = numreplicas
+files=[]
+for i in range(len(T)):
+	files.append('results/1PGB/surface/fractionnative'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])
@@ -126,10 +145,7 @@ for file in files:
 	nctemp=numpy.loadtxt(file)
 	nc=numpy.vstack((nc,nctemp))
 nc=nc[1:numreplicas+1,:]
-nc = nc[:,-1000:-1]
-T_from_file = T
-E_from_file = nc
-K = numreplicas
+nc = nc[:,-10000:-1]
 
 N_k = numpy.zeros(K,numpy.int32)
 g = numpy.zeros(K,numpy.float64)
@@ -168,14 +184,15 @@ print("--Inserting blank energies to match up with inserted temperatures...")
 
 Nall_k = numpy.zeros([K], numpy.int32) # Number of samples (n) for each state (k) = number of iterations/energies
 E_kn = numpy.zeros([K, NumIterations], numpy.float64)
+Q_kn = numpy.zeros([K, NumIterations], numpy.float64)
 i = 0
 
 for k in range(K):
        if (Temp_k[k] == T_from_file[i]):
              E_kn[k,0:N_k[i]] = E_from_file[i,0:N_k[i]]
+	     Q_kn[k,0:N_k[i]] = nc[i,0:N_k[i]]
              Nall_k[k] = N_k[i]
              i = i + 1
-
 #------------------------------------------------------------------------
 # Compute inverse temperatures
 #------------------------------------------------------------------------
@@ -213,34 +230,40 @@ mbar = pymbar.MBAR(u_kln, Nall_k, method = 'adaptive', verbose=True, relative_to
 print ""
 print "Computing Expectations for E..."
 (E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
-print "Computing Expectations for E^2..."
-(E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
+#print "Computing Expectations for E^2..."
+#(E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
+
+print "Computing Expectations for Q..."
+(Q,dQ) = mbar.computeExpectations(Q_kn)
 
 #------------------------------------------------------------------------
 # Compute Cv for NVT simulations as <E^2> - <E>^2 / (RT^2)
 #------------------------------------------------------------------------
-print ""
-print "Computing Heat Capacity as ( <E^2> - <E>^2 ) / ( R*T^2 )..."
+#print ""
+#print "Computing Heat Capacity as ( <E^2> - <E>^2 ) / ( R*T^2 )..."
 
-Cv_expect = numpy.zeros([K], numpy.float64)
-dCv_expect = numpy.zeros([K], numpy.float64)
+#Cv_expect = numpy.zeros([K], numpy.float64)
+#dCv_expect = numpy.zeros([K], numpy.float64)
 
-for i in range(K):
-       Cv_expect[i] = (E2_expect[i] - (E_expect[i]*E_expect[i])) / ( kB * Temp_k[i] * Temp_k[i])
-       dCv_expect[i] = 2*dE_expect[i]**2 / (kB *Temp_k[i]*Temp_k[i])   # from propagation of error
+#for i in range(K):
+#       Cv_expect[i] = (E2_expect[i] - (E_expect[i]*E_expect[i])) / ( kB * Temp_k[i] * Temp_k[i])
+#       dCv_expect[i] = 2*dE_expect[i]**2 / (kB *Temp_k[i]*Temp_k[i])   # from propagation of error
 
-print "Temperature  dA         <E> +/- d<E>       <E^2> +/- d<E^2>       Cv +/- dCv"     
-print "-------------------------------------------------------------------------------"
-for k in range(K):
-       print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f   %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_expect[k], dCv_expect[k])
+#print "Temperature  dA         <E> +/- d<E>       <E^2> +/- d<E^2>       Cv +/- dCv"     
+#print "-------------------------------------------------------------------------------"
+#for k in range(K):
+#       print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f   %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_expect[k], dCv_expect[k])
 
 
 import matplotlib.pyplot as plt
+ncavg = numpy.average(nc, axis=1)
 
 plt.figure(1)
-plt.plot(Temp_k,Cv_expect)
+plt.plot(T, ncavg, 'ko')
+plt.plot(Temp_k,Q,'k')
+plt.errorbar(Temp_k, Q, yerr=dQ)
 plt.xlabel('Temperature (K)')
 plt.ylabel('Heat Capacity (kcal/mol/K)')
-plt.title('Heat Capacity from Go like model MC simulation of 2QUG.pdb')
-plt.savefig('heatcap.png')
+plt.title('Heat Capacity from Go like model MC simulation of 1PBG.pdb')
+plt.savefig('foldingcurve_tot.png')
 plt.show()
