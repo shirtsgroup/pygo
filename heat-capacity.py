@@ -238,17 +238,39 @@ for k in range(K):
 import matplotlib.pyplot as plt
 
 plt.figure(1)
-plt.plot(Temp_k,Cv_expect)
-plt.errorbar(Temp_k, Cv_expect, yerr=dCv_expect)
+#plt.plot(Temp_k,E_expect)
+#plt.errorbar(Temp_k, E_expect, yerr=dE_expect)
+plt.plot(Temp_k,E2_expect)
+plt.errorbar(Temp_k, E2_expect, yerr=dE2_expect)
+#plt.plot(Temp_k,Cv_expect)
+#plt.errorbar(Temp_k, Cv_expect, yerr=dCc_expect)
 plt.xlabel('Temperature (K)')
-plt.ylabel('Heat Capacity (kcal/mol/K)')
-plt.title('Heat Capacity from Go like model MC simulation of 1PBG.pdb')
+#plt.ylabel('Ave E (kcal/mol/K)')
+#plt.title('Ave E from Go like model MC simulation of 1PBG.pdb')
+plt.ylabel('Ave E^2 (kcal/mol/K)')
+plt.title('Ave E^2 from Go like model MC simulation of 1PBG.pdb')
+#plt.ylabel('Heat Capacity (kcal/mol/K)')
+#plt.title('Heat Capacity from Go like model MC simulation of 1PBG.pdb')
+
 #plt.savefig('heatcap.png')
 #plt.show()
 
 # single point heat capacities
 
-Cv = (numpy.average(E_from_file**2, axis=1)-numpy.average(E_from_file, axis=1)**2)/(kB*T**2)
-plt.plot(T,Cv, 'bo')
-plt.savefig('heatcap_singlepoint.png')
+K = len(T)
+vfile = numpy.zeros(K)
+dvfile = numpy.zeros(K)
+for k in range(K):
+       #vfile[k] = numpy.average(E_from_file[k,0:N_k[k]])
+       #dvfile[k] = numpy.std(E_from_file[k,0:N_k[k]])/numpy.sqrt(N_k[k])
+       vfile[k] = numpy.average((E_from_file[k,0:N_k[k]])**2)
+       dvfile[k] = numpy.std((E_from_file[k,0:N_k[k]])**2)/numpy.sqrt(N_k[k])
+       #vfile[k] = (numpy.average(E_from_file[k,0:N_k[k]]**2)-numpy.average(E_from_file[k,0:N_k[k])**2)/(kB*T**2)
+       #defile[k] = ?
+pdb.set_trace()
+plt.plot(T,vfile, 'bo')
+plt.errorbar(T, vfile, yerr=dvfile)
+#plt.savefig('aveE_singlepoint.png')
+plt.savefig('aveE2_singlepoint.png')
+#plt.savefig('heatcap_singlepoint.png')
 plt.show()
