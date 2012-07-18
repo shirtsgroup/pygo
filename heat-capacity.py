@@ -16,10 +16,10 @@ import pdb  # for debugging
 # CONSTANTS
 #=========================================================
 #simulation = sys.argv[1]   #This program takes the argument of the simulation top directory
-kB = 0.00831447  #Boltzmann constant (Gas constant) in kJ/(mol*K)
+kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
-NumTemps = 16          # Last TEMP # + 1 (start counting at 1)
+NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
 NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
@@ -107,8 +107,8 @@ print("Preparing data:")
 #E_from_file = read_total_energies(simulation)
 #K = len(T_from_file)
 
-trange = [300.0, 600.0]
-numreplicas = 16
+trange = [300.0, 450.0]
+numreplicas = 8
 T = numpy.empty(numreplicas)
 alpha = (trange[1]/trange[0])**(1/float(numreplicas-1))
 T[0]=trange[0]
@@ -117,7 +117,7 @@ for i in range(1,numreplicas):
 print T
 files=[]
 for i in range(len(T)):
-	files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
+	files.append('results/1PGB/surface/energy'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])
@@ -128,7 +128,7 @@ for file in files:
 nc=nc[1:numreplicas+1,:]
 nc = nc[:,-1000:-1]
 T_from_file = T
-E_from_file = nc
+E_from_file = nc.copy()
 K = numreplicas
 
 N_k = numpy.zeros(K,numpy.int32)
@@ -239,8 +239,16 @@ import matplotlib.pyplot as plt
 
 plt.figure(1)
 plt.plot(Temp_k,Cv_expect)
+plt.errorbar(Temp_k, Cv_expect, yerr=dCv_expect)
 plt.xlabel('Temperature (K)')
 plt.ylabel('Heat Capacity (kcal/mol/K)')
-plt.title('Heat Capacity from Go like model MC simulation of 2QUG.pdb')
-plt.savefig('heatcap.png')
+plt.title('Heat Capacity from Go like model MC simulation of 1PBG.pdb')
+#plt.savefig('heatcap.png')
+#plt.show()
+
+# single point heat capacities
+
+Cv = (numpy.average(nc**2, axis=1)-numpy.average(nc, axis=1)**2)/(kB*T**2)
+plt.plot(T,Cv, 'bo')
+plt.savefig('heatcap_singlepoint.png')
 plt.show()
