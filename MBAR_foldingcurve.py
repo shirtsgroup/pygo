@@ -154,6 +154,7 @@ for k in range(K):  # subsample the energies
    indices = numpy.array(timeseries.subsampleCorrelatedData(E_from_file[k],g=g[k])) # indices of uncorrelated samples
    N_k[k] = len(indices) # number of uncorrelated samples
    E_from_file[k,0:N_k[k]] = E_from_file[k,indices]
+   nc[k,0:N_k[k]] = nc[k,indices]
 
 #------------------------------------------------------------------------
 # Insert Intermediate T's and corresponding blank U's and E's

@@ -117,7 +117,7 @@ for i in range(1,numreplicas):
 print T
 files=[]
 for i in range(len(T)):
-	files.append('results/1PGB/surface/energy'+str(int(T[i]))+'.txt')
+	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])
@@ -248,7 +248,7 @@ plt.title('Heat Capacity from Go like model MC simulation of 1PBG.pdb')
 
 # single point heat capacities
 
-Cv = (numpy.average(nc**2, axis=1)-numpy.average(nc, axis=1)**2)/(kB*T**2)
+Cv = (numpy.average(E_from_file**2, axis=1)-numpy.average(E_from_file, axis=1)**2)/(kB*T**2)
 plt.plot(T,Cv, 'bo')
 plt.savefig('heatcap_singlepoint.png')
 plt.show()
