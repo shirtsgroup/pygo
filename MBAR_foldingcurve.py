@@ -20,7 +20,7 @@ kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
 NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
-NumIterations = 10000  # The number of energies to be taken and analyzed, starting from the last
+NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
 
@@ -118,25 +118,30 @@ print T
 files=[]
 surf=[]
 for i in range(len(T)):
-	files.append('results/1PGB/surface/energy'+str(int(T[i]))+'.txt')
-	surf.append('results/1PGB/surface/surfenergy'+str(int(T[i]))+'.txt')
+	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
+#	surf.append('proteinmontecarlo/results/1PGB/surface/surfenergy'+str(int(T[i]))+'.txt')
 
+	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
+#	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 nc=numpy.loadtxt(files[0])
 
 for i,file in enumerate(files):
 	nctemp=numpy.loadtxt(file)
-	ncsurf=numpy.loadtxt(surf[i])
+#	ncsurf=numpy.loadtxt(surf[i])
 	#nctemp -= ncsurf # uncomment this line to get protein-only energies
 	nc=numpy.vstack((nc,nctemp))
 nc=nc[1:numreplicas+1,:]
-nc = nc[:,-10000:-1]
+nc = nc[:,-1000:-1]
 T_from_file = T
 E_from_file = nc.copy()
 K = numreplicas
 files=[]
 for i in range(len(T)):
-	files.append('results/1PGB/surface/fractionnative'+str(int(T[i]))+'.txt')
+	files.append('results/1PGB/solution/fractionnative'+str(int(T[i]))+'.txt')
+
+	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
+#	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])
@@ -145,7 +150,7 @@ for file in files:
 	nctemp=numpy.loadtxt(file)
 	nc=numpy.vstack((nc,nctemp))
 nc=nc[1:numreplicas+1,:]
-nc = nc[:,-10000:-1]
+nc = nc[:,-1000:-1]
 
 N_k = numpy.zeros(K,numpy.int32)
 g = numpy.zeros(K,numpy.float64)
@@ -255,7 +260,9 @@ print "Computing Expectations for Q..."
 #for k in range(K):
 #       print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f   %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_expect[k], dCv_expect[k])
 
+numpy.savetxt('/home/edz3fz/dQsol.txt',dQ)
 
+#numpy.savetxt('/home/edz3fz/Qtemp.tt',Temp_k)
 import matplotlib.pyplot as plt
 ncavg = numpy.average(nc, axis=1)
 

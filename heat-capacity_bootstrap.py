@@ -22,7 +22,8 @@ kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
 NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
-dT = 1.25              # Temperature increment for calculating Cv(T)
+dT = 2.5              # Temperature increment for calculating Cv(T)
+nBoots = 200
 
 ###########################################################
 # For Cv vs T    _____
@@ -117,7 +118,8 @@ for i in range(1,numreplicas):
 print T
 files=[]
 for i in range(len(T)):
-	files.append('results/1PGB/surface/energy'+str(int(T[i]))+'.txt')
+#	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
+	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])
@@ -131,10 +133,11 @@ T_from_file = T
 E_from_file = nc.copy()
 K = numreplicas
 
+
 N_k = numpy.zeros(K,numpy.int32)
 g = numpy.zeros(K,numpy.float64)
 for k in range(K):  # subsample the energies
-   g[k] = timeseries.statisticalInefficiency(E_from_file[k])#,suppress_warning=True)
+   g[k] = timeseries.statisticalInefficiency(E_from_file[k])
    indices = numpy.array(timeseries.subsampleCorrelatedData(E_from_file[k],g=g[k])) # indices of uncorrelated samples
    N_k[k] = len(indices) # number of uncorrelated samples
    E_from_file[k,0:N_k[k]] = E_from_file[k,indices]
@@ -188,88 +191,106 @@ beta_k = 1 / (kB * Temp_k)
 print "--Computing reduced energies..."
 
 u_kln = numpy.zeros([K,K,NumIterations], numpy.float64) # u_kln is reduced pot. ener. of segment n of temp k evaluated at temp l
+E_kn_samp = numpy.zeros([K,NumIterations], numpy.float64) # u_kln is reduced pot. ener. of segment n of temp k evaluated at temp l
 
-for k in range(K):
-       for l in range(K):
-             u_kln[k,l,0:Nall_k[k]] = beta_k[l] * E_kn[k,0:Nall_k[k]]
+allCv_expect = numpy.zeros([K,2,nBoots], numpy.float64)
+allE_expect = numpy.zeros([K,nBoots], numpy.float64)
+allE2_expect = numpy.zeros([K,nBoots], numpy.float64)
+
+for n in range(nBoots):
+       print "Bootstrap: %d/%d" % (n,nBoots)
+       for k in range(K):
+       # resample the results:
+             if Nall_k[k] > 0:
+                  booti=numpy.random.randint(Nall_k[k],size=Nall_k[k])
+                  E_kn_samp[k,0:Nall_k[k]] = E_kn[k,booti] 
+
+       for k in range(K):
+             for l in range(K):
+                  u_kln[k,l,0:Nall_k[k]] = beta_k[l] * E_kn_samp[k,0:Nall_k[k]]
 
 #------------------------------------------------------------------------
 # Initialize MBAR
 #------------------------------------------------------------------------
 
 # Initialize MBAR with Newton-Raphson
-print ""
-print "Initializing MBAR:"
-print "--K = number of Temperatures"
-print "--L = number of Temperatures"
-print "--N = number of Energies per Temperature"
+#print ""
+#print "Initializing MBAR:"
+#print "--K = number of Temperatures"
+#print "--L = number of Temperatures"
+#print "--N = number of Energies per Temperature"
 
 # Use Adaptive Method (Both Newton-Raphson and Self-Consistent, testing which is better)
-mbar = pymbar.MBAR(u_kln, Nall_k, method = 'adaptive', verbose=True, relative_tolerance=1e-12)
+       mbar = pymbar.MBAR(u_kln, Nall_k, method = 'adaptive', verbose=True, relative_tolerance=1e-12)
 
-#------------------------------------------------------------------------
-# Compute Expectations for E_kt and E2_kt as E_expect and E2_expect
-#------------------------------------------------------------------------
-print ""
-print "Computing Expectations for E..."
-(E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
-print "Computing Expectations for E^2..."
-(E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
+        #------------------------------------------------------------------------
+        # Compute Expectations for E_kt and E2_kt as E_expect and E2_expect
+        #------------------------------------------------------------------------
+       print ""
+       print "Computing Expectations for E..."
+       (E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
+       allE_expect[:,n] = E_expect[:]
+        # expectations for the differences, which we need for numerical derivatives
+       (DeltaE_expect, dDeltaE_expect) = mbar.computeExpectations(u_kln,output='differences')*(beta_k)**(-1)
+       print "Computing Expectations for E^2..."
+       (E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
+       allE2_expect[:,n] = E2_expect[:]
 
-#------------------------------------------------------------------------
-# Compute Cv for NVT simulations as <E^2> - <E>^2 / (RT^2)
-#------------------------------------------------------------------------
-print ""
-print "Computing Heat Capacity as ( <E^2> - <E>^2 ) / ( R*T^2 )..."
+        #------------------------------------------------------------------------
+       # Compute Cv for NVT simulations as <E^2> - <E>^2 / (RT^2)
+        #------------------------------------------------------------------------
+       print ""
+       print "Computing Heat Capacity as ( <E^2> - <E>^2 ) / ( R*T^2 )..."
 
-Cv_expect = numpy.zeros([K], numpy.float64)
-dCv_expect = numpy.zeros([K], numpy.float64)
+       for i in range(K):
+             # heat capacity by fluctutations
+             allCv_expect[i,0,n] = (E2_expect[i] - (E_expect[i]*E_expect[i])) / ( kB * Temp_k[i] * Temp_k[i])
 
-for i in range(K):
-       Cv_expect[i] = (E2_expect[i] - (E_expect[i]*E_expect[i])) / ( kB * Temp_k[i] * Temp_k[i])
-       dCv_expect[i] = 2*dE_expect[i]**2 / (kB *Temp_k[i]*Temp_k[i])   # from propagation of error
+               # heat capacity by T-differences
+             im = i-1
+             ip = i+1
+             if (i==0):
+                  im = 0
+             if (i==K-1):
+                  ip = K-1
+             allCv_expect[i,1,n] = (DeltaE_expect[im,ip])/(Temp_k[ip]-Temp_k[im])
 
-print "Temperature  dA         <E> +/- d<E>       <E^2> +/- d<E^2>       Cv +/- dCv"     
-print "-------------------------------------------------------------------------------"
+Cv_boot = numpy.zeros([K,2])
+dCv_boot = numpy.zeros([K,2])
+
+E_boot = numpy.zeros([K,nBoots], numpy.float64)
+dE_boot = numpy.zeros([K,nBoots], numpy.float64)
+
+E2_boot = numpy.zeros([K,nBoots], numpy.float64)
+dE2_boot = numpy.zeros([K,nBoots], numpy.float64)
+
 for k in range(K):
-       print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f   %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_expect[k], dCv_expect[k])
+       for i in range(2):
+             Cv_boot[k,i] = numpy.mean(allCv_expect[k,i,:])
+             dCv_boot[k,i] = numpy.std(allCv_expect[k,i,:])
+       E_boot[k] = numpy.mean(allE_expect[k,:])
+       dE_boot[k] = numpy.std(allE_expect[k,:])
+       E2_boot[k] = numpy.mean(allE2_expect[k,:])
+       dE2_boot[k] = numpy.std(allE2_expect[k,:])
 
+print "Temperature  dA         <E> +/- d<E>      <E^2> +/- d<E^2>    Cv +/- dCv (var)   Cv +/- dCv (dT)"    
+print "------------------------------------------------------------------------------------------------------"
+for k in range(K):
+       print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f  %7.4f +/- %6.4f %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_boot[k,0],dCv_boot[k,0],Cv_boot[k,1],dCv_boot[k,1])
 
+numpy.savetxt('/home/edz3fz/Csurf.txt', Cv_boot)
+numpy.savetxt('/home/edz3fz/dCsurf.txt', dCv_boot)
 import matplotlib.pyplot as plt
 plt.figure(1)
-#plt.plot(Temp_k,E_expect)
-#plt.errorbar(Temp_k, E_expect, yerr=dE_expect)
-plt.plot(Temp_k,E2_expect)
-plt.errorbar(Temp_k, E2_expect, yerr=dE2_expect)
-#plt.plot(Temp_k,Cv_expect)
-#plt.errorbar(Temp_k, Cv_expect, yerr=dCc_expect)
+plt.plot(Temp_k,Cv_boot,'k', lw=1.5)
+plt.plot(Temp_k, Cv_boot+dCv_boot, '0.5')
+plt.plot(Temp_k, Cv_boot-dCv_boot, '0.5')
+#plt.errorbar(Temp_k, Cv_expect, yerr=dCv_expect)
 plt.xlabel('Temperature (K)')
-#plt.ylabel('Ave E (kcal/mol/K)')
-#plt.title('Ave E from Go like model MC simulation of 1PBG.pdb')
-plt.ylabel('Ave E^2 (kcal/mol/K)')
-plt.title('Ave E^2 from Go like model MC simulation of 1PBG.pdb')
-#plt.ylabel('Heat Capacity (kcal/mol/K)')
+plt.ylabel('C (kcal/mol/K)')
+plt.xlim(300,450)
 #plt.title('Heat Capacity from Go like model MC simulation of 1PBG.pdb')
-
-#plt.savefig('heatcap.png')
-#plt.show()
-
-# single point heat capacities
-
-K = len(T)
-vfile = numpy.zeros(K)
-dvfile = numpy.zeros(K)
-for k in range(K):
-       #vfile[k] = numpy.average(E_from_file[k,0:N_k[k]])
-       #dvfile[k] = numpy.std(E_from_file[k,0:N_k[k]])/numpy.sqrt(N_k[k])
-       vfile[k] = numpy.average((E_from_file[k,0:N_k[k]])**2)
-       dvfile[k] = numpy.std((E_from_file[k,0:N_k[k]])**2)/numpy.sqrt(N_k[k])
-       #vfile[k] = (numpy.average(E_from_file[k,0:N_k[k]]**2)-numpy.average(E_from_file[k,0:N_k[k])**2)/(kB*T**2)
-       #defile[k] = ?
-pdb.set_trace()
-plt.plot(T,vfile, 'bo')
-plt.errorbar(T, vfile, yerr=dvfile)
-#plt.savefig('aveE_singlepoint.png')
-plt.savefig('aveE2_singlepoint.png')
-#plt.savefig('heatcap_singlepoint.png')
+plt.savefig('heatcap.png')
 plt.show()
+
+

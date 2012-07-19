@@ -100,6 +100,8 @@ class SurfaceSimulation(Simulation):
         write = ['-------- %s Simulation Results --------\r\n' % (self.name),
                 'total accepted moves: %d \r\n' % (self.accepted),
                 'total rejected moves: %d \r\n' % (self.rejected),
+		'Translation: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedtr, self.trmoves, float(self.acceptedtr)/float(self.trmoves)*100),
+		'Rotation: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedrot, self.rotmoves, float(self.acceptedrot)/float(self.rotmoves)*100),
 		'ParRot move: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedp, self.pmoves, float(self.acceptedp)/float(self.pmoves)*100),
 		'%d ParRot moves rejected due to chain closure \r\n' % (self.pclosure),
                 'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, float(self.accepteda)/float(self.angmoves)*100),
@@ -267,7 +269,7 @@ def run_surf(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD_surf(self, 5, .01, dict)
+            self=moveset.runMD_surf(self, 10, .1, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads-3)
@@ -309,7 +311,7 @@ def run_surf(self, nummoves, dict):
                 self.u0 = self.u1
             else:
                 self.rejected += 1
-        if not uncloseable:
+        elif not uncloseable:
             self = update_energy(self, torschange, angchange)
             self.move += 1
             boltz = jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
