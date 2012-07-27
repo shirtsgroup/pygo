@@ -35,7 +35,7 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [.2, .4, .75, .99] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
+    percentmove = [0, 0, 0, 0] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
@@ -249,7 +249,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 10, .1, dict)
+            self=moveset.runMD(self, 100, .01, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
@@ -350,7 +350,7 @@ def run_ff(self, nummoves, dict):
                     del jac
         # run MD
         else:
-            self=moveset.runMD(self, 20, .1, dict)
+            self=moveset.runMD(self, 1000, .001, dict)
             self.movetype = 'md'
             self.move += 1
             self.mdmove += 1

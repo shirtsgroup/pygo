@@ -119,7 +119,7 @@ angleparam = getangleparam(paramfile, numbeads)
 torsparam = gettorsionparam(paramfile, numbeads)
 mass = getmass('%stop' % (paramfile[0:-5]), numbeads)
 surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint)
-surfparam[:,0] = surfparam[:,0]*.5
+surfparam[:,0] = surfparam[:,0]*.75
 
 #pregenerate list of interactions
 numint = around(comb(numbeads, 2)) # number of interactions

@@ -67,13 +67,14 @@ class SurfaceSimulation(Simulation):
         self.surfE_array[0] = self.surfE
         self.radgyr = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.radgyr[0] = energyfunc.radgyr(self.coord)
-        self.moveparam = numpy.array([5. * self.T / 350 * 50 / Simulation.numbeads, # translation
-                        .5 * self.T / 400 * 50 / Simulation.numbeads, # rotation
-                        10. * self.T / 250 * 60 / Simulation.numbeads * numpy.pi / 180, # bend
-                        10. * self.T / 400 * 60 / Simulation.numbeads * numpy.pi / 180, # torsion
-                        1. * self.T / 400 * 60 / Simulation.numbeads * numpy.pi / 180, # global crankshaft
-                        5. * self.T / 300 * 60 / Simulation.numbeads * numpy.pi / 180]) # ParRot move
-        self.u0 += self.surfE
+        self.moveparam = numpy.array([2., # translation
+                        2., # rotation
+                        10., # bend
+                        10., # torsion
+                        1., # global crankshaft
+                        5.]) # ParRot move
+        self.moveparam = self.moveparam * numpy.pi / 180 * self.T / 300 * 50 / Simulation.numbeads
+	self.u0 += self.surfE
         self.energyarray[0] = self.u0
         self.rmsd_array[0] = 0.0
         self.coord_nat = writetopdb.moviecoord(self.coord, Simulation.transform)
@@ -102,11 +103,11 @@ class SurfaceSimulation(Simulation):
                 'total rejected moves: %d \r\n' % (self.rejected),
 		'Translation: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedtr, self.trmoves, float(self.acceptedtr)/float(self.trmoves)*100),
 		'Rotation: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedrot, self.rotmoves, float(self.acceptedrot)/float(self.rotmoves)*100),
+                'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, float(self.accepteda)/float(self.angmoves)*100),
+                'torsion: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedat, self.atormoves, float(self.acceptedat)/float(self.atormoves)*100),
+		'global crankshaft: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedgc, self.gcmoves, float(self.acceptedgc)/float(self.gcmoves)*100),
 		'ParRot move: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedp, self.pmoves, float(self.acceptedp)/float(self.pmoves)*100),
 		'%d ParRot moves rejected due to chain closure \r\n' % (self.pclosure),
-                'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, float(self.accepteda)/float(self.angmoves)*100),
-		'global crankshaft: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedgc, self.gcmoves, float(self.acceptedgc)/float(self.gcmoves)*100),
-                'torsion: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedat, self.atormoves, float(self.acceptedat)/float(self.atormoves)*100),
                 'MD moves: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedmd, self.mdmove, float(self.acceptedmd)/self.mdmove*100)]
         if verbose:
             print "".join(write)
