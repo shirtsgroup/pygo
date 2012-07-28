@@ -74,7 +74,7 @@ class Simulation:
         self.rejected = 0
 	self.pclosure = 0
         self.movetype = ''
-        #self.whoami = []
+        #self.whoami = ''
 
     def output(self, verbose):
         write = ['-------- %s Simulation Results --------\r\n' % (self.name),

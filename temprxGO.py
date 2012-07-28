@@ -174,7 +174,7 @@ if (verbose):
     print Simulation.percentmove
 
 #type 1 switches
-def tryswap1(Replicas, Swapaccepted, Swaprejected):
+def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
     if numreplicas == 1:
         pass
     else:
@@ -187,23 +187,19 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected):
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-                #Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
-                #Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
-                #Whoiswhere[Replicas[i].whoami[-1]].append(i)
-                #Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
+                Replicas[i].whoami, Replicas[i+1].whoami = Replicas[i+1].whoami, Replicas[i].whoami
+                Whoiswhere[Replicas[i].whoami].append(i)
+                Whoiswhere[Replicas[i+1].whoami].append(i+1)
             else:
                 Swaprejected[i]+=1
-                #Replicas[i].whoami.append(Replicas[i].whoami[-1])
-                #Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
-                #Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
-                #Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
-    #if numreplicas%2 == 1:
-        #Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
-        #Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
-    return Swapaccepted, Swaprejected
+                Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
+                Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
+    if numreplicas%2 == 1:
+        Whoiswhere[Replicas[numreplicas-1].whoami].append(Whoiswhere[Replicas[numreplicas-1].whoami][-1])
+    return Swapaccepted, Swaprejected, Whoiswhere
 
 #type 2 switches
-def tryswap2(Replicas, Swapaccepted, Swaprejected):
+def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
     if numreplicas == 1:
         pass
     else:
@@ -216,30 +212,25 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected):
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-                #Replicas[i].whoami.append(Replicas[i+1].whoami[-1])
-                #Replicas[i+1].whoami.append(Replicas[i].whoami[-2])
-                #Whoiswhere[Replicas[i].whoami[-1]].append(i)
-                #Whoiswhere[Replicas[i+1].whoami[-1]].append(i+1)
+                Replicas[i].whoami, Replicas[i+1].whoami = Replicas[i+1].whoami, Replicas[i].whoami
+                Whoiswhere[Replicas[i].whoami].append(i)
+                Whoiswhere[Replicas[i+1].whoami].append(i+1)
             else:
                 Swaprejected[i] += 1
-                #Replicas[i].whoami.append(Replicas[i].whoami[-1])
-                #Replicas[i+1].whoami.append(Replicas[i+1].whoami[-1])
-                #Whoiswhere[Replicas[i].whoami[-1]].append(Whoiswhere[Replicas[i].whoami[-1]][-1])
-                #Whoiswhere[Replicas[i+1].whoami[-1]].append(Whoiswhere[Replicas[i+1].whoami[-1]][-1])
-    #Replicas[0].whoami.append(Replicas[0].whoami[-1])
-    #Whoiswhere[Replicas[0].whoami[-1]].append(Whoiswhere[Replicas[0].whoami[-1]][-1])
-    #if len(Replicas[numreplicas-1].whoami) != len(Replicas[0].whoami):
-        #Replicas[numreplicas-1].whoami.append(Replicas[numreplicas-1].whoami[-1])
-        #Whoiswhere[Replicas[numreplicas-1].whoami[-1]].append(Whoiswhere[Replicas[numreplicas-1].whoami[-1]][-1])
-    return Swapaccepted, Swaprejected
+                Whoiswhere[Replicas[i].whoami].append(Whoiswhere[Replicas[i].whoami][-1])
+                Whoiswhere[Replicas[i+1].whoami].append(Whoiswhere[Replicas[i+1].whoami][-1])
+    Whoiswhere[Replicas[0].whoami].append(Whoiswhere[Replicas[0].whoami][-1])
+    if numreplicas%2 == 0:
+        Whoiswhere[Replicas[numreplicas-1].whoami].append(Whoiswhere[Replicas[numreplicas-1].whoami][-1])
+    return Swapaccepted, Swaprejected, Whoiswhere
 
-def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected):
+def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
 	if numreplicas == 1:
-		return Swapaccepted, Swaprejected
+		return Swapaccepted, Swaprejected, Whoiswhere
 	for k in range(50): # try swapping 100 times
-		Swapaccepted, Swaprejected = tryswap1(Replicas, Swapaccepted, Swaprejected)
-		Swapaccepted, Swaprejected = tryswap2(Replicas, Swapaccepted, Swaprejected)
-	return Swapaccepted, Swaprejected
+		Swapaccepted, Swaprejected, Whoiswhere = tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere)
+		Swapaccepted, Swaprejected, Whoiswhere = tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere)
+	return Swapaccepted, Swaprejected, Whoiswhere
 
 #def update_energy(self, torschange, angchange):
     #self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
@@ -275,7 +266,7 @@ for i in range(len(T)):
         os.mkdir(direc)
     name = 'replica%i' % i
     replicas.append(Simulation(name, direc, coord, T[i]))
-    #replicas[i].whoami.append(i)
+    replicas[i].whoami = i
     if pdbfile:
         mcoord = moviecoord(coord, transform)
         writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
@@ -300,7 +291,7 @@ except:
 	job_server = pp.Server(ppservers=())
 
 
-#whoiswhere = range(numreplicas)
+whoiswhere = [[i] for i in range(numreplicas)]
 
 ########SIMULATE##########
 #for i in whoiswhere:
@@ -317,7 +308,7 @@ print 'Starting simulation...'
 for i in xrange(totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
-    swapaccepted, swaprejected = tryrepeatedswaps(replicas, swapaccepted, swaprejected)
+    swapaccepted, swaprejected, whoiswhere = tryrepeatedswaps(replicas, swapaccepted, swaprejected, whoiswhere)
     #if i%2 == 0:
         ##type 1 switch
         #[swapaccepted, swaprejected] = tryswap1(replicas, swapaccepted, swaprejected)
@@ -331,7 +322,7 @@ for i in xrange(totmoves/swap):
 
 #########OUTPUT##########
 job_server.print_stats()
-#numpy.savetxt('./replicaexchange/whoiswhere.txt', whoiswhere)
+numpy.savetxt('./replicaexchange/whoiswhere.txt', whoiswhere)
 for i in range(len(replicas)):
     replicas[i].output(verbose)
     replicas[i].saveenergy(plot)
@@ -339,11 +330,11 @@ for i in range(len(replicas)):
     replicas[i].savenc(plot)
     replicas[i].savehist(plot)
     #print replica.whoami
-    #plt.figure(5)
-    #plt.plot(range(len(whoiswhere[i])), whoiswhere[i])
-#plt.xlabel('swap')
-#plt.ylabel('replica')
-#plt.savefig('./replicaexchange/whoiswhere.png')
+    plt.figure(5)
+    plt.plot(range(len(whoiswhere[i])), whoiswhere[i])
+plt.xlabel('swap')
+plt.ylabel('replica')
+plt.savefig('./replicaexchange/whoiswhere.png')
 
 if verbose:
     for i in range(numreplicas-1):
