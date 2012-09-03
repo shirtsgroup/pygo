@@ -35,7 +35,7 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [0, 0, 0, 0] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
+    percentmove = [0.2, 0.4, 0.6, 0.8] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
@@ -77,15 +77,26 @@ class Simulation:
         #self.whoami = ''
 
     def output(self, verbose):
+        try: percenta = float(self.accepteda)/float(self.angmoves)*100
+	except:	percenta = 0
+        try: percentat = float(self.acceptedat)/float(self.atormoves)*100
+	except:	percentat = 0
+        try: percentgc = float(self.acceptedgc)/float(self.gcmoves)*100
+	except:	percentgc = 0
+        try: percentp = float(self.acceptedp)/float(self.pmoves)*100
+	except:	percentp = 0
+        try: percentmd = float(self.acceptedmd)/float(self.mdmove)*100
+	except:	percentmd = 0
+
         write = ['-------- %s Simulation Results --------\r\n' % (self.name),
                 'total accepted moves: %d \r\n' % (self.accepted),
                 'total rejected moves: %d \r\n' % (self.rejected),
-                'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, float(self.accepteda)/float(self.angmoves)*100),
-                'torsion: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedat, self.atormoves, float(self.acceptedat)/float(self.atormoves)*100),
-		'global crankshaft: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedgc, self.gcmoves, float(self.acceptedgc)/float(self.gcmoves)*100),
-		'ParRot move: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedp, self.pmoves, float(self.acceptedp)/float(self.pmoves)*100),
+                'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, percenta),
+                'torsion: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedat, self.atormoves, percentat),
+		'global crankshaft: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedgc, self.gcmoves, percentgc),
+		'ParRot move: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedp, self.pmoves, percentp),
 		'%d ParRot moves rejected due to chain closure \r\n' % (self.pclosure),
-                'MD moves: %d moves accepted out of %d tries... that is %d  percent \r\n' % (self.acceptedmd, self.mdmove, float(self.acceptedmd)/float(self.mdmove)*100)] #, float(self.acceptedmd)/self.mdmove*100)]
+                'MD moves: %d moves accepted out of %d tries... that is %d  percent \r\n' % (self.acceptedmd, self.mdmove, percentmd)] #, float(self.acceptedmd)/self.mdmove*100)]
         if verbose:
             print "".join(write)
         return write
@@ -249,7 +260,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 100, .01, dict)
+            self=moveset.runMD(self, 10, .01, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
@@ -261,7 +272,7 @@ def run(self, nummoves, dict):
             self.newH=self.u1+.5/4.184*numpy.sum(mass*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
             self.move += 1
             boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
-            if random.random() < boltz:
+	    if random.random() < boltz:
                 self.accepted += 1
                 self.acceptedmd += 1
                 self.r2 = self.r2new
