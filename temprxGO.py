@@ -331,8 +331,8 @@ for i in xrange(totmoves/swap):
 
 ### calculate mixing time ###
 assert(sum(transmat[:,0]) == totmoves/swap)
-print transmat
 transmat = transmat/totmoves*swap
+print transmat
 try:
 	transmat = numpy.matrix(transmat)
 	eig = scipy.linalg.eigvals(transmat)
@@ -341,9 +341,26 @@ try:
 except:
 	pdb.set_trace()
 
+Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/step+1))
+# assumes swap interval is larger than or equal to step (save interval)
+# assumes swap/step is an integer
 
+for i in xrange(0, totmoves, swap):
+	for j in range(numreplicas):
+		rep = protein_location[j][i/swap]
+		Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
+Q_trajec_singleprot = Q_trajec_singleprot/totnc
+plt.figure(5)
+for i in range(numreplicas):
+	plt.subplot(numreplicas/2,2,i+1)
+	plt.plot(numpy.arange(totmoves/step+1),Q_trajec_singleprot[i,:])
+plt.xlabel('moves/%i' % (step))
+plt.ylabel('Q fraction native')
+plt.title('Q trajectories for single proteins')
+plt.show()
+plt.savefig('./replicaexchange/Qtraj_singleprot.png')
+numpy.savetxt('./replicaexchange/Qtraj_singleprot.txt', Q_trajec_singleprot)
 
-#print replica.whoami
 #########OUTPUT##########
 job_server.print_stats()
 for i in range(len(replicas)):
@@ -352,9 +369,6 @@ for i in range(len(replicas)):
     replicas[i].savermsd(plot)
     replicas[i].savenc(plot)
     replicas[i].savehist(plot)
-plt.xlabel('swap')
-plt.ylabel('replica')
-plt.savefig('./replicaexchange/whoiswhere.png')
 
 if verbose:
     for i in range(numreplicas-1):
