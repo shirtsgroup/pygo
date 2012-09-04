@@ -121,7 +121,7 @@ for i in range(len(T)):
 #	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
-	files.append('results/param_test/simlog7/energy'+str(int(T[i]))+'.txt')
+	files.append('results/param_test/simlog9/energy'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 nc=numpy.loadtxt(files[0])
@@ -139,7 +139,7 @@ K = numreplicas
 files=[]
 for i in range(len(T)):
 	#files.append('results/1PGB/solution/fractionnative'+str(int(T[i]))+'.txt')
-	files.append('results/param_test/simlog7/fractionnative'+str(int(T[i]))+'.txt')
+	files.append('results/param_test/simlog9/fractionnative'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')

@@ -231,7 +231,7 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, tra
 	if numreplicas == 1:
 		return Swapaccepted, Swaprejected, Whoiswhere
 	replica_location = numpy.arange(numreplicas)
-	for k in range(10): # try swapping 100 times
+	for k in range(1000): # try swapping 100 times
 		Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location)
 		Swapaccepted, Swaprejected, replica_location = tryswap2(Replicas, Swapaccepted, Swaprejected, replica_location)
 	replica_location_indexed = numpy.zeros(numreplicas)
