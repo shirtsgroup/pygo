@@ -118,9 +118,10 @@ print T
 files=[]
 surf=[]
 for i in range(len(T)):
-	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
+#	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
+	files.append('results/param_test/simlog7/energy'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 nc=numpy.loadtxt(files[0])
@@ -137,7 +138,8 @@ E_from_file = nc.copy()
 K = numreplicas
 files=[]
 for i in range(len(T)):
-	files.append('results/1PGB/solution/fractionnative'+str(int(T[i]))+'.txt')
+	#files.append('results/1PGB/solution/fractionnative'+str(int(T[i]))+'.txt')
+	files.append('results/param_test/simlog7/fractionnative'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
@@ -260,7 +262,7 @@ print "Computing Expectations for Q..."
 #       print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f   %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_expect[k], dCv_expect[k])
 #numpy.savetxt('/home/edz3fz/Qsurf_int.txt',Q)
 #numpy.savetxt('/home/edz3fz/dQsurf_int.txt',dQ)
-numpy.savetxt('/home/edz3fz/dQsol.txt',dQ)
+#numpy.savetxt('/home/edz3fz/dQsol.txt',dQ)
 
 #numpy.savetxt('/home/edz3fz/Qtemp.tt',Temp_k)
 import matplotlib.pyplot as plt
@@ -271,7 +273,7 @@ plt.plot(T, ncavg, 'ko')
 plt.plot(Temp_k,Q,'k')
 plt.errorbar(Temp_k, Q, yerr=dQ)
 plt.xlabel('Temperature (K)')
-plt.ylabel('Heat Capacity (kcal/mol/K)')
-plt.title('Heat Capacity from Go like model MC simulation of 1BSQ')
-plt.savefig('foldingcurve_tot.png')
+plt.ylabel('Q fraction native')
+#plt.title('Heat Capacity from Go like model MC simulation of 1BSQ')
+plt.savefig('foldingcurve.png')
 plt.show()

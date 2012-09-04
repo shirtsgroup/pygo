@@ -231,7 +231,7 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, tra
 	if numreplicas == 1:
 		return Swapaccepted, Swaprejected, Whoiswhere
 	replica_location = numpy.arange(numreplicas)
-	for k in range(50): # try swapping 100 times
+	for k in range(10): # try swapping 100 times
 		Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location)
 		Swapaccepted, Swaprejected, replica_location = tryswap2(Replicas, Swapaccepted, Swaprejected, replica_location)
 	replica_location_indexed = numpy.zeros(numreplicas)
@@ -357,7 +357,6 @@ for i in range(numreplicas):
 plt.xlabel('moves/%i' % (step))
 plt.ylabel('Q fraction native')
 plt.title('Q trajectories for single proteins')
-plt.show()
 plt.savefig('./replicaexchange/Qtraj_singleprot.png')
 numpy.savetxt('./replicaexchange/Qtraj_singleprot.txt', Q_trajec_singleprot)
 

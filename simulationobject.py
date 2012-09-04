@@ -35,7 +35,7 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [0.2, 0.4, 0.6, 0.8] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
+    percentmove = [0.25, 0.5, 0.75, 1.] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name

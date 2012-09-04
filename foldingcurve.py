@@ -1,8 +1,8 @@
 from numpy import *
 import matplotlib.pyplot as plt
 
-trange=[300.0,600.0]
-numreplicas=16
+trange=[300.0,450.0]
+numreplicas=8
 T=empty(numreplicas)
 alpha=(trange[1]/trange[0])**(1/float(numreplicas-1))
 T[0]=trange[0]
@@ -21,7 +21,7 @@ for file in files:
 	nc=vstack((nc,nctemp))
 nc=nc[1:numreplicas+1,:]
 print shape(nc)
-nc=nc[:,8000:-1]
+nc=nc[:,2000:-1]
 ncavg=average(nc,axis=1)
 print ncavg
 #ncavg=ncavg/151.
@@ -30,8 +30,8 @@ plt.plot(T,ncavg)
 plt.plot(T,ncavg,'bo')
 plt.xlabel('Temperature (Kelvin)')
 plt.ylabel('Q, fractional nativeness')
-plt.title('Go-like model MC simulation of 2QUG.pdb')
-plt.savefig('ncplot1R69.png')
+plt.title('Go-like model MC simulation of 1PGB.pdb')
+plt.savefig('ncplot1PGB.png')
 plt.show()
 
 ##histogram!
