@@ -38,7 +38,9 @@ parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', h
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--plot", action="store_false", default=True, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
-#parser.add_option("-e", "--percentmove", nargs=2, dest="percentmove", type="float",default=[.33,.66], help="the output pdb file")
+parser.add_option("-e", "--percentmove", nargs=1, dest="e", type="int",default=100, help="the output pdb file")
+parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number")
+parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.25,.5,.75,1.], help="move frequencies")
 
 (options,args)=parser.parse_args()
 
@@ -56,8 +58,10 @@ paramfile = options.paramfile
 plot = options.plot
 histname = options.histname
 pdbfile = options.writepdb
-#percentmove=options.percentmove
+e=options.e
 addbonds = options.addconnect
+id = options.id # simlog id number, used to make directory for results
+percentmove = options.freq
 
 kb = 0.0019872041 #kcal/mol/K
 nativecutoff2 = 1.2**2
@@ -144,9 +148,10 @@ Simulation.ATOMlinenum = ATOMlinenum
 Simulation.transform = transform
 Simulation.coord_nat = coord_nat
 Simulation.mass = mass
+Simulation.percentmove = percentmove
 
 # put class variables in a dictionary for threading
-dict = {'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
+dict = {'percentmove':percentmove,'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
 
 # Calculate temperature distribution
 if numreplicas == 1:
@@ -162,17 +167,6 @@ else:
     for i in range(1, numreplicas):
         T[i] = T[i-1] * alpha
 
-if (verbose):
-    print 'verbosity is %s' %(str(verbose))
-    print 'total number of moves is %d' %(totmoves)
-    print 'autocorrelation step size is %d moves' %(step)
-    print 'there are %d replicas' %(numreplicas)
-    print 'Temperature: '
-    print T
-    print 'the replica exchange interval is %d steps' %(swap)
-    print 'There are %d residues in %s' %(numbeads,filename)
-    print 'percent move is'
-    print Simulation.percentmove
 
 #type 1 switches
 def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
@@ -231,9 +225,11 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, tra
 	if numreplicas == 1:
 		return Swapaccepted, Swaprejected, Whoiswhere
 	replica_location = numpy.arange(numreplicas)
-	for k in range(1000): # try swapping 100 times
-		Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location)
-		Swapaccepted, Swaprejected, replica_location = tryswap2(Replicas, Swapaccepted, Swaprejected, replica_location)
+	for k in range(e): # try swapping 100 times
+		if random.random() < .5:
+			Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location)
+		else:	
+			Swapaccepted, Swaprejected, replica_location = tryswap2(Replicas, Swapaccepted, Swaprejected, replica_location)
 	replica_location_indexed = numpy.zeros(numreplicas)
 	for i in range(numreplicas):
 		replica_location_indexed[replica_location[i]] = i
@@ -270,10 +266,10 @@ def pprun(Replicas, Moves, Dict):
 
 # instantiate replicas
 replicas = []
+direc = './replicaexchange/simlog%i' % id
+if not os.path.exists(direc):
+    os.mkdir(direc)
 for i in range(len(T)):
-    direc = './replicaexchange/replica%i' % i
-    if not os.path.exists(direc):
-        os.mkdir(direc)
     name = 'replica%i' % i
     replicas.append(Simulation(name, direc, coord, T[i]))
     replicas[i].whoami = i
@@ -282,6 +278,18 @@ for i in range(len(T)):
         writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 	
 
+if (verbose):
+    output = ['verbosity is %s' %(str(verbose)),
+    'total number of moves is %d' %(totmoves),
+    'autocorrelation step size is %d moves' %(step),
+    'there are %d replicas' %(numreplicas),
+    'Temperature:',
+    str(T),
+    'the replica exchange interval is %d steps' %(swap),
+    'There are %d residues in %s' %(numbeads,filename),
+    'percent move is',
+    str(Simulation.percentmove),'']
+    print "\r\n".join(output)
 move = 0
 swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
@@ -349,7 +357,9 @@ for i in xrange(0, totmoves, swap):
 	for j in range(numreplicas):
 		rep = protein_location[j][i/swap]
 		Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
+
 Q_trajec_singleprot = Q_trajec_singleprot/totnc
+import matplotlib.pyplot as plt
 plt.figure(5)
 for i in range(numreplicas):
 	plt.subplot(numreplicas/2,2,i+1)
@@ -357,8 +367,8 @@ for i in range(numreplicas):
 plt.xlabel('moves/%i' % (step))
 plt.ylabel('Q fraction native')
 plt.title('Q trajectories for single proteins')
-plt.savefig('./replicaexchange/Qtraj_singleprot.png')
-numpy.savetxt('./replicaexchange/Qtraj_singleprot.txt', Q_trajec_singleprot)
+plt.savefig('%s/Qtraj_singleprot.png' % direc)
+numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
 
 #########OUTPUT##########
 job_server.print_stats()

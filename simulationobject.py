@@ -35,7 +35,7 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [0.25, 0.5, 0.75, 1.] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
+#    percentmove = [0.25, 0.5, 0.75, 1.] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
@@ -46,11 +46,11 @@ class Simulation:
         self.rmsd_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.move = 0
         self.T = temp
-        self.maxtheta = numpy.array([10., # bend
+        self.maxtheta = numpy.array([6., # bend
                         10., # torsion
-                        1., # global crankshaft
+                        2./self.T**.5 * 20, # global crankshaft
                         5.]) # ParRot move
-	self.maxtheta = self.maxtheta * numpy.pi / 180 * self.T / 300 * 50 / Simulation.numbeads
+	self.maxtheta = self.maxtheta * numpy.pi / 180 * self.T *1.5 / 750. * 50 / Simulation.numbeads
         self.r2, self.u0 = energyfunc.cgetLJenergy(self.coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
         self.torsE = energyfunc.ctorsionenergy(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
         self.angE = energyfunc.cangleenergy(self.coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
@@ -169,6 +169,8 @@ class Simulation:
             #print 'energy histogram saved to %s' %(plotname)
 
 def run(self, nummoves, dict):
+    Simulation.percentmove = dict['percentmove']   
+
     Simulation.numbeads = dict['numbeads']
     Simulation.step = dict['step']
     Simulation.totmoves = dict['totmoves']
@@ -260,7 +262,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 10, .1, dict)
+            self=moveset.runMD(self, 80000, .0005, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
