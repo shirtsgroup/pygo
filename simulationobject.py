@@ -46,11 +46,11 @@ class Simulation:
         self.rmsd_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.move = 0
         self.T = temp
-        self.maxtheta = numpy.array([6., # bend
+        self.maxtheta = numpy.array([5., # bend
                         10., # torsion
-                        2./self.T**.5 * 20, # global crankshaft
+                        1./self.T * 500, # global crankshaft
                         5.]) # ParRot move
-	self.maxtheta = self.maxtheta * numpy.pi / 180 * self.T *1.5 / 750. * 50 / Simulation.numbeads
+	self.maxtheta = self.maxtheta * numpy.pi / 180 * self.T**1.5 / 5250. * 50 / Simulation.numbeads
         self.r2, self.u0 = energyfunc.cgetLJenergy(self.coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
         self.torsE = energyfunc.ctorsionenergy(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
         self.angE = energyfunc.cangleenergy(self.coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
@@ -262,7 +262,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 80000, .0005, dict)
+            self=moveset.runMD(self, 5, .3, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
@@ -274,7 +274,8 @@ def run(self, nummoves, dict):
             self.newH=self.u1+.5/4.184*numpy.sum(mass*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
             self.move += 1
             boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
-	    if random.random() < boltz:
+	    alwaysMD = True
+	    if random.random() < boltz or alwaysMD:
                 self.accepted += 1
                 self.acceptedmd += 1
                 self.r2 = self.r2new

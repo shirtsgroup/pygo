@@ -239,11 +239,11 @@ print 'Kinetic: '+str(sum(ke))
 h1=u1+sum(ke)
 print 'Hamiltonian: '+str(h1)
 
-print 'Difference '+str(h1-h0)
-print 'Boltzmann Factor '+str(exp(-(h1-h0)/kb/T))
+print 'Difference in H '+str(h1-h0)
+print 'H Boltzmann Factor '+str(exp(-(h1-h0)/kb/T))
 
-print 'Difference '+str(u1-u0)
-print 'Boltzmann Factor '+str(exp(-(u1-u0)/kb/T))
+print 'Difference in U '+str(u1-u0)
+print 'U Boltzmann Factor '+str(exp(-(u1-u0)/kb/T))
 
 #f=open(pdbfile,'a')
 #f.write('END\r\n')

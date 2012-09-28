@@ -40,7 +40,7 @@ parser.add_option("-a", "--plot", action="store_false", default=True, help="plot
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
 parser.add_option("-e", "--percentmove", nargs=1, dest="e", type="int",default=100, help="the output pdb file")
 parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number")
-parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.25,.5,.75,1.], help="move frequencies")
+parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.7,1.], help="move frequencies")
 
 (options,args)=parser.parse_args()
 
@@ -310,7 +310,10 @@ except:
 
 
 protein_location = [[i] for i in range(numreplicas)]
-transmat = zeros((numreplicas,numreplicas))
+transmat = [zeros((numreplicas,numreplicas)) for i in range(10)]
+assert(totmoves / swap % 10 == 0)
+transmat_index = totmoves/swap/10
+
 ########SIMULATE##########
 #for i in whoiswhere:
     #whoiswhere[i] = [i]
@@ -326,7 +329,7 @@ print 'Starting simulation...'
 for i in xrange(totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
-    swapaccepted, swaprejected, protein_location, transmat = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat)
+    swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
     #if i%2 == 0:
         ##type 1 switch
         #[swapaccepted, swaprejected] = tryswap1(replicas, swapaccepted, swaprejected)
@@ -338,14 +341,28 @@ for i in xrange(totmoves/swap):
     stdout.flush()
 
 ### calculate mixing time ###
-assert(sum(transmat[:,0]) == totmoves/swap)
-transmat = transmat/totmoves*swap
 print transmat
-try:
-	transmat = numpy.matrix(transmat)
-	eig = scipy.linalg.eigvals(transmat)
+mixtime = zeros(10)
+fulltransmat = zeros((numreplicas,numreplicas))
+for i in range(10):
+	fulltransmat += transmat[i]
+	transmat[i] = transmat[i]/transmat_index #normalize to probabilities
+	transmatrix = numpy.matrix(transmat[i])
+	eig = scipy.linalg.eigvals(transmatrix)
+	print '-----Transition Matrix '+str(i)+' Eigenvalues-----'
 	print eig
-	print 1/(1-eig[1])
+	mixtime[i] = 1/(1-eig[1])
+	print mixtime[i]
+fulltransmat = fulltransmat/totmoves*swap
+print fulltransmat
+try:
+	fulltransmat = numpy.matrix(fulltransmat)
+	eig = scipy.linalg.eigvals(fulltransmat)
+	print '-----Full Transition Matrix Eigenvalues-----'
+	print eig
+	print 'Full Tmat miximg time: ' + str(1/(1-eig[1]))
+	print 'Average mixing time from submatrices: ' + str(average(mixtime))
+	print 'Standard deviation in mixing time: ' + str(std(mixtime))
 except:
 	pdb.set_trace()
 
@@ -359,15 +376,18 @@ for i in xrange(0, totmoves, swap):
 		Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
 
 Q_trajec_singleprot = Q_trajec_singleprot/totnc
-import matplotlib.pyplot as plt
-plt.figure(5)
-for i in range(numreplicas):
-	plt.subplot(numreplicas/2,2,i+1)
-	plt.plot(numpy.arange(totmoves/step+1),Q_trajec_singleprot[i,:])
-plt.xlabel('moves/%i' % (step))
-plt.ylabel('Q fraction native')
-plt.title('Q trajectories for single proteins')
-plt.savefig('%s/Qtraj_singleprot.png' % direc)
+#import matplotlib
+#matplotlib.use('Agg')
+#import matplotlib.pyplot as plt
+
+#plt.figure(5)
+#for i in range(numreplicas):
+#	plt.subplot(numreplicas/2,2,i+1)
+#	plt.plot(numpy.arange(totmoves/step+1),Q_trajec_singleprot[i,:])
+#plt.xlabel('moves/%i' % (step))
+#plt.ylabel('Q fraction native')
+#plt.title('Q trajectories for single proteins')
+#plt.savefig('%s/Qtraj_singleprot.png' % direc)
 numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
 
 #########OUTPUT##########
