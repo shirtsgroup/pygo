@@ -12,9 +12,15 @@ import pdb
 from sys import stdout
 
 
-def energy(mpos, rsquare, torsE, angE):
-    energy = numpy.sum(angE) + numpy.sum(torsE) + energyfunc.cLJenergy(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
-    return energy
+def energy(coord):
+	r2, u0 = energyfunc.cgetLJenergy(coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+        torsE = energyfunc.ctorsionenergy(coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
+        angE = energyfunc.cangleenergy(coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
+	energy = u0 + sum(torsE) + sum(angE)
+	return energy
+#def energy(mpos, rsquare, torsE, angE):
+#    energy = numpy.sum(angE) + numpy.sum(torsE) + energyfunc.cLJenergy(rsquare, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+#    return energy
 
 def update_energy(self, torschange, angchange):
     self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
@@ -262,7 +268,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 5, .3, dict)
+            self=moveset.runMD(self, 15, .1, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)

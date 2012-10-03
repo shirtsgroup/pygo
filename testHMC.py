@@ -18,8 +18,8 @@ import pdb
 from HMCforce import *
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafiles", default='GO_protein.pdb', help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfiles", default='GO_protein.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafiles", default='GO_1PGB.pdb', help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfiles", default='GO_1PGB.param', help="protein .param file")
 parser.add_option("-d", "--directory", dest="datafile_directory", default='./', help="the directory the data files are in")
 parser.add_option("-t", "--temperature", default='300', dest="T", type="float", help="temperature")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -165,7 +165,7 @@ h=step
 nsteps=totmoves
 #m=120.368 # average mass of all residues
 m=getmass('GO_protein.top',numbeads)
-tol=1e-7
+tol=1e-12
 maxloop=1000
 
 mpos=coord.copy()
@@ -202,7 +202,7 @@ for e in range(nsteps):
             break
     mpos += h * v_half #constrained r(t+dt)
     bonds = mpos[0:numbeads-1,:]-mpos[1:numbeads,:] #rij(t+dt)
-    force=cangleforces(coord,angleparam,bonds,d,numbeads)+cdihedforces(torsparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
+    force=cangleforces(mpos,angleparam,bonds,d,numbeads)+cdihedforces(torsparam,bonds,d2,d,numbeads)+nonbondedforces(mpos,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
     #force = HMCforce.bondedforces(mpos, torsparam, angleparam, bonds, d2, d, numbeads) +	HMCforce.nonbondedforces(mpos, numint, numbeads, nativeparam_n, nonnativeparam, nnepsil)
     a = transpose(force)/m
     vel = v_half + h/2*transpose(a)
@@ -217,8 +217,8 @@ for e in range(nsteps):
     
     coord=mpos
     r2=cgetLJr2(coord,numint,numbeads)
-    torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
-    angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+    torsE=ctorsionenergy(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+    angE=cangleenergy(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
     u1=energy(coord,r2,torsE,angE)
     ke=.5*m/4.184*sum(vel**2,axis=1)
     
@@ -233,18 +233,25 @@ r2=cgetLJr2(coord,numint,numbeads)
 torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
 angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
 u1=energyprint(coord,r2,torsE,angE)
+print '----------------------------'
 print 'Potential: '+str(u1)
 ke=.5*m/4.184*sum(vel**2,axis=1)
 print 'Kinetic: '+str(sum(ke))
 h1=u1+sum(ke)
+print '----------------------------'
 print 'Hamiltonian: '+str(h1)
 
-print 'Difference in H '+str(h1-h0)
-print 'H Boltzmann Factor '+str(exp(-(h1-h0)/kb/T))
+print 'Difference in H ' + str(h1-h0)
+print 'H Boltzmann Factor ' + str(exp(-(h1-h0)/kb/T))
 
-print 'Difference in U '+str(u1-u0)
-print 'U Boltzmann Factor '+str(exp(-(u1-u0)/kb/T))
-
+print '----------------------------'
+print 'Difference in U ' + str(u1-u0)
+print 'U Boltzmann Factor ' + str(exp(-(u1-u0)/kb/T))
+print '----------------------------'
+print 'Variance in H ' + str(std(pot+K))
+coeff = polyfit(arange(nsteps+1), pot+K, 1)
+print 'Slope of line fit to H ' + str(coeff[0])
+print 'Variance / Slope ' + str(std(pot+K)/coeff[0])
 #f=open(pdbfile,'a')
 #f.write('END\r\n')
 #f.close
@@ -257,6 +264,9 @@ plt.plot(range(nsteps+1),pot,label='PE')
 plt.plot(range(nsteps+1),K+pot,label='Total Energy')
 plt.legend()
 plt.xlabel('step (h=%f)'%(h))
-plt.ylabel('Energy (kcal/mol/K)')
-plt.title('MD simulation at %i for %f ps' %(T, h*nsteps))
+plt.ylabel('Energy (kcal/mol)')
+plt.title('MD simulation at %i K for %f ps' %(T, h*nsteps))
+
+plt.figure(2)
+plt.plot(range(nsteps+1),pot+K)
 plt.show()

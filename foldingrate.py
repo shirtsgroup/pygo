@@ -19,7 +19,7 @@ numrep = 8
 
 # Averages every n points to reduce noise
 #n = 5
-
+plt.figure(1)
 Q_new = numpy.zeros((numrep,len(Q[0,:])/n))
 for rep in range(numrep):
 	for i in range(len(Q[0,:])/n): # Average every 5 points
@@ -56,4 +56,16 @@ print count_new
 print numpy.average(count_new)
 
 plt.savefig(options.datafile+'/Qtraj_singleprot_avg.png')
+
+orgdataplt = True
+if orgdataplt:
+	plt.figure(2)
+	for i in range(numrep):
+		plt.subplot(numrep/2,2,i+1)
+		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:])
+	plt.xlabel('moves/step')
+	plt.ylabel('Q fraction native')
+	plt.title('Q trajectories for single proteins')
+	plt.savefig('%s/Qtraj_singleprot.png' % options.datafile)
 plt.show()
+

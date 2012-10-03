@@ -223,7 +223,7 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
 
 def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, transmat):
 	if numreplicas == 1:
-		return Swapaccepted, Swaprejected, Whoiswhere
+		return Swapaccepted, Swaprejected, protein_location, transmat
 	replica_location = numpy.arange(numreplicas)
 	for k in range(e): # try swapping 100 times
 		if random.random() < .5:

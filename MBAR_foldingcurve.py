@@ -121,7 +121,7 @@ for i in range(len(T)):
 #	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
-	files.append('replicaexchange/simlog23/energy'+str(int(T[i]))+'.txt')
+	files.append('replicaexchange/simlog29/energy'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 nc=numpy.loadtxt(files[0])
@@ -132,6 +132,9 @@ for i,file in enumerate(files):
 	#nctemp -= ncsurf # uncomment this line to get protein-only energies
 	nc=numpy.vstack((nc,nctemp))
 nc=nc[1:numreplicas+1,:]
+temporary = True
+if temporary:
+	nc = nc[:,::10]
 nc = nc[:,-NumIterations:-1]
 T_from_file = T
 E_from_file = nc.copy()
@@ -139,7 +142,7 @@ K = numreplicas
 files=[]
 for i in range(len(T)):
 	#files.append('results/1PGB/solution/fractionnative'+str(int(T[i]))+'.txt')
-	files.append('replicaexchange/simlog23/fractionnative'+str(int(T[i]))+'.txt')
+	files.append('replicaexchange/simlog29/fractionnative'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')

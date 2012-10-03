@@ -553,6 +553,8 @@ def runMD(self,nsteps,h,dict):
 	#m=120.368 # average mass of all residues
 	tol=1e-8
 	maxloop=1000
+
+
 	
 	self.newcoord=self.coord.copy()
 	self.vel=empty((numbeads,3))
@@ -564,8 +566,14 @@ def runMD(self,nsteps,h,dict):
 	force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 	a = numpy.transpose(force) / m
 	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+	self.vold = self.vel
         self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
 	
+	temporary = False
+	if temporary:
+		Hplot = numpy.zeros(nsteps+1)
+		Hplot[0] = self.oldH
+
 	for e in range(nsteps):
 		#finding r(t+dt)
 		#loops = 0
@@ -586,11 +594,25 @@ def runMD(self,nsteps,h,dict):
 			self.uncloseable=True
 			self.rejected += 1
 			break
-		#writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+		if temporary:
+			coord=self.newcoord
+			from energyfunc import *
+    			r2=cgetLJr2(coord,numint,numbeads)
+    			torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+   			angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+   			u1=sum(angE)+sum(torsE)+LJenergy_n(r2,nativeparam_n,nonnativeparam,nnepsil)
+			ke=.5*m/4.184*sum(self.vel**2,axis=1)
+			Hplot[e+1] = u1 + sum(ke)
+	
+		writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
 	#if(loops==maxloop):
 		#self.uncloseable=True
 		#self.rejected += 1
 	#assert all(sum(bonds**2,axis=1)-d2< 1e-7)
+	if temporary:
+		import matplotlib.pyplot as plt
+		plt.plot(range(nsteps+1),Hplot)
+		plt.show()
 	return self
 
 def runMD_surf(self,nsteps,h,dict):
