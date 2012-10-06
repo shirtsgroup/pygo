@@ -280,7 +280,7 @@ def run(self, nummoves, dict):
             self.newH=self.u1+.5/4.184*numpy.sum(mass*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
             self.move += 1
             boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
-	    alwaysMD = True
+	    alwaysMD = False
 	    if random.random() < boltz or alwaysMD:
                 self.accepted += 1
                 self.acceptedmd += 1
