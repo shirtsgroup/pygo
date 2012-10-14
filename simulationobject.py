@@ -268,7 +268,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 15, .1, dict)
+            self=moveset.runMD(self, 18, .1, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
@@ -280,7 +280,7 @@ def run(self, nummoves, dict):
             self.newH=self.u1+.5/4.184*numpy.sum(mass*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
             self.move += 1
             boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
-	    alwaysMD = False
+	    alwaysMD = False 
 	    if random.random() < boltz or alwaysMD:
                 self.accepted += 1
                 self.acceptedmd += 1

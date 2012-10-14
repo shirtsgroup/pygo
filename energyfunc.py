@@ -218,6 +218,10 @@ def getsurfparam(file, numbeads, nsurf, numint):
 #==========================================
 
 
+def umbrellaenergy(prot_coord, z, mass, totmass):
+    com_z = numpy.sum(mass*prot_coord[:,2])/totmass
+    return 15*(z-com_z)**2
+
 def getr2surf(prot_coord, surf_coord, numbeads, numint):
     """Deprecated"""
     r2_array = numpy.zeros(numint)

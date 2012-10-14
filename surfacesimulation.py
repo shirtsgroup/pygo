@@ -44,14 +44,15 @@ def update_energy(self, torschange, angchange):
     return self
 
 def save(self):
-    self.energyarray[self.move/Simulation.step] = self.u0
-    self.surfE_array[self.move/Simulation.step] = self.surfE
-    self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
-    self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
+    index = self.move/Simulation.step
+    self.energyarray[index] = self.u0
+    self.surfE_array[index] = self.surfE
+    self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
+    #self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
     self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
-    self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(self.coord_nat, self.mcoord)
+    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
     if (Simulation.pdbfile):
-        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
     return self
                 
 
@@ -65,8 +66,8 @@ class SurfaceSimulation(Simulation):
         self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
         self.surfE_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.surfE_array[0] = self.surfE
-        self.radgyr = numpy.empty(Simulation.totmoves/Simulation.step + 1)
-        self.radgyr[0] = energyfunc.radgyr(self.coord)
+        #self.radgyr = numpy.empty(Simulation.totmoves/Simulation.step + 1)
+        #self.radgyr[0] = energyfunc.radgyr(self.coord)
         self.moveparam = numpy.array([2., # translation
                         2., # rotation
                         10., # bend
@@ -270,7 +271,7 @@ def run_surf(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD_surf(self, 10, .1, dict)
+            self=moveset.runMD_surf(self, 18, .1, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads-3)

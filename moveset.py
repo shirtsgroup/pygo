@@ -604,7 +604,7 @@ def runMD(self,nsteps,h,dict):
 			ke=.5*m/4.184*sum(self.vel**2,axis=1)
 			Hplot[e+1] = u1 + sum(ke)
 	
-		writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+		#writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
 	#if(loops==maxloop):
 		#self.uncloseable=True
 		#self.rejected += 1

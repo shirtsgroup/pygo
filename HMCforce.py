@@ -56,7 +56,8 @@ def cangleforces(mpos, angleparam, bonds, d, numbeads):
         xba = BONDS2(i,0); yba = BONDS2(i,1); zba = BONDS2(i,2);
         xbc = -BONDS2(i+1,0); ybc = -BONDS2(i+1,1); zbc = -BONDS2(i+1,2);
         angle = acos((xba*xbc + yba*ybc + zba*zbc) / (D1(i)*D1(i+1)));
-        dV = 2 * ANGLEPARAM2(i,0) * (cos(angle) - cos(ANGLEPARAM2(i,1))) / (sin(ANGLEPARAM2(i,1))*sin(ANGLEPARAM2(i,1)));
+        //dV = 2 * ANGLEPARAM2(i,0) * (cos(angle) - cos(ANGLEPARAM2(i,1))) / (sin(ANGLEPARAM2(i,1))*sin(ANGLEPARAM2(i,1)));
+        dV = 2*ANGLEPARAM2(i,0)*(angle-ANGLEPARAM2(i,1))/-sin(angle);
         fpx = dV / (D1(i)*D1(i+1)) * RKI2(i,0); fpy = dV / (D1(i)*D1(i+1)) * RKI2(i,1); fpz = dV / (D1(i)*D1(i+1)) * RKI2(i,2);
         ba2 = xba*xba + yba*yba + zba*zba;
         xy = xba*yba/ba2; xz = xba*zba/ba2; yz = yba*zba/ba2;

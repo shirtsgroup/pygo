@@ -16,7 +16,7 @@ n = options.average
 Q = numpy.loadtxt(file)
 Q = Q - .5
 numrep = 8
-
+Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
 plt.figure(1)
