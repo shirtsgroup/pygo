@@ -51,7 +51,7 @@ parser.add_option("--umbrella", type="float", default=0., help="umbrella simulat
 #======================================================================================================
 verbose = options.verbose
 surf = options.surf
-umbrella = option.umbrella
+umbrella = options.umbrella
 if surf:
     from surfacesimulation import *
 elif umbrella:
@@ -326,7 +326,6 @@ else:
 #=======================================================================================================
 # SIMULATE
 #=======================================================================================================
-
 move = 0
 swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
