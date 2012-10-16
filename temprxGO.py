@@ -203,7 +203,9 @@ if surf:
     nsurf = len(surface)
     nspint = nsurf*numbeads # surface-protein interactions
     surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint)
-    surfparam[:,0] = surfparam[:,0]*.75
+    scale = 0.75
+    surfparam[:,0] = surfparam[:,0]*scale
+    print 'Surface energy parameters scaled by %f' % scale
     SurfaceSimulation.surface = surface
     SurfaceSimulation.nsurf = nsurf
     SurfaceSimulation.nspint = nspint
@@ -331,8 +333,9 @@ swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
 protein_location = [[i] for i in range(numreplicas)]
 transmat = [zeros((numreplicas,numreplicas)) for i in range(10)]
-assert(totmoves / swap % 10 == 0)
-transmat_index = totmoves/swap/10
+if swap!=totmoves:
+    assert(totmoves / swap % 10 == 0)
+    transmat_index = totmoves/swap/10
 
 # instantiate replicas
 replicas = []
@@ -380,7 +383,8 @@ else:
 for i in xrange(totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
-    swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
+    if swap!=totmoves:
+    	swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
     t_remain = (datetime.now() - ti)/(i+1)*(totmoves/swap - i - 1)
     stdout.write(str(t_remain) + '\r')
     stdout.flush()
@@ -389,43 +393,42 @@ for i in xrange(totmoves/swap):
 #=======================================================================================================
 # POST ANALYSIS
 #=======================================================================================================
-
-#calculate mixing time
-mixtime = zeros(10)
-fulltransmat = zeros((numreplicas,numreplicas))
-for i in range(10):
-	fulltransmat += transmat[i]
-	transmat[i] = transmat[i]/transmat_index #normalize to probabilities
-	transmatrix = numpy.matrix(transmat[i])
-	eig = scipy.linalg.eigvals(transmatrix)
-        eig = numpy.sort(eig)
-	print '-----Transition Matrix '+str(i)+' Eigenvalues-----'
-	print eig
-	mixtime[i] = 1/(1-eig[-2])
-	print mixtime[i]
-fulltransmat = fulltransmat/totmoves*swap
-try:
-	fulltransmat = numpy.matrix(fulltransmat)
-	eig = scipy.linalg.eigvals(fulltransmat)
-	eig = numpy.sort(eig)
-        print '-----Full Transition Matrix Eigenvalues-----'
-	print eig
-	print 'Full Tmat miximg time: ' + str(1/(1-eig[-2]))
-	print 'Average mixing time from submatrices: ' + str(average(mixtime))
-	print 'Standard deviation in mixing time: ' + str(std(mixtime))
-except:
-	pdb.set_trace()
-
-Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/step+1))
-# assumes swap interval is larger than or equal to step (save interval)
-# assumes swap/step is an integer
-for i in xrange(0, totmoves, swap):
-	for j in range(numreplicas):
-		rep = protein_location[j][i/swap]
-		Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
-
-Q_trajec_singleprot = Q_trajec_singleprot/totnc
-numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
+if swap!=totmoves:
+    #calculate mixing time
+    mixtime = zeros(10)
+    fulltransmat = zeros((numreplicas,numreplicas))
+    for i in range(10):
+            fulltransmat += transmat[i]
+            transmat[i] = transmat[i]/transmat_index #normalize to probabilities
+            transmatrix = numpy.matrix(transmat[i])
+            eig = scipy.linalg.eigvals(transmatrix)
+            eig = numpy.sort(eig)
+            print '-----Transition Matrix '+str(i)+' Eigenvalues-----'
+            print eig
+            mixtime[i] = 1/(1-eig[-2])
+            print mixtime[i]
+    fulltransmat = fulltransmat/totmoves*swap
+    try:
+            fulltransmat = numpy.matrix(fulltransmat)
+            eig = scipy.linalg.eigvals(fulltransmat)
+            eig = numpy.sort(eig)
+            print '-----Full Transition Matrix Eigenvalues-----'
+            print eig
+            print 'Full Tmat miximg time: ' + str(1/(1-eig[-2]))
+            print 'Average mixing time from submatrices: ' + str(average(mixtime))
+            print 'Standard deviation in mixing time: ' + str(std(mixtime))
+    except:
+            pdb.set_trace()
+    Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/step+1))
+    # assumes swap interval is larger than or equal to step (save interval)
+    # assumes swap/step is an integer
+    for i in xrange(0, totmoves, swap):
+            for j in range(numreplicas):
+                    rep = protein_location[j][i/swap]
+                    Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
+    
+    Q_trajec_singleprot = Q_trajec_singleprot/totnc
+    numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
 
 #=======================================================================================================
 # OUTPUT

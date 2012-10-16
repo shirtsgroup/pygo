@@ -39,7 +39,7 @@ class UmbrellaSimulation(SurfaceSimulation):
 	self.mass = mass
 	self.totmass = numpy.sum(mass)
 	self.z_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
-	self.z_array[0] = numpy.sum(mass*self.coord[:,2])/Simulation.numbeads
+	self.z_array[0] = numpy.sum(mass*self.coord[:,2])/self.totmass
 	self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, mass, self.totmass)
 	self.energyarray[0] = self.u0
     def addsurface(self, surf_coord):
