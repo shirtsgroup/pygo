@@ -16,7 +16,7 @@ n = options.average
 Q = numpy.loadtxt(file)
 Q = Q - .5
 numrep = 8
-Q = Q[:,::10]
+#Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
 plt.figure(1)
@@ -25,7 +25,7 @@ for rep in range(numrep):
 	for i in range(len(Q[0,:])/n): # Average every 5 points
 		Q_new[rep,i] = numpy.average(Q[rep,n*i:(n*i+n)])
 	plt.subplot(numrep/2,2,rep+1)
-	plt.plot(numpy.arange(len(Q_new[0,:])),Q_new[rep,:])
+	plt.plot(numpy.arange(len(Q_new[0,:])),Q_new[rep,:]+.5)
 plt.xlabel('moves/step')
 plt.ylabel('Q fraction native')
 plt.title('Q trajectories for single proteins')
@@ -62,7 +62,7 @@ if orgdataplt:
 	plt.figure(2)
 	for i in range(numrep):
 		plt.subplot(numrep/2,2,i+1)
-		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:])
+		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5)
 	plt.xlabel('moves/step')
 	plt.ylabel('Q fraction native')
 	plt.title('Q trajectories for single proteins')

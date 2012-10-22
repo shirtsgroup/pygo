@@ -23,7 +23,7 @@ NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
 NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 2.5              # Temperature increment for calculating Cv(T)
-nBoots = 200
+nBoots = 50
 
 ###########################################################
 # For Cv vs T    _____
@@ -118,8 +118,8 @@ for i in range(1,numreplicas):
 print T
 files=[]
 for i in range(len(T)):
-#	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
-	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
+	files.append('results/1PGB/surface/simlog4/energy'+str(int(T[i]))+'.txt')
+#	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])
@@ -278,8 +278,8 @@ print "-------------------------------------------------------------------------
 for k in range(K):
        print "%8.3f %8.3f %9.3f +/- %5.3f  %9.1f +/- %5.1f  %7.4f +/- %6.4f %7.4f +/- %6.4f" % (Temp_k[k],mbar.f_k[k],E_expect[k],dE_expect[k],E2_expect[k],dE2_expect[k],Cv_boot[k,0],dCv_boot[k,0],Cv_boot[k,1],dCv_boot[k,1])
 
-numpy.savetxt('/home/edz3fz/Csurf.txt', Cv_boot)
-numpy.savetxt('/home/edz3fz/dCsurf.txt', dCv_boot)
+numpy.savetxt('/home/edz3fz/Csurf_weak.txt', Cv_boot)
+numpy.savetxt('/home/edz3fz/dCsurf_weak.txt', dCv_boot)
 
 import matplotlib.pyplot as plt
 plt.figure(1)

@@ -203,7 +203,7 @@ if surf:
     nsurf = len(surface)
     nspint = nsurf*numbeads # surface-protein interactions
     surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint)
-    scale = 0.75
+    scale = 1
     surfparam[:,0] = surfparam[:,0]*scale
     print 'Surface energy parameters scaled by %f' % scale
     SurfaceSimulation.surface = surface
@@ -419,17 +419,6 @@ if swap!=totmoves:
             print 'Standard deviation in mixing time: ' + str(std(mixtime))
     except:
             pdb.set_trace()
-    Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/step+1))
-    # assumes swap interval is larger than or equal to step (save interval)
-    # assumes swap/step is an integer
-    for i in xrange(0, totmoves, swap):
-            for j in range(numreplicas):
-                    rep = protein_location[j][i/swap]
-                    Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
-    
-    Q_trajec_singleprot = Q_trajec_singleprot/totnc
-    numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
-
 #=======================================================================================================
 # OUTPUT
 #=======================================================================================================
@@ -444,7 +433,25 @@ for i in range(len(replicas)):
             replicas[i].savesurfenergy(plot)
     if umbrella:
 	    replicas[i].save_z()
-            
+
+if swap!=totmoves:
+    Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/step+1))
+    # assumes swap interval is larger than or equal to step (save interval)
+    # assumes swap/step is an integer
+#    for i in xrange(0, totmoves, swap):
+ #           for j in range(numreplicas):
+  #                  rep = protein_location[j][i/swap]
+   #                 Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
+    
+    for i in xrange(len(protein_location[0])):
+            for j in range(numreplicas):
+		    rep = protein_location[j][i]
+                    Q_trajec_singleprot[j,swap*i+1:swap*(i+1)+1] = replicas[rep].nc[swap*i+1:swap*(i+1)+1]
+    Q_trajec_singleprot[:,0] = totnc
+    Q_trajec_singleprot = Q_trajec_singleprot/totnc
+    numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
+    numpy.savetxt('%s/protein_location.txt' % direc, numpy.array(protein_location))
+         
 if verbose:
     for i in range(numreplicas-1):
         print 'Swaps accepted between replica%i and replica%i: %3.2f percent' % (i, i+1, (swapaccepted[i] / float(swapaccepted[i] + swaprejected[i]) * 100))
