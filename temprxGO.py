@@ -43,6 +43,7 @@ parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the s
 parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.7,1.], help="move frequencies")
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
 parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
+parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
 
 (options,args)=parser.parse_args()
 
@@ -50,6 +51,7 @@ parser.add_option("--umbrella", type="float", default=0., help="umbrella simulat
 # CONSTANTS
 #======================================================================================================
 verbose = options.verbose
+scale = options.scale
 surf = options.surf
 umbrella = options.umbrella
 if surf:
@@ -203,7 +205,6 @@ if surf:
     nsurf = len(surface)
     nspint = nsurf*numbeads # surface-protein interactions
     surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint)
-    scale = 1
     surfparam[:,0] = surfparam[:,0]*scale
     print 'Surface energy parameters scaled by %f' % scale
     SurfaceSimulation.surface = surface
@@ -375,7 +376,7 @@ except:
 
 ti = datetime.now()
 if umbrella:
-	print 'Starting umbrella simulation...'
+	print 'Starting umbrella simulation... at %f' % umbrella
 elif surf:
 	print 'Starting surface simulation...'
 else:

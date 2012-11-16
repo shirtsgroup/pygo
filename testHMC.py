@@ -101,7 +101,7 @@ while 1:
         ATOMlinenum.append(k)
         coord[i][0]=float(line[31:38])
         coord[i][1]=float(line[39:46])
-        coord[i][2]=float(line[47:54])
+        coord[i][2]=float(line[46:54])
         i=i+1
     k=k+1
 file.close()
@@ -150,7 +150,6 @@ def energy(mpos,rsquare,torsE,angE):
 	energy=sum(angE)+sum(torsE)+LJenergy_n(rsquare,nativeparam_n,nonnativeparam,nnepsil)
 	return energy
 
-
 		
 
 r2=cgetLJr2(coord,numint,numbeads)
@@ -164,7 +163,7 @@ if pdbfile:
 h=step
 nsteps=totmoves
 #m=120.368 # average mass of all residues
-m=getmass('GO_protein.top',numbeads)
+m=getmass('GO_1PGB.top',numbeads)
 tol=1e-12
 maxloop=1000
 
@@ -180,17 +179,16 @@ force=cangleforces(coord,angleparam,bonds,d,numbeads)+cdihedforces(torsparam,bon
 
 a=transpose(force)/m
 vel, conv = HMCforce.crattle(bonds, vel, m, d2, maxloop, numbeads, tol)
+print vel
 print 'Potential: '+str(u0)
 ke=.5*m/4.184*sum(vel**2,axis=1)
 print 'Kinetic: '+str(sum(ke))
 h0=u0+sum(ke)
 print 'Hamiltonian: '+str(h0)
-
 pot=zeros(nsteps+1)
 pot[0]=u0
 K=zeros(nsteps+1)
 K[0]=sum(ke)
-
 
 for e in range(nsteps):
     #pdb.set_trace()

@@ -19,8 +19,8 @@ import pdb
 from time import time
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafiles", default='GO_2LL3.pdb', help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfiles", default='GO_2LL3.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafiles", default='GO_1PGB.pdb', help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfiles", default='GO_1PGB.param', help="protein .param file")
 parser.add_option("-d", "--directory", dest="datafile_directory", default='./', help="the directory the data files are in")
 parser.add_option("-t", "--temperature", default='300', dest="T", type="float", help="temperature")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")

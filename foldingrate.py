@@ -2,6 +2,11 @@ import numpy
 from optparse import OptionParser
 import pdb
 import matplotlib.pyplot as plt
+import matplotlib
+
+font = {'family' : 'normal',
+        'weight' : 'bold',
+        'size'   : 22}
 
 parser=OptionParser()
 parser.add_option("-f", "--files", dest="datafile", default="GO_1PGB.pdb", help="Qtraj_singleprot.txt file")
@@ -19,17 +24,22 @@ numrep = 8
 #Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
-plt.figure(1)
+fig =plt.figure(1)
+#plt.axes(frameon=False)
+#plt.xticks([])
+#plt.yticks([])
+plt.xlabel('move/1000')
+plt.ylabel('Q fraction native')
 Q_new = numpy.zeros((numrep,len(Q[0,:])/n))
 for rep in range(numrep):
 	for i in range(len(Q[0,:])/n): # Average every 5 points
 		Q_new[rep,i] = numpy.average(Q[rep,n*i:(n*i+n)])
 	plt.subplot(numrep/2,2,rep+1)
 	plt.plot(numpy.arange(len(Q_new[0,:])),Q_new[rep,:]+.5)
-plt.xlabel('moves/step')
-plt.ylabel('Q fraction native')
-plt.title('Q trajectories for single proteins')
-
+	plt.ylim(0,1)
+fig.text(.5,.04, 'move/10000', ha='center',va='center', fontdict=font)
+fig.text(.5,.96, 'Q trajectories for single proteins', ha='center',va='center',fontdict=font)
+fig.text(.06,.5,'Q fraction native',ha='center',va='center',rotation='vertical',fontdict=font)
 
 
 count = numpy.zeros(numrep)
