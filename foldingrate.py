@@ -20,7 +20,7 @@ n = options.average
 #file = '/home/edz3fz/proteinmontecarlo/replicaexchange/simlog24/Qtraj_singleprot.txt'
 Q = numpy.loadtxt(file)
 Q = Q - .5
-numrep = 8
+numrep = 4
 #Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
@@ -70,9 +70,13 @@ plt.savefig(options.datafile+'/Qtraj_singleprot_avg.png')
 orgdataplt = True
 if orgdataplt:
 	plt.figure(2)
+	pt = numpy.loadtxt(options.datafile+'protein_location.txt')
+	pt /=numrep
 	for i in range(numrep):
 		plt.subplot(numrep/2,2,i+1)
 		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5)
+		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5,'o')
+		plt.plot(numpy.arange(len(Q[0,:])),pt[i])
 	plt.xlabel('moves/step')
 	plt.ylabel('Q fraction native')
 	plt.title('Q trajectories for single proteins')

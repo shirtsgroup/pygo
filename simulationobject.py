@@ -41,6 +41,8 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
+    tsteps=18
+    tsize=.5
 #    percentmove = [0.25, 0.5, 0.75, 1.] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
@@ -268,7 +270,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, 18, .1, dict)
+            self=moveset.runMD(self, Simulation.tsteps, Simulation.tsize, dict)
             movetype = 'md'
             self.mdmove += 1
             torschange = numpy.arange(Simulation.numbeads - 3)

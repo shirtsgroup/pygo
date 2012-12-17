@@ -152,7 +152,7 @@ def bondedforces(mpos, torsparam, angleparam, bonds, d2, d, numbeads):
         forces[i,:] += Fi
         forces[i+1,:] += Fj
         forces[i+2,:] += Fk
-	return forces * 4.184 # convert forces to kJ/mol/K
+	return forces *4.184 # convert forces to kJ/mol/K
 
 def projdot(p,d):
     p2 = p[0]*p[0] + p[1]*p[1] + p[2]*p[2]
@@ -265,7 +265,7 @@ def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
     forces = numpy.zeros((numbeads,3))
     for i in range(len(surf_coord)):
    	forces += -F[i*numbeads:i*numbeads+numbeads,:]
-    return forces*4.184
+    return forces/4.184
 
 def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param):
     forces = numpy.zeros((numbeads,3))

@@ -19,7 +19,7 @@ import pdb  # for debugging
 kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
-NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
+NumTemps = 16          # Last TEMP # + 1 (start counting at 1)
 NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
@@ -44,7 +44,7 @@ print("Preparing data:")
 #K = len(T_from_file)
 
 trange = [300.0, 450.0]
-numreplicas = 8
+numreplicas = 16
 T = numpy.empty(numreplicas)
 alpha = (trange[1]/trange[0])**(1/float(numreplicas-1))
 T[0]=trange[0]
@@ -53,7 +53,7 @@ for i in range(1,numreplicas):
 print T
 files=[]
 for i in range(len(T)):
-	files.append('results/1PGB/surface/simlog6/energy'+str(int(T[i]))+'.txt')
+	files.append('replicaexchange/simlog93/energy'+str(int(T[i]))+'.txt')
 
 
 nc=numpy.loadtxt(files[0])

@@ -581,6 +581,7 @@ def runMD(self,nsteps,h,dict):
 		v_half = self.vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
 		v_half, conv = HMCforce.cshake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # 
 		if not conv:
+			print 'MD not converging, reject'
 			self.uncloseable=True
 			self.rejected += 1
 			break
@@ -591,6 +592,7 @@ def runMD(self,nsteps,h,dict):
 		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
 		self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
 		if not conv:
+			print 'MD not converging, reject'
 			self.uncloseable=True
 			self.rejected += 1
 			break

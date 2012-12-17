@@ -193,7 +193,8 @@ if (verbose):
     'percent move is',
     str(Simulation.percentmove),'']
     print "\r\n".join(output)
-
+    print 'MD steps per move is '+str(Simulation.tsteps)
+    print 'MD time step is '+str(Simulation.tsize*100)+' fs'
 
 if surf:
     xlength = 135
@@ -340,6 +341,10 @@ if swap!=totmoves:
 
 # instantiate replicas
 replicas = []
+parentdirc = './replicaexchange'
+if not os.path.exists(parentdirc):
+    os.mkdir(parentdirc)
+
 direc = './replicaexchange/simlog%i' % id
 if not os.path.exists(direc):
     os.mkdir(direc)
