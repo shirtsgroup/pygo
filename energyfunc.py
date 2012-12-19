@@ -1,6 +1,5 @@
 from scipy import weave
 import numpy
-import random
 import pdb
 #==========================================
 # PARAMETER READ IN METHODS

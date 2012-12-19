@@ -1,4 +1,5 @@
 import random
+#random.seed(10)
 import profile
 import scipy.misc
 import numpy
@@ -41,8 +42,8 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    tsteps=18
-    tsize=.5
+    tsteps=360
+    tsize=.05
 #    percentmove = [0.25, 0.5, 0.75, 1.] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):

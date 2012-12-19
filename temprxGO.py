@@ -44,6 +44,7 @@ parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
 parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
 parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
+#parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
 
@@ -75,6 +76,8 @@ e=options.e
 addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
 percentmove = options.freq
+#if options.random:
+#	random.seed(options.random)
 
 kb = 0.0019872041 #kcal/mol/K
 nativecutoff2 = 1.2**2
@@ -218,11 +221,11 @@ if surf:
 #======================================================================================================
 
 #type 1 switches
-def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
+def tryswap1(Replicas, Swapaccepted, Swaprejected, reploc, start):
     if numreplicas == 1:
         pass
     else:
-        for i in xrange(0, numreplicas-1, 2):
+        for i in xrange(start, numreplicas-1, 2):
             P=numpy.exp((Replicas[i].u0-Replicas[i+1].u0)*(1/(kb*T[i])-1/(kb*T[i+1])))
             if(random.random()<P):
                 Swapaccepted[i]+=1
@@ -231,8 +234,8 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
                 Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-                Replicas[i].whoami, Replicas[i+1].whoami = Replicas[i+1].whoami, Replicas[i].whoami
-                Whoiswhere[i], Whoiswhere[i+1] = Whoiswhere[i+1], Whoiswhere[i]
+                Replicas[i].whoami, Replicas[i+1].whoami = Replicas[i+1].whoami, Replicas[i].whoami # whoami keeps track of the individual protein in each Replica 
+                reploc[i], reploc[i+1] = reploc[i+1], reploc[i]
                 if surf:
                     Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE
 		if umbrella:
@@ -246,10 +249,10 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
                 #Whoiswhere[Replicas[i+1].whoami].append(Whoiswhere[Replicas[i+1].whoami][-1])
     #if numreplicas%2 == 1:
         #Whoiswhere[Replicas[numreplicas-1].whoami].append(Whoiswhere[Replicas[numreplicas-1].whoami][-1])
-    return Swapaccepted, Swaprejected, Whoiswhere
+    return Swapaccepted, Swaprejected, reploc
 
 #type 2 switches
-def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
+def tryswap2(Replicas, Swapaccepted, Swaprejected, reploc):
     if numreplicas == 1:
         pass
     else:
@@ -268,7 +271,7 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
 		if umbrella:
 		    Replicas[i].z_array, Replicas[i+1].z_array = Replicas[i+1].z_array, Replicas[i].z_array
 
-                Whoiswhere[i], Whoiswhere[i+1] = Whoiswhere[i+1], Whoiswhere[i]
+                reploc[i], reploc[i+1] = reploc[i+1], reploc[i]
 	        #Whoiswhere[Replicas[i].whoami].append(i)
                 #Whoiswhere[Replicas[i+1].whoami].append(i+1)
             else:
@@ -283,18 +286,18 @@ def tryswap2(Replicas, Swapaccepted, Swaprejected, Whoiswhere):
 def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, transmat):
 	if numreplicas == 1:
 		return Swapaccepted, Swaprejected, protein_location, transmat
-	replica_location = numpy.arange(numreplicas)
-	for k in range(e): # try swapping 100 times
+	replica_location = numpy.arange(numreplicas) # keeps track of where the replicas go after 100 (default) swaps in order to properly increment the transition matrix
+	for k in range(e): # default: try swapping 100 times
 		if random.random() < .5:
-			Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location)
+			Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location, 0) #type 1 switch
 		else:	
-			Swapaccepted, Swaprejected, replica_location = tryswap2(Replicas, Swapaccepted, Swaprejected, replica_location)
-	replica_location_indexed = numpy.zeros(numreplicas)
+			Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location, 1) #type 2 switch
+	replica_location_indexed = numpy.zeros(numreplicas) # keeps track of which replica went where
 	for i in range(numreplicas):
-		replica_location_indexed[replica_location[i]] = i
-		protein_location[Replicas[i].whoami].append(i)
+		replica_location_indexed[replica_location[i]] = i #extracts which replica went where
+		protein_location[Replicas[i].whoami].append(i) #extracts which protein went where
 	for i in range(numreplicas):
-		transmat[i,replica_location_indexed[i]] += 1
+		transmat[i,replica_location_indexed[i]] += 1 #increments the transition matrix
 	return Swapaccepted, Swaprejected, protein_location, transmat
 
 #def update_energy(self, torschange, angchange):
@@ -448,16 +451,15 @@ if swap!=totmoves:
  #           for j in range(numreplicas):
   #                  rep = protein_location[j][i/swap]
    #                 Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
-    
+    k=swap/step
     for i in xrange(len(protein_location[0])):
             for j in range(numreplicas):
 		    rep = protein_location[j][i]
-                    Q_trajec_singleprot[j,swap*i+1:swap*(i+1)+1] = replicas[rep].nc[swap*i+1:swap*(i+1)+1]
+                    Q_trajec_singleprot[j,k*i+1:k*(i+1)+1] = replicas[rep].nc[k*i+1:k*(i+1)+1]
     Q_trajec_singleprot[:,0] = totnc
     Q_trajec_singleprot = Q_trajec_singleprot/totnc
     numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
     numpy.savetxt('%s/protein_location.txt' % direc, numpy.array(protein_location))
-         
 if verbose:
     for i in range(numreplicas-1):
         print 'Swaps accepted between replica%i and replica%i: %3.2f percent' % (i, i+1, (swapaccepted[i] / float(swapaccepted[i] + swaprejected[i]) * 100))

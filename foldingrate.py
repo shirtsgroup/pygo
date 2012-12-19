@@ -9,7 +9,7 @@ font = {'family' : 'normal',
         'size'   : 22}
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="GO_1PGB.pdb", help="Qtraj_singleprot.txt file")
+parser.add_option("-f", "--files", dest="datafile", default="replicaexchange/simlog0/", help="Qtraj_singleprot.txt file location")
 parser.add_option("-n", "--moves", dest="average", type="int", default='10', help="number of data points to average")
 (options,args)=parser.parse_args()
 
@@ -20,7 +20,9 @@ n = options.average
 #file = '/home/edz3fz/proteinmontecarlo/replicaexchange/simlog24/Qtraj_singleprot.txt'
 Q = numpy.loadtxt(file)
 Q = Q - .5
-numrep = 4
+numrep = 8
+save=1
+swap=10
 #Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
@@ -37,7 +39,7 @@ for rep in range(numrep):
 	plt.subplot(numrep/2,2,rep+1)
 	plt.plot(numpy.arange(len(Q_new[0,:])),Q_new[rep,:]+.5)
 	plt.ylim(0,1)
-fig.text(.5,.04, 'move/10000', ha='center',va='center', fontdict=font)
+fig.text(.5,.04, 'move/%i' % save, ha='center',va='center', fontdict=font)
 fig.text(.5,.96, 'Q trajectories for single proteins', ha='center',va='center',fontdict=font)
 fig.text(.06,.5,'Q fraction native',ha='center',va='center',rotation='vertical',fontdict=font)
 
@@ -76,8 +78,8 @@ if orgdataplt:
 		plt.subplot(numrep/2,2,i+1)
 		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5)
 		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5,'o')
-		plt.plot(numpy.arange(len(Q[0,:])),pt[i])
-	plt.xlabel('moves/step')
+		plt.plot(numpy.arange(0,len(Q[0,:]),swap/save),pt[i])
+	plt.xlabel('moves/%i' % save)
 	plt.ylabel('Q fraction native')
 	plt.title('Q trajectories for single proteins')
 	plt.savefig('%s/Qtraj_singleprot.png' % options.datafile)
