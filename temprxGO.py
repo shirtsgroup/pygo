@@ -2,32 +2,33 @@
 # IMPORTS
 #=======================================================================================================
 
-from datetime import datetime
+import datetime
 import numpy
 from optparse import OptionParser
 try:
+	# does not work on the cluster
 	import matplotlib.pyplot as plt
 except:
 	plot=False
 from sys import stdout
-import random
 import profile
 import scipy.linalg
 from scipy.misc import comb
 import os
 import pp
 import pdb
+import cPickle
 
 from writetopdb import *
 from moveset import *
 from energyfunc import *
 #from simulationobject import *
 
-t1=datetime.now()
+t1=datetime.datetime.now()
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="GO_1PGB.pdb", help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_1PGB.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafile", default="proteins/GO_1ENH.pdb", help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfile", default='proteins/GO_1ENH.param', help="protein .param file")
 parser.add_option("-t", "--temprange", nargs=2, default=[300.,450.], type="float", dest="temprange", help="temperature range of replicas")
 parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", help="number of replicas")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -44,6 +45,7 @@ parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
 parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
 parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
+parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
@@ -76,9 +78,12 @@ e=options.e
 addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
 percentmove = options.freq
+restart = options.restart
+if restart:
+	print 'Restarting from last checkpoint'
 #if options.random:
 #	random.seed(options.random)
-
+random.seed(10)
 kb = 0.0019872041 #kcal/mol/K
 nativecutoff2 = 1.2**2
 
@@ -187,12 +192,11 @@ if (verbose):
     output = ['verbosity is %s' %(str(verbose)),
     'total number of moves is %d' %(totmoves),
     'save interval is %d moves' %(step),
-    'there are %d replicas' %(numreplicas),
-    'Temperature:',
-    str(T),
-    'the replica exchange interval is %d steps' %(swap),
+    'the replica exchange interval is %d moves' %(swap),
     'there are %i swaps at each exchange point' %(e),
-    'There are %d residues in %s' %(numbeads,filename),
+    'there are %d replicas at temperatures:' %(numreplicas),
+    str(T),
+    'there are %d residues in %s' %(numbeads,filename),
     'percent move is',
     str(Simulation.percentmove),'']
     print "\r\n".join(output)
@@ -203,6 +207,7 @@ if surf:
     xlength = 135
     ylength = 135
     spacing = 10
+    print 'surface is %i by %i with spacing %i (Angstroms)' %( xlength, ylength, spacing)
     yspacing = spacing*3.**.5
     surface = getsurf(xlength+15,ylength+15,spacing)
     writesurf('surface.pdb',surface)
@@ -220,8 +225,7 @@ if surf:
 # SUBROUTINES
 #======================================================================================================
 
-#type 1 switches
-def tryswap1(Replicas, Swapaccepted, Swaprejected, reploc, start):
+def tryswap(Replicas, Swapaccepted, Swaprejected, reploc, start):
     if numreplicas == 1:
         pass
     else:
@@ -251,47 +255,15 @@ def tryswap1(Replicas, Swapaccepted, Swaprejected, reploc, start):
         #Whoiswhere[Replicas[numreplicas-1].whoami].append(Whoiswhere[Replicas[numreplicas-1].whoami][-1])
     return Swapaccepted, Swaprejected, reploc
 
-#type 2 switches
-def tryswap2(Replicas, Swapaccepted, Swaprejected, reploc):
-    if numreplicas == 1:
-        pass
-    else:
-        for i in xrange(1,numreplicas-1, 2):
-            P=numpy.exp((Replicas[i].u0-Replicas[i+1].u0)*(1/(kb*T[i])-1/(kb*T[i+1])))
-            if(random.random()<P):
-                Swapaccepted[i]+=1
-                Replicas[i].coord, Replicas[i+1].coord = Replicas[i+1].coord, Replicas[i].coord
-                Replicas[i].u0, Replicas[i+1].u0 = Replicas[i+1].u0, Replicas[i].u0
-                Replicas[i].r2, Replicas[i+1].r2 = Replicas[i+1].r2, Replicas[i].r2
-                Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
-                Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
-                Replicas[i].whoami, Replicas[i+1].whoami = Replicas[i+1].whoami, Replicas[i].whoami
-                if surf:
-                    Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE
-		if umbrella:
-		    Replicas[i].z_array, Replicas[i+1].z_array = Replicas[i+1].z_array, Replicas[i].z_array
-
-                reploc[i], reploc[i+1] = reploc[i+1], reploc[i]
-	        #Whoiswhere[Replicas[i].whoami].append(i)
-                #Whoiswhere[Replicas[i+1].whoami].append(i+1)
-            else:
-                Swaprejected[i] += 1
-                #Whoiswhere[Replicas[i].whoami].append(Whoiswhere[Replicas[i].whoami][-1])
-                #Whoiswhere[Replicas[i+1].whoami].append(Whoiswhere[Replicas[i+1].whoami][-1])
-    #Whoiswhere[Replicas[0].whoami].append(Whoiswhere[Replicas[0].whoami][-1])
-    #if numreplicas%2 == 0:
-        #Whoiswhere[Replicas[numreplicas-1].whoami].append(Whoiswhere[Replicas[numreplicas-1].whoami][-1])
-    return Swapaccepted, Swaprejected, Whoiswhere
-
 def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, transmat):
 	if numreplicas == 1:
 		return Swapaccepted, Swaprejected, protein_location, transmat
 	replica_location = numpy.arange(numreplicas) # keeps track of where the replicas go after 100 (default) swaps in order to properly increment the transition matrix
 	for k in range(e): # default: try swapping 100 times
 		if random.random() < .5:
-			Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location, 0) #type 1 switch
+			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 0) #type 1 switch
 		else:	
-			Swapaccepted, Swaprejected, replica_location = tryswap1(Replicas, Swapaccepted, Swaprejected, replica_location, 1) #type 2 switch
+			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 1) #type 2 switch
 	replica_location_indexed = numpy.zeros(numreplicas) # keeps track of which replica went where
 	for i in range(numreplicas):
 		replica_location_indexed[replica_location[i]] = i #extracts which replica went where
@@ -305,6 +277,7 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, tra
     #self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
     #self.u1 = sum(self.newtorsE)+sum(self.newangE) + energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
     #return self
+
 if not surf:
     def pprun(Replicas, Moves, Dict):
         if len(Replicas) == 1:
@@ -329,6 +302,38 @@ else:
              #Simulation.nonnativeparam, Simulation.nnepsil)
     #return energy
 
+def savestate():
+    output = open('%s/cptstate.pkl' % direc, 'wb')
+    cPickle.dump(replicas[0].move, output)
+    cPickle.dump(protein_location, output)
+    cPickle.dump(transmat, output)
+    output.close()
+    for i in range(len(replicas)):
+        replicas[i].saveenergy(False)
+        replicas[i].savenc(False)
+	replicas[i].savecoord()
+#       replicas[i].savermsd(plot)
+#       replicas[i].savehist(plot)
+        if surf:
+            replicas[i].savesurfenergy(False)
+        if umbrella:
+	    replicas[i].save_z()
+
+def loadstate():
+    input = open('%s/cptstate.pkl' % direc, 'rb')
+    move = cPickle.load(input)
+    protein_location = cPickle.load(input)
+    transmat = cPickle.load(input)
+    input.close()
+    for i in range(numreplicas):
+       	replicas[i].loadstate()
+	replicas[i].move = move
+	replicas[protein_location[i][-1]].whoami = i 
+        if surf: # to do
+	    pass
+        if umbrella: # to do
+	    pass
+    return move
 
 #=======================================================================================================
 # SIMULATE
@@ -381,24 +386,32 @@ try:
 except:
 	# running on one machine
 	job_server = pp.Server(ppservers=())
+if restart:
+    move = loadstate()
 
-ti = datetime.now()
+
+ti = datetime.datetime.now()
+tcheck = ti
 if umbrella:
 	print 'Starting umbrella simulation... at %f' % umbrella
 elif surf:
 	print 'Starting surface simulation...'
 else:
 	print 'Starting simulation...'
-for i in xrange(totmoves/swap):
+for i in xrange(move/swap,totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
     if swap!=totmoves:
     	swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
-    t_remain = (datetime.now() - ti)/(i+1)*(totmoves/swap - i - 1)
+    tnow = datetime.datetime.now()
+    t_remain = (tnow - ti)/(i+1)*(totmoves/swap - i - 1)
     stdout.write(str(t_remain) + '\r')
     stdout.flush()
-
-
+   
+    # checkpoint
+    if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
+	savestate()
+	tcheck=tnow
 #=======================================================================================================
 # POST ANALYSIS
 #=======================================================================================================
@@ -435,9 +448,10 @@ job_server.print_stats()
 for i in range(len(replicas)):
     replicas[i].output(verbose)
     replicas[i].saveenergy(plot)
-    replicas[i].savermsd(plot)
     replicas[i].savenc(plot)
-    replicas[i].savehist(plot)
+    print 'the average Q is %f' %(numpy.average(replicas[i].nc)/Simulation.totnc)
+#    replicas[i].savermsd(plot)
+#    replicas[i].savehist(plot)
     if surf:
             replicas[i].savesurfenergy(plot)
     if umbrella:
@@ -467,7 +481,7 @@ if verbose:
     print 'Total swaps rejected: %i' % sum(swaprejected)
 
 
-t2 = datetime.now()
+t2 = datetime.datetime.now()
 print 'Simulation time: '+str(t2-t1)
 
 

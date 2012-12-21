@@ -1,5 +1,5 @@
 import random
-#random.seed(10)
+random.seed(10)
 import profile
 import scipy.misc
 import numpy
@@ -31,7 +31,11 @@ def update_energy(self, torschange, angchange):
     return self
 
 def save(self):
-    self.energyarray[self.move/Simulation.step] = self.u0
+    try:
+    	self.energyarray[self.move/Simulation.step] = self.u0
+    except:
+	print self.move
+	print Simulation.step
     self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
     self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(Simulation.coord_nat, self.mcoord)
@@ -60,58 +64,68 @@ class Simulation:
                         1./self.T * 500, # global crankshaft
                         5.]) # ParRot move
 	self.maxtheta = self.maxtheta * numpy.pi / 180 * self.T**1.5 / 5250. * 50 / Simulation.numbeads
-        self.r2, self.u0 = energyfunc.cgetLJenergy(self.coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
-        self.torsE = energyfunc.ctorsionenergy(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
-        self.angE = energyfunc.cangleenergy(self.coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
-        self.u0 += numpy.sum(self.angE) + numpy.sum(self.torsE)
+	self.setenergy()
         self.energyarray[0] = self.u0
-        self.rmsd_array[0] = 0.0
         self.nc[0] = Simulation.totnc
+#       self.rmsd_array[0] = 0.0
 
         # Instantiate constants for move stats
-        self.angmoves = 0
-        self.atormoves = 0
-        self.mdmove = 0
-        self.pmoves = 0
+        self.amoves = 0
+        self.atmoves = 0
 	self.gcmoves = 0
+        self.pmoves = 0
+        self.mdmoves = 0
 	self.acceptedgc =0
         self.acceptedp = 0
         self.acceptedmd = 0
         self.acceptedat = 0
         self.accepteda = 0
+	self.pclosure = 0
         self.accepted = 0
         self.rejected = 0
-	self.pclosure = 0
         self.movetype = ''
         #self.whoami = ''
+    
+    def setenergy(self):
+	# sets the u0, r2, torsE, angE from the current configuration
+	# called when restarting from a checkpoint
+        self.r2, self.u0 = energyfunc.cgetLJenergy(self.coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+        self.torsE = energyfunc.ctorsionenergy(self.coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
+        self.angE = energyfunc.cangleenergy(self.coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
+        self.u0 += numpy.sum(self.angE) + numpy.sum(self.torsE)
+	
 
     def output(self, verbose):
-        try: percenta = float(self.accepteda)/float(self.angmoves)*100
-	except:	percenta = 0
-        try: percentat = float(self.acceptedat)/float(self.atormoves)*100
-	except:	percentat = 0
-        try: percentgc = float(self.acceptedgc)/float(self.gcmoves)*100
-	except:	percentgc = 0
-        try: percentp = float(self.acceptedp)/float(self.pmoves)*100
-	except:	percentp = 0
-        try: percentmd = float(self.acceptedmd)/float(self.mdmove)*100
-	except:	percentmd = 0
+	
+        print '-------- %s Simulation Results --------' % (self.name)
+	print 'total accepted moves: %d' % (self.accepted)
+	print 'total rejected moves: %d' % (self.rejected)
+	if verbose:
+		if self.amoves:
+			print 'angle bend:        %d percent acceptance (%i/%i)' %(float(self.accepteda)/float(self.amoves)*100, self.accepteda, self.amoves)
+		if self.atmoves:
+			print 'torsion:           %d percent acceptance (%i/%i)' %(float(self.acceptedat)/float(self.atmoves)*100, self.acceptedat, self.atmoves)
+		if self.gcmoves:
+			print 'global crankshaft: %d percent acceptance (%i/%i)' %(float(self.acceptedgc)/float(self.gcmoves)*100, self.acceptedgc, self.gcmoves)
+		if self.pmoves:
+			print 'ParRot:            %d percent acceptance (%i/%i)' %(float(self.acceptedp)/float(self.pmoves)*100, self.acceptedp, self.pmoves)
+			print '                   %i ParRot moves rejected due to chain closure' %(self.pclosure)
+		if self.mdmoves:
+			print 'MD:                %d percent acceptance (%i/%i)' %(float(self.acceptedmd)/float(self.mdmoves)*100, self.acceptedmd, self.mdmoves)
 
-        write = ['-------- %s Simulation Results --------\r\n' % (self.name),
-                'total accepted moves: %d \r\n' % (self.accepted),
-                'total rejected moves: %d \r\n' % (self.rejected),
-                'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, percenta),
-                'torsion: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedat, self.atormoves, percentat),
-		'global crankshaft: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedgc, self.gcmoves, percentgc),
-		'ParRot move: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedp, self.pmoves, percentp),
-		'%d ParRot moves rejected due to chain closure \r\n' % (self.pclosure),
-                'MD moves: %d moves accepted out of %d tries... that is %d  percent \r\n' % (self.acceptedmd, self.mdmove, percentmd)] #, float(self.acceptedmd)/self.mdmove*100)]
-        if verbose:
-            print "".join(write)
-        return write
+    def loadstate(self):
+	self.coord = numpy.loadtxt('%s/coord%i.cpt' %(self.out, int(self.T)))
+	self.setenergy()
+	self.energyarray = numpy.loadtxt('%s/energy%i.txt' %(self.out, int(self.T)))
+	self.nc = Simulation.totnc*numpy.loadtxt('%s/fractionnative%i.txt' %(self.out, int(self.T)))
+
+
+    def savecoord(self):
+	filename = '%s/coord%i.cpt' % (self.out, int(self.T))
+	numpy.savetxt(filename, self.coord)
 
     def saveenergy(self, plot):
-        filename='%s/energy%i.txt' % (self.out, int(self.T))
+        filename = '%s/energy%i.txt' % (self.out, int(self.T))
         numpy.savetxt(filename, self.energyarray)
         #print 'wrote every %d conformation energies to %s' %(Simulation.step,filename)
         if plot:
@@ -146,12 +160,9 @@ class Simulation:
 
     def savenc(self, plot):
         fraction = self.nc / Simulation.totnc
-        fractionfile = '%s/fractionnative%i.txt' % (self.out, int(self.T))
-        numpy.savetxt(fractionfile, fraction)
+        filename = '%s/fractionnative%i.txt' % (self.out, int(self.T))
+        numpy.savetxt(filename, fraction)
         #print 'wrote every %d fractional nativeness values to %s' %(Simulation.step,fractionfile)
-        print 'excluding first %i out of %i fractional nativeness values from average' % (len(fraction)/5, len(fraction))
-        fractioncut = fraction[len(fraction)/5:-1]
-        print 'the average fractional nativeness is %f' % (sum(fractioncut) / len(fractioncut))
         if plot:
             plotname = '%s/fractionnative%i.png' % (self.out, int(self.T))
             #print 'generating fractional nativeness plot...'
@@ -206,7 +217,7 @@ def run(self, nummoves, dict):
         if randmove < Simulation.percentmove[0]:
 	    theta = self.maxtheta[0] - 2 * self.maxtheta[0] * random.random()
             self.newcoord, jac = moveset.canglebend(self.coord, m, randdir, theta)
-            self.angmoves += 1
+            self.amoves += 1
             movetype = 'a'
             torschange = numpy.array([])
             angchange = numpy.array([m-1])
@@ -217,7 +228,7 @@ def run(self, nummoves, dict):
 	    theta = self.maxtheta[1] - 2 * self.maxtheta[1] * random.random()
             self.newcoord = moveset.caxistorsion(self.coord, m, randdir, theta)
             movetype = 'at'
-            self.atormoves += 1
+            self.atmoves += 1
             angchange = numpy.array([])
             if randdir < .5:
                     torschange = numpy.array([m-2])
@@ -273,7 +284,7 @@ def run(self, nummoves, dict):
         else:
             self=moveset.runMD(self, Simulation.tsteps, Simulation.tsize, dict)
             movetype = 'md'
-            self.mdmove += 1
+            self.mdmoves += 1
             torschange = numpy.arange(Simulation.numbeads - 3)
             angchange = numpy.arange(Simulation.numbeads - 2)
 
@@ -334,7 +345,7 @@ def run_ff(self, nummoves, dict):
         if randmove < self.percentmove[0]:
             theta = self.maxtheta[0] - 2 * self.maxtheta[0] * random.random()
             self.newcoord, jac = moveset.canglebend(self.coord, m, randdir, theta)
-            self.angmoves += 1
+            self.amoves += 1
             movetype = 'a'
 
         #axis torsion
@@ -342,7 +353,7 @@ def run_ff(self, nummoves, dict):
             theta = self.maxtheta[1] - 2 * self.maxtheta[1] * random.random()
             self.newcoord = moveset.caxistorsion(self.coord, m, randdir, theta)
             movetype = 'at'
-            self.atormoves += 1
+            self.atmoves += 1
         
         # global crankshaft
         elif randmove < self.percentmove[3]:
@@ -376,7 +387,7 @@ def run_ff(self, nummoves, dict):
             self=moveset.runMD(self, 1000, .001, dict)
             self.movetype = 'md'
             self.move += 1
-            self.mdmove += 1
+            self.mdmoves += 1
             jac = 1
         # accept or reject
         if self.uncloseable == False:

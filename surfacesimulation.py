@@ -80,10 +80,11 @@ class SurfaceSimulation(Simulation):
         self.rmsd_array[0] = 0.0
         self.coord_nat = writetopdb.moviecoord(self.coord, Simulation.transform)
         self.nc[0] = Simulation.totnc
-        self.trmoves = 0
+       
+	self.trmoves = 0
+        self.rmoves = 0
         self.acceptedtr = 0
-        self.rotmoves = 0
-        self.acceptedrot = 0
+        self.acceptedr = 0
     
     def addsurface(self, surf_coord):
         self.surface = surf_coord
@@ -99,35 +100,13 @@ class SurfaceSimulation(Simulation):
         self.coord[:,2] += 10 - numpy.min(self.coord[:,2]) # protein is 1 nm from surface
         
     def output(self, verbose):
-        try: percenta = float(self.accepteda)/float(self.angmoves)*100
-	except:	percenta = 0
-        try: percentat = float(self.acceptedat)/float(self.atormoves)*100
-	except:	percentat = 0
-        try: percentgc = float(self.acceptedgc)/float(self.gcmoves)*100
-	except:	percentgc = 0
-        try: percentp = float(self.acceptedp)/float(self.pmoves)*100
-	except:	percentp = 0
-        try: percentmd = float(self.acceptedmd)/float(self.mdmove)*100
-	except:	percentmd = 0
-        try: percenttr = float(self.acceptedtr)/float(self.trmoves)*100
-	except:	percenttr = 0
-        try: percentrot = float(self.acceptedrot)/float(self.rotmoves)*100
-	except:	percentrot = 0
-        write = ['-------- %s Simulation Results --------\r\n' % (self.name),
-                'total accepted moves: %d \r\n' % (self.accepted),
-                'total rejected moves: %d \r\n' % (self.rejected),
-		'Translation: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedtr, self.trmoves, percenttr),
-		'Rotation: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedrot, self.rotmoves, percentrot),
-                'angle bend: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.accepteda, self.angmoves, percenta),
-                'torsion: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedat, self.atormoves, percentat),
-		'global crankshaft: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedgc, self.gcmoves, percentgc),
-		'ParRot move: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedp, self.pmoves, percentp),
-		'%d ParRot moves rejected due to chain closure \r\n' % (self.pclosure),
-                'MD moves: %d moves accepted out of %d tries... that is %d percent \r\n' % (self.acceptedmd, self.mdmove, percentmd)]
-        if verbose:
-            print "".join(write)
-        return write
-        
+	self.output(verbose)
+	if verbose:
+		if self.trmoves:
+			print 'translation:       %d percent acceptance (%i/%i)' %(float(self.acceptedtr)/float(self.trmoves)*100, self.acceptedtr, self.trmoves)
+		if self.rmoves:
+			print 'rotation:          %d percent acceptance (%i/%i)' %(float(self.acceptedr)/float(self.rmoves)*100, self.acceptedr, self.rmoves)
+       
     def savesurfenergy(self, plot):
         filename='%s/surfenergy%i.txt' % (self.out, int(self.T))
         numpy.savetxt(filename, self.surfE_array)
@@ -207,7 +186,7 @@ def run_surf(self, nummoves, dict):
             jac = 1
             [a,b,g] = numpy.random.normal(0, self.moveparam[1], 3)
             self.newcoord = moveset.rotation(self.coord, a, b, g)
-            self.rotmoves += 1
+            self.rmoves += 1
             movetype = 'rot'
             torschange = numpy.array([])
             angchange = numpy.array([])
@@ -336,7 +315,7 @@ def run_surf(self, nummoves, dict):
                 if movetype == 'tr':
                     self.acceptedtr += 1
                 elif movetype == 'rot':
-                    self.acceptedrot += 1
+                    self.acceptedr += 1
                 elif movetype == 'a':
                     self.accepteda += 1
                 elif movetype == 'at': 

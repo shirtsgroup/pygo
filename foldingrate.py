@@ -21,8 +21,8 @@ n = options.average
 Q = numpy.loadtxt(file)
 Q = Q - .5
 numrep = 8
-save=1
-swap=10
+save=100
+swap=100
 #Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
