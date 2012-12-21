@@ -10,6 +10,8 @@ try:
 	import matplotlib.pyplot as plt
 except:
 	plot=False
+	import os
+	os.environ['TMPDIR']
 from sys import stdout
 import profile
 import scipy.linalg
@@ -27,8 +29,8 @@ from energyfunc import *
 t1=datetime.datetime.now()
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="proteins/GO_1ENH.pdb", help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfile", default='proteins/GO_1ENH.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafile", default="GO_1ENH.pdb", help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_1ENH.param', help="protein .param file")
 parser.add_option("-t", "--temprange", nargs=2, default=[300.,450.], type="float", dest="temprange", help="temperature range of replicas")
 parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", help="number of replicas")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -45,7 +47,7 @@ parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
 parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
 parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
-parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
+parser.add_option("--ncpus", type="int", default=0, help="number of workers to run in parallel (cluster)")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
@@ -78,9 +80,7 @@ e=options.e
 addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
 percentmove = options.freq
-restart = options.restart
-if restart:
-	print 'Restarting from last checkpoint'
+ncpus = options.ncpus
 #if options.random:
 #	random.seed(options.random)
 random.seed(10)
@@ -372,22 +372,22 @@ for i in range(len(T)):
             writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 
 
-
-try:
+if 1:
 	# running on the cluster
 	f = open('nodefile.txt','r')
-	ppservers = f.readline()
-	ppservers = ppservers.split(' ')
-	ppservers[-1] = ppservers[-1][0:-1]
-	ppservers = [server+':23335' for server in ppservers]
-	ppservers = tuple(ppservers)
+	PP = f.read().split("\n")
+	ppservers = tuple(filter(None,PP))
 	print ppservers
-	job_server = pp.Server(ppservers=ppservers)
-except:
+	print ncpus
+	job_server = pp.Server(0,ppservers=ppservers)
+	#import time
+	#time.sleep(35)
+	print job_server.get_active_nodes()	
+	print "Starting pp with", job_server.get_ncpus(), "workers"
+else:
 	# running on one machine
 	job_server = pp.Server(ppservers=())
-if restart:
-    move = loadstate()
+	print "Starting pp with", job_server.get_ncpus(), "workers"
 
 
 ti = datetime.datetime.now()
@@ -405,8 +405,8 @@ for i in xrange(move/swap,totmoves/swap):
     	swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
     tnow = datetime.datetime.now()
     t_remain = (tnow - ti)/(i+1)*(totmoves/swap - i - 1)
-    stdout.write(str(t_remain) + '\r')
-    stdout.flush()
+    #stdout.write(str(t_remain) + '\r')
+    #stdout.flush()
    
     # checkpoint
     if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes

@@ -19,4 +19,4 @@ do
 	ssh -f edz3fz@$n "cd $PBS_O_WORKDIR; mkdir -p $TMPDIR; export TMPDIR=$TMPDIR; ppserver.py -p $PORT &" &
 done
 
-python temprxGO.py -f GO_2QUG.pdb -p GO_2QUG.param -n 1000 -s 10 -k 100 -r 8 -t 300 450 -a $PORT
+python temprxGO.py -n 1000 -s 10 -k 100 --umbrella 25 -a $PORT

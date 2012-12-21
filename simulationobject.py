@@ -282,7 +282,7 @@ def run(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD(self, Simulation.tsteps, Simulation.tsize, dict)
+            self=moveset.runMD(self, 10, .1, dict)
             movetype = 'md'
             self.mdmoves += 1
             torschange = numpy.arange(Simulation.numbeads - 3)

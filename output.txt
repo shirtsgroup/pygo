@@ -1,3 +1,10 @@
-The application 'temprxGO.py' lost its connection to the display localhost:10.0;
-most likely the X server was shut down or you killed/destroyed
-the application.
+localstorage is in /state/partition1/pbstmp.2259696.lc5.itc.virginia.edu
+Starting on lc5-compute-1-1.local at Fri Dec 21 10:52:56 EST 2012
+
+Job is running on node(s): 
+------------------------
+lc5-compute-1-0 lc5-compute-1-1
+------------------------
+ModuleCmd_Load.c(200):ERROR:105: Unable to locate a modulefile for 'python26'
+ModuleCmd_Load.c(200):ERROR:105: Unable to locate a modulefile for 'python26'
+=>> PBS: job killed: walltime 90 exceeded limit 60
