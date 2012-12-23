@@ -6,8 +6,8 @@ import HMCforce
 import pdb
 import writetopdb
 from scipy import weave
-seed(10)
-numpy.random.seed(10)
+#seed(10)
+#numpy.random.seed(10)
 
 def crankshaft(mpos123, m, theta): 
     mpos = mpos123.copy()

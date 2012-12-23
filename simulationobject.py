@@ -1,5 +1,5 @@
 import random
-random.seed(10)
+#random.seed(10)
 import profile
 import scipy.misc
 import numpy
