@@ -408,9 +408,9 @@ for i in xrange(move/swap,totmoves/swap):
     #stdout.flush()
    
     # checkpoint
-    if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
-	savestate()
-	tcheck=tnow
+#    if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
+#	savestate()
+#	tcheck=tnow
 #=======================================================================================================
 # POST ANALYSIS
 #=======================================================================================================
