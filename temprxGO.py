@@ -47,7 +47,7 @@ parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
 parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
 parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
-parser.add_option("--ncpus", type="int", default=0, help="number of workers to run in parallel (cluster)")
+parser.add_option("--cluster", action="store_true", default=False, help="flag for running on cluster")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
@@ -80,7 +80,7 @@ e=options.e
 addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
 percentmove = options.freq
-ncpus = options.ncpus
+cluster = options.cluster
 #if options.random:
 #	random.seed(options.random)
 kb = 0.0019872041 #kcal/mol/K
@@ -187,16 +187,18 @@ else:
     for i in range(1, numreplicas):
         T[i] = T[i-1] * alpha
 
-if (verbose):
-    output = ['verbosity is %s' %(str(verbose)),
-    'total number of moves is %d' %(totmoves),
-    'save interval is %d moves' %(step),
-    'the replica exchange interval is %d moves' %(swap),
-    'there are %i swaps at each exchange point' %(e),
-    'there are %d replicas at temperatures:' %(numreplicas),
+if verbose:
+    if cluster:
+	print 'Running on a cluster'
+    output = ['Verbosity is %s' %(str(verbose)),
+    'The total number of moves is %d' %(totmoves),
+    'The save interval is %d moves' %(step),
+    'The replica exchange interval is %d moves' %(swap),
+    'There are %i swaps at each exchange point' %(e),
+    'There are %d replicas at temperatures:' %(numreplicas),
     str(T),
-    'there are %d residues in %s' %(numbeads,filename),
-    'percent move is',
+    'There are %d residues in %s' %(numbeads,filename),
+    'Percent move is',
     str(Simulation.percentmove),'']
     print "\r\n".join(output)
     print 'MD steps per move is '+str(Simulation.tsteps)
@@ -206,7 +208,7 @@ if surf:
     xlength = 135
     ylength = 135
     spacing = 10
-    print 'surface is %i by %i with spacing %i (Angstroms)' %( xlength, ylength, spacing)
+    print 'Surface is %i by %i with spacing %i (Angstroms)' %( xlength, ylength, spacing)
     yspacing = spacing*3.**.5
     surface = getsurf(xlength+15,ylength+15,spacing)
     writesurf('surface.pdb',surface)
@@ -371,17 +373,17 @@ for i in range(len(T)):
             writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 
 
-if 1:
+if cluster:
 	# running on the cluster
 	f = open('nodefile.txt','r')
-	PP = f.read().split("\n")
-	ppservers = tuple(filter(None,PP))
-	print ppservers
-	print ncpus
+	ppservers = f.read().split("\n")
+	f.close()
+	ppservers = filter(None,ppservers)
+	ppservers = [x+':13335' for x in ppservers]
+	ppservers = tuple(ppservers)
 	job_server = pp.Server(0,ppservers=ppservers)
 	#import time
 	#time.sleep(35)
-	print job_server.get_active_nodes()	
 	print "Starting pp with", job_server.get_ncpus(), "workers"
 else:
 	# running on one machine
@@ -404,13 +406,13 @@ for i in xrange(move/swap,totmoves/swap):
     	swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
     tnow = datetime.datetime.now()
     t_remain = (tnow - ti)/(i+1)*(totmoves/swap - i - 1)
-    #stdout.write(str(t_remain) + '\r')
-    #stdout.flush()
-   
+    if not cluster:
+	stdout.write(str(t_remain) + '\r')
+	stdout.flush()
     # checkpoint
-#    if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
-#	savestate()
-#	tcheck=tnow
+    if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
+	savestate()
+	tcheck=tnow
 #=======================================================================================================
 # POST ANALYSIS
 #=======================================================================================================
@@ -448,7 +450,7 @@ for i in range(len(replicas)):
     replicas[i].output(verbose)
     replicas[i].saveenergy(plot)
     replicas[i].savenc(plot)
-    print 'the average Q is %f' %(numpy.average(replicas[i].nc)/Simulation.totnc)
+    print 'The average Q is %f' %(numpy.average(replicas[i].nc)/Simulation.totnc)
 #    replicas[i].savermsd(plot)
 #    replicas[i].savehist(plot)
     if surf:
