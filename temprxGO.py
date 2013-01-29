@@ -48,6 +48,7 @@ parser.add_option("--surf", action="store_true", default=False, help="surface si
 parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
 parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
 parser.add_option("--cluster", action="store_true", default=False, help="flag for running on cluster")
+parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
@@ -81,6 +82,9 @@ addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
 percentmove = options.freq
 cluster = options.cluster
+restart = options.restart
+if restart:
+	print 'Restarting from last checkpoint'
 #if options.random:
 #	random.seed(options.random)
 kb = 0.0019872041 #kcal/mol/K
@@ -379,7 +383,7 @@ if cluster:
 	ppservers = f.read().split("\n")
 	f.close()
 	ppservers = filter(None,ppservers)
-	ppservers = [x+':13335' for x in ppservers]
+	ppservers = [x+':43334' for x in ppservers]
 	ppservers = tuple(ppservers)
 	job_server = pp.Server(0,ppservers=ppservers)
 	#import time
@@ -389,7 +393,8 @@ else:
 	# running on one machine
 	job_server = pp.Server(ppservers=())
 	print "Starting pp with", job_server.get_ncpus(), "workers"
-
+if restart:
+	move = loadstate()
 
 ti = datetime.datetime.now()
 tcheck = ti
