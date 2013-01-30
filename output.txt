@@ -1,9 +1,9 @@
-localstorage is in /state/partition1/pbstmp.232644.lc5.itc.virginia.edu
-Starting on lc5-compute-1-34.local at Tue Jan 29 01:48:18 EST 2013
+localstorage is in /state/partition1/pbstmp.237206.lc5.itc.virginia.edu
+Starting on lc5-compute-3-46.local at Wed Jan 30 12:09:28 EST 2013
 
 Job is running on node(s): 
 ------------------------
-lc5-compute-1-34.local
+lc5-compute-3-46.local
 ------------------------
 Running on a cluster
 Verbosity is True
@@ -23,146 +23,147 @@ MD time step is 5.0 fs
 Starting pp with 0 workers
 Starting simulation...
 -----Transition Matrix 0 Eigenvalues-----
-[-0.44401928+0.j         -0.13057622-0.04004413j -0.13057622+0.04004413j
- -0.08848815-0.22429117j -0.08848815+0.22429117j  0.04107401-0.15242662j
-  0.04107401+0.15242662j  1.00000000+0.j        ]
-1.01713356368
+[-0.34326101+0.j         -0.12882921-0.21633633j -0.12882921+0.21633633j
+ -0.10917008+0.j          0.14314501+0.j          0.33347225-0.14531915j
+  0.33347225+0.14531915j  1.00000000+0.j        ]
+1.43223212973
 -----Transition Matrix 1 Eigenvalues-----
-[-0.28382348+0.j         -0.08169200-0.11238391j -0.08169200+0.11238391j
-  0.00580782-0.13960816j  0.00580782+0.13960816j  0.12329971+0.j
-  0.21229214+0.j          1.00000000+0.j        ]
-1.26950618192
+[-0.18547196-0.16088922j -0.18547196+0.16088922j -0.06502597+0.j
+  0.12221052+0.j          0.25831952-0.15387546j  0.25831952+0.15387546j
+  0.39712034+0.j          1.00000000+0.j        ]
+1.65870582593
 -----Transition Matrix 2 Eigenvalues-----
-[ -2.08092743e-01+0.j          -5.54612799e-02-0.17911982j
-  -5.54612799e-02+0.17911982j   1.75277902e-16+0.j           7.40334599e-02+0.j
-   2.97675815e-01+0.j           3.47306029e-01+0.j           1.00000000e+00+0.j        ]
-1.53211159311
+[-0.31043627+0.j         -0.06789452+0.j          0.00929370-0.2766608j
+  0.00929370+0.2766608j   0.25264824-0.04490954j  0.25264824+0.04490954j
+  0.65444692+0.j          1.00000000+0.j        ]
+2.8939114434
 -----Transition Matrix 3 Eigenvalues-----
-[-0.30474169+0.j          0.04379814-0.260599j    0.04379814+0.260599j
-  0.06249133-0.06369945j  0.06249133+0.06369945j  0.34608137-0.10029981j
-  0.34608137+0.10029981j  1.00000000+0.j        ]
-1.49409187483
+[-0.25025124-0.20213856j -0.25025124+0.20213856j -0.23289672+0.j
+  0.10752877+0.j          0.14091451-0.16766224j  0.14091451+0.16766224j
+  0.44404140+0.j          1.00000000+0.j        ]
+1.79869508526
 -----Transition Matrix 4 Eigenvalues-----
-[-0.29484065+0.j         -0.04289892-0.32162604j -0.04289892+0.32162604j
- -0.02415730-0.0793815j  -0.02415730+0.0793815j   0.26593521+0.j
-  0.56301788+0.j          1.00000000+0.j        ]
-2.28842313979
+[-0.12520359+0.j        -0.09650714-0.1808144j -0.09650714+0.1808144j
+  0.07914290+0.j         0.19388869+0.j         0.20000000+0.j
+  0.54518628+0.j         1.00000000+0.j       ]
+2.19870234305
 -----Transition Matrix 5 Eigenvalues-----
-[-0.10607437-0.04954194j -0.10607437+0.04954194j  0.02073913-0.07454811j
-  0.02073913+0.07454811j  0.26729999+0.j          0.35168524-0.11435563j
-  0.35168524+0.11435563j  1.00000000+0.j        ]
-1.49591800138
+[-0.15509133+0.j         -0.00915245-0.05274713j -0.00915245+0.05274713j
+  0.04973104-0.22158955j  0.04973104+0.22158955j  0.12779304+0.j
+  0.54614110+0.j          1.00000000+0.j        ]
+2.20332797311
 -----Transition Matrix 6 Eigenvalues-----
-[-0.13329329-0.29921341j -0.13329329+0.29921341j -0.08067969-0.15418532j
- -0.08067969+0.15418532j  0.13556802+0.j          0.34618897-0.10005337j
-  0.34618897+0.10005337j  1.00000000+0.j        ]
-1.49449509691
+[-0.15976291-0.16582311j -0.15976291+0.16582311j -0.11752880-0.08306755j
+ -0.11752880+0.08306755j  0.19633228-0.10659479j  0.19633228+0.10659479j
+  0.56191886+0.j          1.00000000+0.j        ]
+2.28268213387
 -----Transition Matrix 7 Eigenvalues-----
-[-0.12484024-0.02945781j -0.12484024+0.02945781j  0.05568302-0.13135324j
-  0.05568302+0.13135324j  0.11279346+0.j          0.26276048-0.14480505j
-  0.26276048+0.14480505j  1.00000000+0.j        ]
-1.30602619291
+[-0.23152833-0.12302248j -0.23152833+0.12302248j -0.06579093+0.j
+  0.13315091-0.09553393j  0.13315091+0.09553393j  0.32590585+0.j
+  0.63663993+0.j          1.00000000+0.j        ]
+2.7520910241
 -----Transition Matrix 8 Eigenvalues-----
-[-0.28493007+0.j -0.17178314+0.j -0.04577842+0.j -0.00687694+0.j
-  0.15265351+0.j  0.31242864+0.j  0.54428642+0.j  1.00000000+0.j]
-2.19436074297
+[-0.17108481-0.18208075j -0.17108481+0.18208075j  0.01494262-0.06710366j
+  0.01494262+0.06710366j  0.15182886-0.16845433j  0.15182886+0.16845433j
+  0.40862664+0.j          1.00000000+0.j        ]
+1.69097911042
 -----Transition Matrix 9 Eigenvalues-----
-[-0.20498071-0.09647121j -0.20498071+0.09647121j -0.07166452+0.j
-  0.11597112-0.19412347j  0.11597112+0.19412347j  0.26624067+0.j
-  0.38344303+0.j          1.00000000+0.j        ]
-1.62191012573
+[-0.32204589-0.10297494j -0.32204589+0.10297494j -0.18690403+0.j
+ -0.13299226+0.j          0.17910470-0.06185797j  0.17910470+0.06185797j
+  0.40577867+0.j          1.00000000+0.j        ]
+1.68287463626
 -----Full Transition Matrix Eigenvalues-----
-[-0.06012873+0.j         -0.04865968+0.j         -0.00260232-0.06064375j
- -0.00260232+0.06064375j  0.08710378-0.00736119j  0.08710378+0.00736119j
-  0.24978550+0.j          1.00000000+0.j        ]
-Full Tmat miximg time: (1.33295210504+0j)
-Average mixing time from submatrices: 1.57139765133
-Standard deviation in mixing time: 0.373183598475
+[-0.06027071-0.03602464j -0.06027071+0.03602464j -0.01886343-0.06779443j
+ -0.01886343+0.06779443j  0.08309379+0.j          0.09089093+0.j
+  0.40428357+0.j          1.00000000+0.j        ]
+Full Tmat miximg time: (1.67865103574+0j)
+Average mixing time from submatrices: 2.05942017051
+Standard deviation in mixing time: 0.465357199161
 Job execution statistics:
  job count | % of all jobs | job time sum | time per job | job server
-       800 |        100.00 |      16.5223 |     0.020653 | lc5-compute-1-34.local:43334
-Time elapsed since server creation 5.62900710106
+       800 |        100.00 |      20.6333 |     0.025792 | lc5-compute-3-46.local:43334
+Time elapsed since server creation 7.79922509193
 0 active tasks, 0 cores
 
 -------- replica0 Simulation Results --------
-total accepted moves: 239
-total rejected moves: 761
-angle bend:        28 percent acceptance (51/180)
-torsion:           20 percent acceptance (41/196)
-global crankshaft: 24 percent acceptance (71/292)
-ParRot:            22 percent acceptance (76/332)
-                   7 ParRot moves rejected due to chain closure
-The average Q is 0.999917
+total accepted moves: 197
+total rejected moves: 803
+angle bend:        25 percent acceptance (46/182)
+torsion:           16 percent acceptance (34/211)
+global crankshaft: 13 percent acceptance (45/326)
+ParRot:            25 percent acceptance (72/281)
+                   11 ParRot moves rejected due to chain closure
+The average Q is 0.999257
 -------- replica1 Simulation Results --------
-total accepted moves: 228
-total rejected moves: 772
-angle bend:        27 percent acceptance (53/194)
-torsion:           28 percent acceptance (61/213)
-global crankshaft: 14 percent acceptance (43/292)
-ParRot:            23 percent acceptance (71/301)
-                   12 ParRot moves rejected due to chain closure
-The average Q is 0.999752
+total accepted moves: 195
+total rejected moves: 805
+angle bend:        23 percent acceptance (51/217)
+torsion:           15 percent acceptance (33/208)
+global crankshaft: 15 percent acceptance (46/292)
+ParRot:            22 percent acceptance (65/283)
+                   7 ParRot moves rejected due to chain closure
+The average Q is 0.999340
 -------- replica2 Simulation Results --------
+total accepted moves: 212
+total rejected moves: 788
+angle bend:        26 percent acceptance (55/208)
+torsion:           20 percent acceptance (43/208)
+global crankshaft: 18 percent acceptance (53/285)
+ParRot:            20 percent acceptance (61/299)
+                   13 ParRot moves rejected due to chain closure
+The average Q is 0.999092
+-------- replica3 Simulation Results --------
 total accepted moves: 192
 total rejected moves: 808
-angle bend:        25 percent acceptance (49/196)
-torsion:           17 percent acceptance (34/198)
-global crankshaft: 18 percent acceptance (61/322)
-ParRot:            16 percent acceptance (48/284)
+angle bend:        23 percent acceptance (43/184)
+torsion:           16 percent acceptance (32/196)
+global crankshaft: 18 percent acceptance (57/309)
+ParRot:            19 percent acceptance (60/311)
                    11 ParRot moves rejected due to chain closure
-The average Q is 0.999587
--------- replica3 Simulation Results --------
-total accepted moves: 193
-total rejected moves: 807
-angle bend:        19 percent acceptance (33/166)
-torsion:           21 percent acceptance (47/218)
-global crankshaft: 15 percent acceptance (47/305)
-ParRot:            21 percent acceptance (66/311)
-                   7 ParRot moves rejected due to chain closure
-The average Q is 0.999175
+The average Q is 0.998432
 -------- replica4 Simulation Results --------
-total accepted moves: 181
-total rejected moves: 819
-angle bend:        18 percent acceptance (39/210)
-torsion:           16 percent acceptance (32/195)
-global crankshaft: 17 percent acceptance (53/302)
-ParRot:            19 percent acceptance (57/293)
-                   7 ParRot moves rejected due to chain closure
-The average Q is 0.999175
--------- replica5 Simulation Results --------
-total accepted moves: 180
-total rejected moves: 820
-angle bend:        15 percent acceptance (33/216)
-torsion:           18 percent acceptance (33/181)
-global crankshaft: 21 percent acceptance (66/310)
-ParRot:            16 percent acceptance (48/293)
-                   9 ParRot moves rejected due to chain closure
-The average Q is 0.999175
--------- replica6 Simulation Results --------
-total accepted moves: 168
-total rejected moves: 832
-angle bend:        16 percent acceptance (32/197)
-torsion:           18 percent acceptance (36/197)
-global crankshaft: 19 percent acceptance (60/307)
-ParRot:            13 percent acceptance (40/299)
-                   8 ParRot moves rejected due to chain closure
-The average Q is 0.998845
--------- replica7 Simulation Results --------
-total accepted moves: 144
-total rejected moves: 856
-angle bend:        12 percent acceptance (26/201)
-torsion:           15 percent acceptance (32/211)
-global crankshaft: 15 percent acceptance (45/284)
-ParRot:            13 percent acceptance (41/304)
-                   10 ParRot moves rejected due to chain closure
+total accepted moves: 190
+total rejected moves: 810
+angle bend:        18 percent acceptance (40/219)
+torsion:           18 percent acceptance (36/192)
+global crankshaft: 20 percent acceptance (56/272)
+ParRot:            18 percent acceptance (58/317)
+                   5 ParRot moves rejected due to chain closure
 The average Q is 0.998927
-Swaps accepted between replica0 and replica1: 85.26 percent
-Swaps accepted between replica1 and replica2: 85.96 percent
-Swaps accepted between replica2 and replica3: 85.92 percent
-Swaps accepted between replica3 and replica4: 87.13 percent
-Swaps accepted between replica4 and replica5: 87.39 percent
-Swaps accepted between replica5 and replica6: 88.78 percent
-Swaps accepted between replica6 and replica7: 89.41 percent
-Total swaps accepted: 30462
-Total swaps rejected: 4503
-Simulation time: 0:00:05.857116
+-------- replica5 Simulation Results --------
+total accepted moves: 187
+total rejected moves: 813
+angle bend:        21 percent acceptance (45/210)
+torsion:           17 percent acceptance (34/200)
+global crankshaft: 18 percent acceptance (53/292)
+ParRot:            18 percent acceptance (55/298)
+                   15 ParRot moves rejected due to chain closure
+The average Q is 0.997855
+-------- replica6 Simulation Results --------
+total accepted moves: 190
+total rejected moves: 810
+angle bend:        17 percent acceptance (32/181)
+torsion:           16 percent acceptance (33/203)
+global crankshaft: 21 percent acceptance (67/310)
+ParRot:            18 percent acceptance (58/306)
+                   15 ParRot moves rejected due to chain closure
+The average Q is 0.997525
+-------- replica7 Simulation Results --------
+total accepted moves: 171
+total rejected moves: 829
+angle bend:        21 percent acceptance (43/197)
+torsion:           15 percent acceptance (34/214)
+global crankshaft: 17 percent acceptance (51/291)
+ParRot:            14 percent acceptance (43/298)
+                   12 ParRot moves rejected due to chain closure
+The average Q is 0.998185
+Swaps accepted between replica0 and replica1: 87.04 percent
+Swaps accepted between replica1 and replica2: 86.09 percent
+Swaps accepted between replica2 and replica3: 84.47 percent
+Swaps accepted between replica3 and replica4: 82.43 percent
+Swaps accepted between replica4 and replica5: 81.68 percent
+Swaps accepted between replica5 and replica6: 81.86 percent
+Swaps accepted between replica6 and replica7: 83.68 percent
+Total swaps accepted: 29310
+Total swaps rejected: 5629
+Simulation time: 0:00:09.039982
