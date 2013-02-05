@@ -421,7 +421,7 @@ for i in xrange(move/swap,totmoves/swap):
 #=======================================================================================================
 # POST ANALYSIS
 #=======================================================================================================
-if swap!=totmoves:
+if swap!=totmoves and numreplicas > 1:
     #calculate mixing time
     mixtime = zeros(10)
     fulltransmat = zeros((numreplicas,numreplicas))

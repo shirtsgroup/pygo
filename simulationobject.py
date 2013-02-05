@@ -38,7 +38,7 @@ def save(self):
 	print Simulation.step
     self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
-    self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(Simulation.coord_nat, self.mcoord)
+#   self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(Simulation.coord_nat, self.mcoord)
     if (Simulation.pdbfile):
         writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
     return self
@@ -56,7 +56,7 @@ class Simulation:
         self.coord = coord
         self.energyarray = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.nc = numpy.empty(Simulation.totmoves/Simulation.step + 1) #native contacts
-        self.rmsd_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
+#       self.rmsd_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.move = 0
         self.T = temp
         self.maxtheta = numpy.array([5., # bend
