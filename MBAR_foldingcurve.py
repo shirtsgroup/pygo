@@ -11,6 +11,17 @@ import timeseries # for timeseries analysis
 import os
 import os.path
 import pdb  # for debugging
+from optparse import OptionParser
+
+parser=OptionParser()
+parser.add_option("-t", "--temprange", nargs=2, default=[300.0,450.0], type="float", dest="temprange", help="temperature range of replicas")
+parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", help="number of replicas")
+parser.add_option("--direc", dest="datafile", default="replicaexchange/simlog0/", help="Qtraj_singleprot.txt file location")
+
+(options,args) = parser.parse_args()
+trange = options.temprange
+numreplicas = options.replicas
+direc = options.datafile
 
 #========================================================
 # CONSTANTS
@@ -19,7 +30,7 @@ import pdb  # for debugging
 kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
-NumTemps = 8          # Last TEMP # + 1 (start counting at 1)
+#NumTemps = 24          # Last TEMP # + 1 (start counting at 1)
 NumIterations = 500  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
@@ -107,8 +118,8 @@ print("Preparing data:")
 #E_from_file = read_total_energies(simulation)
 #K = len(T_from_file)
 
-trange = [300.0, 450.0]
-numreplicas = 8
+#trange = [300.0, 450.0]
+#numreplicas = 24
 T = numpy.empty(numreplicas)
 alpha = (trange[1]/trange[0])**(1/float(numreplicas-1))
 T[0]=trange[0]
@@ -118,10 +129,10 @@ print T
 files=[]
 surf=[]
 for i in range(len(T)):
-#	files.append('results/1PGB/solution/energy'+str(int(T[i]))+'.txt')
+	files.append(direc+'/energy'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
-	files.append('replicaexchange/simlog99/energy'+str(int(T[i]))+'.txt')
+#	files.append('replicaexchange/simlog99/energy'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
 nc=numpy.loadtxt(files[0])
@@ -141,8 +152,8 @@ E_from_file = nc.copy()
 K = numreplicas
 files=[]
 for i in range(len(T)):
-	#files.append('results/1PGB/solution/fractionnative'+str(int(T[i]))+'.txt')
-	files.append('replicaexchange/simlog99/fractionnative'+str(int(T[i]))+'.txt')
+	files.append(direc+'/fractionnative'+str(int(T[i]))+'.txt')
+#	files.append('replicaexchange/simlog99/fractionnative'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
@@ -278,5 +289,5 @@ plt.errorbar(Temp_k, Q, yerr=dQ)
 plt.xlabel('Temperature (K)')
 plt.ylabel('Q fraction native')
 #plt.title('Heat Capacity from Go like model MC simulation of 1BSQ')
-plt.savefig('foldingcurve.png')
+plt.savefig(direc+'/foldingcurve.png')
 plt.show()

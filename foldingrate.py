@@ -9,8 +9,12 @@ font = {'family' : 'normal',
         'size'   : 22}
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="replicaexchange/simlog0/", help="Qtraj_singleprot.txt file location")
+parser.add_option("--direc", dest="datafile", default="replicaexchange/simlog0/", help="Qtraj_singleprot.txt file location")
 parser.add_option("-n", "--moves", dest="average", type="int", default='10', help="number of data points to average")
+#parser.add_option("-t", "--temprange", nargs=2, default=[300.0,450.0], type="float", dest="temprange", help="temperature range of replicas")
+parser.add_option("-s", "--stepsize", dest="step", type="int", default='1000', help="number of moves between save operations")
+parser.add_option("-k", "--swapsize", dest="swap", type="int", default='1000', help="number of moves between swap operations")
+parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", help="number of replicas")
 (options,args)=parser.parse_args()
 
 
@@ -20,9 +24,9 @@ n = options.average
 #file = '/home/edz3fz/proteinmontecarlo/replicaexchange/simlog24/Qtraj_singleprot.txt'
 Q = numpy.loadtxt(file)
 Q = Q - .5
-numrep = 8
-save=100
-swap=100
+numrep = options.replicas
+save = options.step
+swap = options.swap
 #Q = Q[:,::10]
 # Averages every n points to reduce noise
 #n = 5
@@ -77,7 +81,7 @@ if orgdataplt:
 	for i in range(numrep):
 		plt.subplot(numrep/2,2,i+1)
 		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5)
-		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5,'o')
+#		plt.plot(numpy.arange(len(Q[0,:])),Q[i,:]+.5,'o')
 		plt.plot(numpy.arange(0,len(Q[0,:]),swap/save),pt[i])
 	plt.xlabel('moves/%i' % save)
 	plt.ylabel('Q fraction native')

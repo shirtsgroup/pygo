@@ -368,6 +368,7 @@ def cshake(bonds, v_half, h, m, dsq, maxloop, numbeads, tol):
     }
     """
     info = weave.inline(code, ['bonds', 'v_half', 'h', 'm', 'dsq', 'maxloop', 'numbeads', 'tol','loops'], headers=['<math.h>', '<stdlib.h>'])
+    #print "cshake iterations " + str(loops[0])
     conv = True
     if loops[0] == maxloop:
         conv = False

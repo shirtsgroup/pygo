@@ -87,6 +87,7 @@ if restart:
 	print 'Restarting from last checkpoint'
 #if options.random:
 #	random.seed(options.random)
+#random.seed(10)
 kb = 0.0019872041 #kcal/mol/K
 nativecutoff2 = 1.2**2
 

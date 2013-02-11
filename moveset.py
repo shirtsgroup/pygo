@@ -561,7 +561,7 @@ def runMD(self,nsteps,h,dict):
 	self.newcoord=self.coord.copy()
 	self.vel=empty((numbeads,3))
 	for i in range(numbeads): self.vel[i,:]=numpy.random.normal(0,(4.184*self.kb*self.T/m[i])**.5,3) #in nm/ps, uses average residue mass
-	
+	#pdb.set_trace()
         bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
 	d2=numpy.sum(bonds**2,axis=1)
 	d=d2**.5
