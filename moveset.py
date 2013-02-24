@@ -556,7 +556,6 @@ def runMD(self,nsteps,h,dict):
 	tol=1e-8
 	maxloop=1000
 
-
 	
 	self.newcoord=self.coord.copy()
 	self.vel=empty((numbeads,3))
@@ -567,21 +566,25 @@ def runMD(self,nsteps,h,dict):
 	d=d2**.5
 	force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 	a = numpy.transpose(force) / m
+#	vel2, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
 	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
-	self.vold = self.vel
+	#assert(sum(self.vel)==sum(vel2))
         self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
-	
-	temporary = False
-	if temporary:
-		Hplot = numpy.zeros(nsteps+1)
-		Hplot[0] = self.oldH
-
+#	temporary = False
+#	if temporary:
+#		Hplot = numpy.zeros(nsteps+1)
+#		Hplot[0] = self.oldH
 	for e in range(nsteps):
 		#finding r(t+dt)
 		#loops = 0
 		#conv = numpy.ones(numbeads-1)
 		v_half = self.vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
+		#v_half2, conv = HMCforce.shake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # 
+#		v_hal=v_half.copy()
 		v_half, conv = HMCforce.cshake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # 
+#		a,b = HMCforce.shake(bonds, v_hal, h, m, d2, maxloop, numbeads, tol) # 
+#		pdb.set_trace()
+	#	assert(sum(v_half2)==sum(v_half))
 		if not conv:
 			print 'MD not converging, reject'
 			self.uncloseable=True
@@ -592,31 +595,33 @@ def runMD(self,nsteps,h,dict):
 		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil)
 		a=transpose(force)/m
 		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
+		#vel2, conv = HMCforce.rattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
 		self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+	#	assert(sum(self.vel)==sum(vel2))
 		if not conv:
 			print 'MD not converging, reject'
 			self.uncloseable=True
 			self.rejected += 1
 			break
-		if temporary:
-			coord=self.newcoord
-			from energyfunc import *
-    			r2=cgetLJr2(coord,numint,numbeads)
-    			torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
-   			angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
-   			u1=sum(angE)+sum(torsE)+LJenergy_n(r2,nativeparam_n,nonnativeparam,nnepsil)
-			ke=.5*m/4.184*sum(self.vel**2,axis=1)
-			Hplot[e+1] = u1 + sum(ke)
+#		if temporary:
+#			coord=self.newcoord
+#			from energyfunc import *
+ #   			r2=cgetLJr2(coord,numint,numbeads)
+ #   			torsE=torsionenergy_nn(coord,zeros(numbeads-3),torsparam,arange(numbeads-3))
+#   			angE=angleenergy_n(coord,zeros(numbeads-2),angleparam,arange(numbeads-2))
+#   			u1=sum(angE)+sum(torsE)+LJenergy_n(r2,nativeparam_n,nonnativeparam,nnepsil)
+#			ke=.5*m/4.184*sum(self.vel**2,axis=1)
+#			Hplot[e+1] = u1 + sum(ke)
 	
 		#writetopdb.addtopdb(self.newcoord,positiontemplate,self.move*nsteps+e,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
 	#if(loops==maxloop):
 		#self.uncloseable=True
 		#self.rejected += 1
 	#assert all(sum(bonds**2,axis=1)-d2< 1e-7)
-	if temporary:
-		import matplotlib.pyplot as plt
-		plt.plot(range(nsteps+1),Hplot)
-		plt.show()
+#	if temporary:
+#		import matplotlib.pyplot as plt
+#		plt.plot(range(nsteps+1),Hplot)
+#		plt.show()
 	return self
 
 def runMD_surf(self,nsteps,h,dict):

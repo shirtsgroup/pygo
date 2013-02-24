@@ -329,7 +329,10 @@ def loadstate():
     input = open('%s/cptstate.pkl' % direc, 'rb')
     move = cPickle.load(input)
     protein_location = cPickle.load(input)
-    transmat = cPickle.load(input)
+    try:
+	transmat = cPickle.load(input)
+    except:
+	pass
     input.close()
     for i in range(numreplicas):
        	replicas[i].loadstate()

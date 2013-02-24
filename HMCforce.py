@@ -341,8 +341,7 @@ def cshake(bonds, v_half, h, m, dsq, maxloop, numbeads, tol):
     """Performs SHAKE algorithm to constrain positions"""
     loops = numpy.array([0])
     code="""
-    
-    int conv;
+    int conv = numbeads - 1;
     double x, y, z, diff, g;
     while ( conv != 0 && LOOPS1(0) < maxloop) {
         conv = numbeads - 1;
@@ -378,7 +377,7 @@ def crattle(bonds, vel, m, dsq, maxloop, numbeads, tol):
     """Performs RATTLE algorithm to constrain velocities"""
     loops = numpy.array([0])
     code = """
-    int conv;
+    int conv = numbeads - 1;
     double diff, k, x, y, z;
     while ( conv != 0 && LOOPS1(0) < maxloop){
         conv = numbeads - 1;
