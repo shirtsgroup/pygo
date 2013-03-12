@@ -37,7 +37,7 @@ def save(self):
 	print self.move
 	print Simulation.step
     self.nc[self.move/Simulation.step] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
-    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
+#    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
 #   self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(Simulation.coord_nat, self.mcoord)
     if (Simulation.pdbfile):
         writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
@@ -46,8 +46,8 @@ def save(self):
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
-    tsteps=360
-    tsize=.05
+    #tsteps=10
+    #tsize=.5
 #    percentmove = [0.25, 0.5, 0.75, 1.] # % bend,% axis torsion, % global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp):
@@ -206,6 +206,8 @@ def run(self, nummoves, dict):
     Simulation.positiontemplate = dict['positiontemplate']
     Simulation.pdbfile = dict['pdbfile']
     mass = dict['mass']
+    Simulation.tsteps = dict['tsteps']
+    Simulation.tsize = dict['tsize']
 
     for i in xrange(nummoves):
         randmove = random.random()

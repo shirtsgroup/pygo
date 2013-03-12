@@ -29,8 +29,8 @@ from energyfunc import *
 t1=datetime.datetime.now()
 
 parser=OptionParser()
-parser.add_option("-f", "--files", dest="datafile", default="GO_1ENH.pdb", help="protein .pdb file")
-parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_1ENH.param', help="protein .param file")
+parser.add_option("-f", "--files", dest="datafile", default="GO_1PGB.pdb", help="protein .pdb file")
+parser.add_option("-p", "--parameterfile", dest="paramfile", default='GO_1PGB.param', help="protein .param file")
 parser.add_option("-t", "--temprange", nargs=2, default=[300.,450.], type="float", dest="temprange", help="temperature range of replicas")
 parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", help="number of replicas")
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
@@ -42,13 +42,15 @@ parser.add_option("-g", "--histogram", dest="histname", default='', help="name h
 parser.add_option("-a", "--plot", action="store_false", default=True, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
 parser.add_option("-e", "--percentmove", nargs=1, dest="e", type="int",default=100, help="the output pdb file")
-parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number")
+parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number or umbrella id number")
 parser.add_option("--freq", nargs=4, dest="freq", type="float", default=[.2,.4,.7,1.], help="move frequencies")
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
-parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag")
-parser.add_option("--scale", type="float", default=1, help="umbrella simulation flag")
+parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag and distance of pinning")
+parser.add_option("--scale", type="float", default=1, help="scaling of surface attraction strength")
 parser.add_option("--cluster", action="store_true", default=False, help="flag for running on cluster")
 parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
+parser.add_option("--md", nargs=2, default=[.05,360],type="float", dest="md", help="step size and nsteps for MD move")
+parser.add_option("--tfile", dest="tfile", default="", help="file of temperatures")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
@@ -68,6 +70,7 @@ elif umbrella:
 else:
     from simulationobject import *
 trange = options.temprange # Kelvin
+tfile = options.tfile
 numreplicas = options.replicas
 totmoves = options.totmoves
 step = options.step
@@ -83,6 +86,8 @@ id = options.id # simlog id number, used to make directory for results
 percentmove = options.freq
 cluster = options.cluster
 restart = options.restart
+[tsize,tsteps] = options.md
+tsteps = int(tsteps)
 if restart:
 	print 'Restarting from last checkpoint'
 #if options.random:
@@ -174,9 +179,11 @@ Simulation.transform = transform
 Simulation.coord_nat = coord_nat
 Simulation.mass = mass
 Simulation.percentmove = percentmove
+Simulation.tsize = tsize
+Simulation.tsteps = tsteps
 
 # put class variables in a dictionary for pprun
-dict = {'percentmove':percentmove,'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
+dict = {'tsize':tsize,'tsteps':tsteps,'percentmove':percentmove,'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
 
 # Calculate temperature distribution
 if numreplicas == 1:
@@ -185,12 +192,15 @@ if numreplicas == 1:
     T = [trange[0]]
 elif numreplicas == 2:
     T = trange
-else:
+elif not tfile:
     T = numpy.empty(numreplicas)
     alpha = (trange[1] / trange[0])**(1 / float(numreplicas - 1))
     T[0] = trange[0]
     for i in range(1, numreplicas):
         T[i] = T[i-1] * alpha
+else:
+    T = numpy.loadtxt(tfile)
+    assert(len(T)==numreplicas)
 
 if verbose:
     if cluster:
@@ -212,7 +222,7 @@ if verbose:
 if surf:
     xlength = 135
     ylength = 135
-    spacing = 10
+    spacing = 6
     print 'Surface is %i by %i with spacing %i (Angstroms)' %( xlength, ylength, spacing)
     yspacing = spacing*3.**.5
     surface = getsurf(xlength+15,ylength+15,spacing)
@@ -362,9 +372,18 @@ parentdirc = './replicaexchange'
 if not os.path.exists(parentdirc):
     os.mkdir(parentdirc)
 
-direc = './replicaexchange/simlog%i' % id
-if not os.path.exists(direc):
-    os.mkdir(direc)
+if umbrella:
+    direc = './replicaexchange/umbrella%i' %id
+    if not os.path.exists(direc):
+        os.mkdir(direc)
+    direc = './replicaexchange/umbrella%i/%i' %(id,int(umbrella))
+    if not os.path.exists(direc):
+        os.mkdir(direc)
+
+else:
+    direc = './replicaexchange/simlog%i' % id
+    if not os.path.exists(direc):
+        os.mkdir(direc)
 
 
 for i in range(len(T)):
@@ -392,6 +411,8 @@ if cluster:
 	job_server = pp.Server(0,ppservers=ppservers)
 	#import time
 	#time.sleep(35)
+	print 'Running pp on: '
+	print ppservers
 	print "Starting pp with", job_server.get_ncpus(), "workers"
 else:
 	# running on one machine

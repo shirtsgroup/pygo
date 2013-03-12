@@ -3,6 +3,8 @@ from simulationobject import Simulation
 import numpy
 import pdb
 import random
+#random.seed(10)
+#numpy.random.seed(10)
 import energyfunc
 import moveset
 import writetopdb
@@ -25,8 +27,8 @@ def save(self):
     self.surfE_array[index] = self.surfE
     self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     #self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
-    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
-    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
+#    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
+#    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
     self.z_array[index] = numpy.sum(self.mass*self.coord[:,2])/self.totmass
     if (Simulation.pdbfile):
         writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
@@ -58,4 +60,7 @@ class UmbrellaSimulation(SurfaceSimulation):
 	filename = '%s/z_traj%i_%i.txt' % (self.out, int(self.z_pin), int(self.T))
 	numpy.savetxt(filename, self.z_array)
 
-
+    def loadstate(self):
+	SurfaceSimulation.loadstate(self)
+	self.z_array = numpy.loadtxt('%s/z_traj%i_%i.txt' %(self.out, int(self.z_pin), int(self.T)))
+	self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, self.mass, self.totmass)

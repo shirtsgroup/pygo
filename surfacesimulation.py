@@ -2,6 +2,8 @@ from simulationobject import Simulation
 import numpy
 import pdb
 import random
+#random.seed(10)
+#numpy.random.seed(10)
 import energyfunc
 import moveset
 import writetopdb
@@ -49,8 +51,8 @@ def save(self):
     self.surfE_array[index] = self.surfE
     self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     #self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
-    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
-    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
+#    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
+#    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
     if (Simulation.pdbfile):
         writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
     return self
@@ -77,7 +79,7 @@ class SurfaceSimulation(Simulation):
         self.moveparam = self.moveparam * numpy.pi / 180 * self.T / 300 * 50 / Simulation.numbeads
 	self.u0 += self.surfE
         self.energyarray[0] = self.u0
-        self.rmsd_array[0] = 0.0
+#        self.rmsd_array[0] = 0.0
         self.coord_nat = writetopdb.moviecoord(self.coord, Simulation.transform)
         self.nc[0] = Simulation.totnc
        
@@ -100,13 +102,20 @@ class SurfaceSimulation(Simulation):
         self.coord[:,2] += 10 - numpy.min(self.coord[:,2]) # protein is 1 nm from surface
         
     def output(self, verbose):
-	self.output(verbose)
+	Simulation.output(self,verbose)
 	if verbose:
 		if self.trmoves:
 			print 'translation:       %d percent acceptance (%i/%i)' %(float(self.acceptedtr)/float(self.trmoves)*100, self.acceptedtr, self.trmoves)
 		if self.rmoves:
 			print 'rotation:          %d percent acceptance (%i/%i)' %(float(self.acceptedr)/float(self.rmoves)*100, self.acceptedr, self.rmoves)
-       
+      
+    def loadstate(self):
+	Simulation.loadstate(self)
+        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+	self.u0 += self.surfE
+	self.surfE_array = numpy.loadtxt('%s/surfenergy%i.txt' %(self.out, int(self.T)))
+
+ 
     def savesurfenergy(self, plot):
         filename='%s/surfenergy%i.txt' % (self.out, int(self.T))
         numpy.savetxt(filename, self.surfE_array)
@@ -197,7 +206,7 @@ def run_surf(self, nummoves, dict):
 	    #theta = self.moveparam[2] - 2 * self.moveparam[2] * random.random()
             theta = numpy.random.normal(0, self.moveparam[2])
             self.newcoord, jac = moveset.canglebend(self.coord, m, randdir, theta)
-            self.angmoves += 1
+            self.amoves += 1
             movetype = 'a'
             torschange = numpy.array([])
             angchange = numpy.array([m-1])
@@ -209,7 +218,7 @@ def run_surf(self, nummoves, dict):
             theta = numpy.random.normal(0, self.moveparam[3])
             self.newcoord = moveset.caxistorsion(self.coord, m, randdir, theta)
             movetype = 'at'
-            self.atormoves += 1
+            self.atmoves += 1
             angchange = numpy.array([])
             if randdir < .5:
                 torschange = numpy.array([m-2])
@@ -266,7 +275,7 @@ def run_surf(self, nummoves, dict):
         else:
             self=moveset.runMD_surf(self, 18, .1, dict)
             movetype = 'md'
-            self.mdmove += 1
+            self.mdmoves += 1
             torschange = numpy.arange(Simulation.numbeads-3)
             angchange = numpy.arange(Simulation.numbeads-2)
             jac = 1
