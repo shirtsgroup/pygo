@@ -12,7 +12,7 @@ except:
 	plot=False
 	import os
 	os.environ['TMPDIR']
-from sys import stdout
+from sys import stdout, exit
 import profile
 import scipy.linalg
 from scipy.misc import comb
@@ -51,6 +51,7 @@ parser.add_option("--cluster", action="store_true", default=False, help="flag fo
 parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
 parser.add_option("--md", nargs=2, default=[.05,360],type="float", dest="md", help="step size and nsteps for MD move")
 parser.add_option("--tfile", dest="tfile", default="", help="file of temperatures")
+parser.add_option("--extend", nargs=1, dest="extend", type="int", default=0, help="id number of existing simulation to start simulation from")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
 
 (options,args)=parser.parse_args()
@@ -83,6 +84,7 @@ pdbfile = options.writepdb
 e=options.e
 addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
+extend = options.extend #simlog id number to extend simulation of
 percentmove = options.freq
 cluster = options.cluster
 restart = options.restart
@@ -90,6 +92,8 @@ restart = options.restart
 tsteps = int(tsteps)
 if restart:
 	print 'Restarting from last checkpoint'
+if extend:
+	print 'Extending simulation %i' % extend
 #if options.random:
 #	random.seed(options.random)
 #random.seed(10)
@@ -136,7 +140,7 @@ file.close()
 
 untransform = getmovietransform(coord)
 transform = transpose(untransform)
-coord_nat = moviecoord(coord,transform)
+#coord_nat = moviecoord(coord,transform)
 
 #Get parameters from .param file
 angleparam = getangleparam(paramfile, numbeads)
@@ -174,14 +178,14 @@ Simulation.wordtemplate = wordtemplate
 Simulation.positiontemplate = positiontemplate
 Simulation.ATOMlinenum = ATOMlinenum
 Simulation.transform = transform
-Simulation.coord_nat = coord_nat
+#Simulation.coord_nat = coord_nat
 Simulation.mass = mass
 Simulation.percentmove = percentmove
 Simulation.tsize = tsize
 Simulation.tsteps = tsteps
 
 # put class variables in a dictionary for pprun
-dict = {'tsize':tsize,'tsteps':tsteps,'percentmove':percentmove,'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'coord_nat':coord_nat, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
+dict = {'tsize':tsize,'tsteps':tsteps,'percentmove':percentmove,'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
 
 # Calculate temperature distribution
 if numreplicas == 1:
@@ -400,6 +404,18 @@ for i in range(len(T)):
             mcoord = moviecoord(coord, transform)
             writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 
+if extend:
+	extenddirec = './replicaexchange/simlog%i' % extend
+	if not os.path.exists(extenddirec):
+		sys.exit('Simulation %i does not exist at %s' % (extend, extenddirec))
+	input = open('%s/cptstate.pkl' %extenddirec, 'rb')
+	print 'Extending simulation of %i moves' % cPickle.load(input)
+	protein_location = cPickle.load(input)
+	protein_location = [[protein_location[i][-1]] for i in range(numreplicas)]	
+	input.close()
+	for i in range(numreplicas):
+		replicas[i].loadextend(extenddirec)
+		replicas[protein_location[i][-1]].whoami = i
 
 if cluster:
 	# running on the cluster
@@ -444,6 +460,10 @@ for i in xrange(move/swap,totmoves/swap):
     # checkpoint
     if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
 	savestate()
+	f = open('%s/status.txt' % direc, 'w')
+	f.write('Completed %i moves out of %i moves\n' %(replicas[0].move, totmoves))
+	f.write('%i swaps performed in %s\n' %(i, str(tnow-ti))) #useful for the MD vs. MC comparison
+	f.close()
 	tcheck=tnow
 #=======================================================================================================
 # POST ANALYSIS
@@ -478,11 +498,16 @@ for i in xrange(move/swap,totmoves/swap):
 # OUTPUT
 #=======================================================================================================
 job_server.print_stats()
+output = open('%s/cptstate.pkl' % direc, 'wb')
+cPickle.dump(replicas[0].move, output)
+cPickle.dump(protein_location, output)
+output.close()
 for i in range(len(replicas)):
     replicas[i].output(verbose)
     replicas[i].saveenergy(plot)
     replicas[i].savenc(plot)
     print 'The average Q is %f' %(numpy.average(replicas[i].nc)/Simulation.totnc)
+    replicas[i].savecoord()
 #    replicas[i].savermsd(plot)
 #    replicas[i].savehist(plot)
     if surf:

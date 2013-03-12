@@ -119,6 +119,11 @@ class Simulation:
 	self.energyarray = numpy.loadtxt('%s/energy%i.txt' %(self.out, int(self.T)))
 	self.nc = Simulation.totnc*numpy.loadtxt('%s/fractionnative%i.txt' %(self.out, int(self.T)))
 
+    def loadextend(self,extenddirec):
+	self.coord = numpy.loadtxt('%s/coord%i.cpt' %(extenddirec, int(self.T)))
+	self.setenergy()
+	self.energyarray[0]=self.u0
+	self.nc[0] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
 
     def savecoord(self):
 	filename = '%s/coord%i.cpt' % (self.out, int(self.T))
@@ -202,7 +207,7 @@ def run(self, nummoves, dict):
     Simulation.nnepsil = dict['nnepsil']
     Simulation.nsigma2 = dict['nsigma2']
     Simulation.transform = dict['transform']
-    Simulation.coord_nat = dict['coord_nat']
+#    Simulation.coord_nat = dict['coord_nat']
     Simulation.positiontemplate = dict['positiontemplate']
     Simulation.pdbfile = dict['pdbfile']
     mass = dict['mass']
