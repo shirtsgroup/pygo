@@ -39,7 +39,7 @@ parser.add_option("-n", "--moves", dest="totmoves", type="int", default='10000',
 parser.add_option("-s", "--stepsize", dest="step", type="int", default='1000', help="number of moves between save operations")
 parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', help="number of moves between swap moves")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
-parser.add_option("-a", "--plot", action="store_false", default=True, help="plots energy, rmsd, fractional nativeness")
+parser.add_option("-a", "--plot", action="store_true", default=False, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
 parser.add_option("-e", "--percentmove", nargs=1, dest="e", type="int",default=100, help="the output pdb file")
 parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number or umbrella id number")
@@ -138,7 +138,6 @@ untransform = getmovietransform(coord)
 transform = transpose(untransform)
 coord_nat = moviecoord(coord,transform)
 
-
 #Get parameters from .param file
 angleparam = getangleparam(paramfile, numbeads)
 torsparam = gettorsionparam(paramfile, numbeads)
@@ -153,7 +152,6 @@ nativeparam_n = getnativefix_n(paramfile, numint, numbeads) # [ones and zeros, n
 
 totnc = sum(nativeparam_n[:,0]) #total native contacts
 nsigma2 = nativecutoff2 * nativeparam_n[:,2] * nativeparam_n[:,2]
-
 
 #nonnative LJ parameter getting
 [nonnativesig, nnepsil] = getLJparam_n(paramfile, numbeads, numint) #[nonnative sigmas for every interaction, epsilon (one value)]
@@ -241,7 +239,8 @@ if surf:
 # SUBROUTINES
 #======================================================================================================
 
-def tryswap(Replicas, Swapaccepted, Swaprejected, reploc, start):
+#def tryswap(Replicas, Swapaccepted, Swaprejected, reploc, start):
+def tryswap(Replicas, Swapaccepted, Swaprejected, start):
     if numreplicas == 1:
         pass
     else:
@@ -255,7 +254,7 @@ def tryswap(Replicas, Swapaccepted, Swaprejected, reploc, start):
                 Replicas[i].torsE, Replicas[i+1].torsE = Replicas[i+1].torsE, Replicas[i].torsE
                 Replicas[i].angE, Replicas[i+1].angE = Replicas[i+1].angE, Replicas[i].angE
                 Replicas[i].whoami, Replicas[i+1].whoami = Replicas[i+1].whoami, Replicas[i].whoami # whoami keeps track of the individual protein in each Replica 
-                reploc[i], reploc[i+1] = reploc[i+1], reploc[i]
+ #               reploc[i], reploc[i+1] = reploc[i+1], reploc[i]
                 if surf:
                     Replicas[i].surfE, Replicas[i+1].surfE = Replicas[i+1].surfE, Replicas[i].surfE
 		if umbrella:
@@ -269,24 +268,30 @@ def tryswap(Replicas, Swapaccepted, Swaprejected, reploc, start):
                 #Whoiswhere[Replicas[i+1].whoami].append(Whoiswhere[Replicas[i+1].whoami][-1])
     #if numreplicas%2 == 1:
         #Whoiswhere[Replicas[numreplicas-1].whoami].append(Whoiswhere[Replicas[numreplicas-1].whoami][-1])
-    return Swapaccepted, Swaprejected, reploc
+#    return Swapaccepted, Swaprejected, reploc
+    return Swapaccepted, Swaprejected
 
-def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, transmat):
+#def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location, transmat):
+def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location):
 	if numreplicas == 1:
-		return Swapaccepted, Swaprejected, protein_location, transmat
-	replica_location = numpy.arange(numreplicas) # keeps track of where the replicas go after 100 (default) swaps in order to properly increment the transition matrix
+#		return Swapaccepted, Swaprejected, protein_location, transmat
+		return Swapaccepted, Swaprejected, protein_location
+#	replica_location = numpy.arange(numreplicas) # keeps track of where the replicas go after 100 (default) swaps in order to properly increment the transition matrix
 	for k in range(e): # default: try swapping 100 times
 		if random.random() < .5:
-			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 0) #type 1 switch
+#			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 0) #type 1 switch
+			Swapaccepted, Swaprejected = tryswap(Replicas, Swapaccepted, Swaprejected, 0) #type 1 switch
 		else:	
-			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 1) #type 2 switch
-	replica_location_indexed = numpy.zeros(numreplicas) # keeps track of which replica went where
+#			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 1) #type 2 switch
+			Swapaccepted, Swaprejected = tryswap(Replicas, Swapaccepted, Swaprejected, 1) #type 2 switch
+#	replica_location_indexed = numpy.zeros(numreplicas) # keeps track of which replica went where
 	for i in range(numreplicas):
-		replica_location_indexed[replica_location[i]] = i #extracts which replica went where
+#		replica_location_indexed[replica_location[i]] = i #extracts which replica went where
 		protein_location[Replicas[i].whoami].append(i) #extracts which protein went where
-	for i in range(numreplicas):
-		transmat[i,replica_location_indexed[i]] += 1 #increments the transition matrix
-	return Swapaccepted, Swaprejected, protein_location, transmat
+#	for i in range(numreplicas):
+#		transmat[i,replica_location_indexed[i]] += 1 #increments the transition matrix
+#	return Swapaccepted, Swaprejected, protein_location, transmat
+	return Swapaccepted, Swaprejected, protein_location
 
 #def update_energy(self, torschange, angchange):
     #self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
@@ -322,7 +327,7 @@ def savestate():
     output = open('%s/cptstate.pkl' % direc, 'wb')
     cPickle.dump(replicas[0].move, output)
     cPickle.dump(protein_location, output)
-    cPickle.dump(transmat, output)
+#    cPickle.dump(transmat, output)
     output.close()
     for i in range(len(replicas)):
         replicas[i].saveenergy(False)
@@ -339,19 +344,15 @@ def loadstate():
     input = open('%s/cptstate.pkl' % direc, 'rb')
     move = cPickle.load(input)
     protein_location = cPickle.load(input)
-    try:
-	transmat = cPickle.load(input)
-    except:
-	pass
+#    try:
+#	transmat = cPickle.load(input)
+#    except:
+#	pass
     input.close()
     for i in range(numreplicas):
        	replicas[i].loadstate()
 	replicas[i].move = move
 	replicas[protein_location[i][-1]].whoami = i 
-        if surf: # to do
-	    pass
-        if umbrella: # to do
-	    pass
     return move
 
 #=======================================================================================================
@@ -361,10 +362,10 @@ move = 0
 swapaccepted = numpy.zeros(numreplicas-1)
 swaprejected = numpy.zeros(numreplicas-1)
 protein_location = [[i] for i in range(numreplicas)]
-transmat = [zeros((numreplicas,numreplicas)) for i in range(10)]
-if swap!=totmoves:
-    assert(totmoves / swap % 10 == 0)
-    transmat_index = totmoves/swap/10
+#transmat = [zeros((numreplicas,numreplicas)) for i in range(10)]
+#if swap!=totmoves:
+#    assert(totmoves / swap % 10 == 0)
+#    transmat_index = totmoves/swap/10
 
 # instantiate replicas
 replicas = []
@@ -402,7 +403,7 @@ for i in range(len(T)):
 
 if cluster:
 	# running on the cluster
-	f = open('nodefile.txt','r')
+	f = open('nodefile%i.txt'% id,'r')
 	ppservers = f.read().split("\n")
 	f.close()
 	ppservers = filter(None,ppservers)
@@ -433,7 +434,8 @@ for i in xrange(move/swap,totmoves/swap):
     replicas = pprun(replicas, swap, dict)
     job_server.wait()
     if swap!=totmoves:
-    	swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
+    	#swapaccepted, swaprejected, protein_location, transmat[i/transmat_index] = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location, transmat[i/transmat_index])
+    	swapaccepted, swaprejected, protein_location = tryrepeatedswaps(replicas, swapaccepted, swaprejected, protein_location)
     tnow = datetime.datetime.now()
     t_remain = (tnow - ti)/(i+1)*(totmoves/swap - i - 1)
     if not cluster:
@@ -446,32 +448,32 @@ for i in xrange(move/swap,totmoves/swap):
 #=======================================================================================================
 # POST ANALYSIS
 #=======================================================================================================
-if swap!=totmoves and numreplicas > 1:
+#if swap!=totmoves and numreplicas > 1:
     #calculate mixing time
-    mixtime = zeros(10)
-    fulltransmat = zeros((numreplicas,numreplicas))
-    for i in range(10):
-            fulltransmat += transmat[i]
-            transmat[i] = transmat[i]/transmat_index #normalize to probabilities
-            transmatrix = numpy.matrix(transmat[i])
-            eig = scipy.linalg.eigvals(transmatrix)
-            eig = numpy.sort(eig)
-            print '-----Transition Matrix '+str(i)+' Eigenvalues-----'
-            print eig
-            mixtime[i] = 1/(1-eig[-2])
-            print mixtime[i]
-    fulltransmat = fulltransmat/totmoves*swap
-    try:
-            fulltransmat = numpy.matrix(fulltransmat)
-            eig = scipy.linalg.eigvals(fulltransmat)
-            eig = numpy.sort(eig)
-            print '-----Full Transition Matrix Eigenvalues-----'
-            print eig
-            print 'Full Tmat miximg time: ' + str(1/(1-eig[-2]))
-            print 'Average mixing time from submatrices: ' + str(average(mixtime))
-            print 'Standard deviation in mixing time: ' + str(std(mixtime))
-    except:
-            pdb.set_trace()
+#    mixtime = zeros(10)
+#    fulltransmat = zeros((numreplicas,numreplicas))
+#    for i in range(10):
+#            fulltransmat += transmat[i]
+#            transmat[i] = transmat[i]/transmat_index #normalize to probabilities
+#            transmatrix = numpy.matrix(transmat[i])
+#            eig = scipy.linalg.eigvals(transmatrix)
+#            eig = numpy.sort(eig)
+#            print '-----Transition Matrix '+str(i)+' Eigenvalues-----'
+#            print eig
+#            mixtime[i] = 1/(1-eig[-2])
+#            print mixtime[i]
+#    fulltransmat = fulltransmat/totmoves*swap
+#    try:
+#            fulltransmat = numpy.matrix(fulltransmat)
+#            eig = scipy.linalg.eigvals(fulltransmat)
+#            eig = numpy.sort(eig)
+#            print '-----Full Transition Matrix Eigenvalues-----'
+#            print eig
+#            print 'Full Tmat miximg time: ' + str(1/(1-eig[-2]))
+#            print 'Average mixing time from submatrices: ' + str(average(mixtime))
+#            print 'Standard deviation in mixing time: ' + str(std(mixtime))
+#    except:
+#            pdb.set_trace()
 #=======================================================================================================
 # OUTPUT
 #=======================================================================================================
