@@ -224,7 +224,7 @@ if verbose:
 if surf:
     xlength = 135
     ylength = 135
-    spacing = 6
+    spacing = 5
     print 'Surface is %i by %i with spacing %i (Angstroms)' %( xlength, ylength, spacing)
     yspacing = spacing*3.**.5
     surface = getsurf(xlength+15,ylength+15,spacing)
@@ -408,8 +408,7 @@ if extend:
 	extenddirec = './replicaexchange/simlog%i' % extend
 	if not os.path.exists(extenddirec):
 		sys.exit('Simulation %i does not exist at %s' % (extend, extenddirec))
-	input = open('%s/cptstate.pkl' %extenddirec, 'rb')
-	print 'Extending simulation of %i moves' % cPickle.load(input)
+	input = open('%s/protein_location.pkl' %extenddirec, 'rb')
 	protein_location = cPickle.load(input)
 	protein_location = [[protein_location[i][-1]] for i in range(numreplicas)]	
 	input.close()
@@ -498,8 +497,7 @@ for i in xrange(move/swap,totmoves/swap):
 # OUTPUT
 #=======================================================================================================
 job_server.print_stats()
-output = open('%s/cptstate.pkl' % direc, 'wb')
-cPickle.dump(replicas[0].move, output)
+output = open('%s/protein_location.pkl' % direc, 'wb')
 cPickle.dump(protein_location, output)
 output.close()
 for i in range(len(replicas)):
@@ -530,8 +528,7 @@ if swap!=totmoves:
                     Q_trajec_singleprot[j,k*i+1:k*(i+1)+1] = replicas[rep].nc[k*i+1:k*(i+1)+1]
     Q_trajec_singleprot[:,0] = totnc
     Q_trajec_singleprot = Q_trajec_singleprot/totnc
-    numpy.savetxt('%s/Qtraj_singleprot.txt' % direc, Q_trajec_singleprot)
-    numpy.savetxt('%s/protein_location.txt' % direc, numpy.array(protein_location))
+    numpy.save('%s/Qtraj_singleprot.npy' % direc, Q_trajec_singleprot)
 if verbose:
     for i in range(numreplicas-1):
         print 'Swaps accepted between replica%i and replica%i: %3.2f percent' % (i, i+1, (swapaccepted[i] / float(swapaccepted[i] + swaprejected[i]) * 100))

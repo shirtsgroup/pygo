@@ -99,7 +99,7 @@ class SurfaceSimulation(Simulation):
         self.coord = numpy.array([self.coord[0,:]*numpy.cos(rotz)+self.coord[1,:]*numpy.sin(rotz), -self.coord[0,:]*numpy.sin(rotz)+self.coord[1,:]*numpy.cos(rotz), self.coord[2,:]])
         self.coord = numpy.array([self.coord[0,:], numpy.cos(rotx)*self.coord[1,:]+numpy.sin(rotx)*self.coord[2,:], -numpy.sin(rotx)*self.coord[1,:] + numpy.cos(rotx)*self.coord[2,:]])
         self.coord = self.coord.transpose()
-        self.coord[:,2] += 10 - numpy.min(self.coord[:,2]) # protein is 1 nm from surface
+        self.coord[:,2] += 10 - numpy.min(self.coord[:,2]) # protein is minimum 1 nm from surface
         
     def output(self, verbose):
 	Simulation.output(self,verbose)
@@ -113,12 +113,12 @@ class SurfaceSimulation(Simulation):
 	Simulation.loadstate(self)
         self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
 	self.u0 += self.surfE
-	self.surfE_array = numpy.loadtxt('%s/surfenergy%i.txt' %(self.out, int(self.T)))
+	self.surfE_array = numpy.load('%s/surfenergy%i.npy' %(self.out, int(self.T)))
 
  
     def savesurfenergy(self, plot):
-        filename='%s/surfenergy%i.txt' % (self.out, int(self.T))
-        numpy.savetxt(filename, self.surfE_array)
+        filename='%s/surfenergy%i' % (self.out, int(self.T))
+        numpy.save(filename, self.surfE_array)
         #print 'wrote every %d conformation energies to %s' %(Simulation.step,filename)
         if plot:
             plotname = '%s/surfenergy%i.png' % (self.out, int(self.T))
@@ -134,8 +134,8 @@ class SurfaceSimulation(Simulation):
             #print 'conformational energy plot saved to %s' %(plotname)
 
     def saveradgyr(self, plot):
-        filename='%s/radgyr%i.txt' % (self.out, int(self.T))
-        numpy.savetxt(filename, self.radgyr)
+        filename='%s/radgyr%i' % (self.out, int(self.T))
+        numpy.save(filename, self.radgyr)
         #print 'wrote every %d rmsd values to %s' %(Simulation.step,filename)
         if plot:
             plotname = '%s/radgyr%i.png' % (self.out, int(self.T))

@@ -55,12 +55,12 @@ class UmbrellaSimulation(SurfaceSimulation):
         self.coord = numpy.array([self.coord[0,:]*numpy.cos(rotz)+self.coord[1,:]*numpy.sin(rotz), -self.coord[0,:]*numpy.sin(rotz)+self.coord[1,:]*numpy.cos(rotz), self.coord[2,:]])
         self.coord = numpy.array([self.coord[0,:], numpy.cos(rotx)*self.coord[1,:]+numpy.sin(rotx)*self.coord[2,:], -numpy.sin(rotx)*self.coord[1,:] + numpy.cos(rotx)*self.coord[2,:]])
         self.coord = self.coord.transpose()
-        self.coord[:,2] += self.z_pin
+        self.coord[:,2] += self.z_pin - numpy.min(self.coord[:,2]) # protein is minimum z_pin distance from surface
     def save_z(self):
-	filename = '%s/z_traj%i_%i.txt' % (self.out, int(self.z_pin), int(self.T))
-	numpy.savetxt(filename, self.z_array)
+	filename = '%s/z_traj%i_%i' % (self.out, int(self.z_pin), int(self.T))
+	numpy.save(filename, self.z_array)
 
     def loadstate(self):
 	SurfaceSimulation.loadstate(self)
-	self.z_array = numpy.loadtxt('%s/z_traj%i_%i.txt' %(self.out, int(self.z_pin), int(self.T)))
+	self.z_array = numpy.load('%s/z_traj%i_%i.npy' %(self.out, int(self.z_pin), int(self.T)))
 	self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, self.mass, self.totmass)

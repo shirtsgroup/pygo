@@ -114,24 +114,24 @@ class Simulation:
 			print 'MD:                %d percent acceptance (%i/%i)' %(float(self.acceptedmd)/float(self.mdmoves)*100, self.acceptedmd, self.mdmoves)
 
     def loadstate(self):
-	self.coord = numpy.loadtxt('%s/coord%i.cpt' %(self.out, int(self.T)))
+	self.coord = numpy.load('%s/coord%i.npy' %(self.out, int(self.T)))
 	self.setenergy()
-	self.energyarray = numpy.loadtxt('%s/energy%i.txt' %(self.out, int(self.T)))
-	self.nc = Simulation.totnc*numpy.loadtxt('%s/fractionnative%i.txt' %(self.out, int(self.T)))
+	self.energyarray = numpy.load('%s/energy%i.npy' %(self.out, int(self.T)))
+	self.nc = Simulation.totnc*numpy.load('%s/fractionnative%i.npy' %(self.out, int(self.T)))
 
     def loadextend(self,extenddirec):
-	self.coord = numpy.loadtxt('%s/coord%i.cpt' %(extenddirec, int(self.T)))
+	self.coord = numpy.load('%s/coord%i.npy' %(extenddirec, int(self.T)))
 	self.setenergy()
 	self.energyarray[0]=self.u0
 	self.nc[0] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
 
     def savecoord(self):
-	filename = '%s/coord%i.cpt' % (self.out, int(self.T))
-	numpy.savetxt(filename, self.coord)
+	filename = '%s/coord%i' % (self.out, int(self.T))
+	numpy.save(filename, self.coord)
 
     def saveenergy(self, plot):
-        filename = '%s/energy%i.txt' % (self.out, int(self.T))
-        numpy.savetxt(filename, self.energyarray)
+        filename = '%s/energy%i' % (self.out, int(self.T))
+        numpy.save(filename, self.energyarray)
         #print 'wrote every %d conformation energies to %s' %(Simulation.step,filename)
         if plot:
             plotname = '%s/energy%i.png' % (self.out, int(self.T))
@@ -147,8 +147,8 @@ class Simulation:
             #print 'conformational energy plot saved to %s' %(plotname)
 
     def savermsd(self, plot):
-        filename='%s/rmsd%i.txt' % (self.out, int(self.T))
-        numpy.savetxt(filename, self.rmsd_array)
+        filename='%s/rmsd%i' % (self.out, int(self.T))
+        numpy.save(filename, self.rmsd_array)
         #print 'wrote every %d rmsd values to %s' %(Simulation.step,filename)
         if plot:
             plotname = '%s/rmsd%i.png' % (self.out, int(self.T))
@@ -165,8 +165,8 @@ class Simulation:
 
     def savenc(self, plot):
         fraction = self.nc / Simulation.totnc
-        filename = '%s/fractionnative%i.txt' % (self.out, int(self.T))
-        numpy.savetxt(filename, fraction)
+        filename = '%s/fractionnative%i' % (self.out, int(self.T))
+        numpy.save(filename, fraction)
         #print 'wrote every %d fractional nativeness values to %s' %(Simulation.step,fractionfile)
         if plot:
             plotname = '%s/fractionnative%i.png' % (self.out, int(self.T))
