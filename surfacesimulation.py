@@ -60,7 +60,7 @@ def save(self):
 
 class SurfaceSimulation(Simulation):
     kb = 0.0019872041 #kcal/mol/K
-    percentmove = [.1, .2, .3, .4, .75, 1] # % translation, % rotation % bend,% axis torsion,% global crankshaft, %ParRot move, %MD
+#    percentmove = [.1, .2, .3, .4, .75, 1] # % translation, % rotation % bend,% axis torsion,% global crankshaft, %ParRot move, %MD
 
     def __init__(self, name, outputdirectory, coord, temp, surf_coord):
         Simulation.__init__(self, name, outputdirectory, coord, temp)
@@ -152,6 +152,7 @@ class SurfaceSimulation(Simulation):
 
 def run_surf(self, nummoves, dict):
     Simulation.numbeads = dict['numbeads']
+    Simulation.percentmove = dict['percentmove']   
     Simulation.step = dict['step']
     Simulation.totmoves = dict['totmoves']
     Simulation.numint = dict['numint']

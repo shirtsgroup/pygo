@@ -76,7 +76,10 @@ plt.savefig(options.datafile+'/Qtraj_singleprot_avg.png')
 orgdataplt = True
 if orgdataplt:
 	plt.figure(2)
-	pt = numpy.loadtxt(options.datafile+'protein_location.txt')
+	import cPickle
+	pt = cPickle.load(open(options.datafile+'protein_location.pkl','rb'))
+	pt = numpy.array(pt)
+#	pt = numpy.loadtxt(options.datafile+'protein_location.txt')
 	pt /=numrep
 	for i in range(numrep):
 		plt.subplot(numrep/2,2,i+1)

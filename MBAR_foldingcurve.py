@@ -17,12 +17,13 @@ parser=OptionParser()
 parser.add_option("-t", "--temprange", nargs=2, default=[300.0,450.0], type="float", dest="temprange", help="temperature range of replicas")
 parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", help="number of replicas")
 parser.add_option("--direc", dest="datafile", default="replicaexchange/simlog0/", help="Qtraj_singleprot.txt file location")
+parser.add_option("--tfile", dest="tfile", default="", help="file of temperatures")
 
 (options,args) = parser.parse_args()
 trange = options.temprange
 numreplicas = options.replicas
 direc = options.datafile
-
+tfile = options.tfile
 #========================================================
 # CONSTANTS
 #=========================================================
@@ -31,7 +32,7 @@ kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
 #NumTemps = 24          # Last TEMP # + 1 (start counting at 1)
-NumIterations = 500  # The number of energies to be taken and analyzed, starting from the last
+NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
 
@@ -125,20 +126,22 @@ alpha = (trange[1]/trange[0])**(1/float(numreplicas-1))
 T[0]=trange[0]
 for i in range(1,numreplicas):
 	T[i]=T[i-1]*alpha
+if tfile:
+	T = numpy.loadtxt(tfile)
 print T
 files=[]
 surf=[]
 for i in range(len(T)):
-	files.append(direc+'/energy'+str(int(T[i]))+'.txt')
+	files.append(direc+'/energy'+str(int(T[i]))+'.npy')
 
 	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 #	files.append('replicaexchange/simlog99/energy'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
 
-nc=numpy.loadtxt(files[0])
+nc=numpy.load(files[0])
 
 for i,file in enumerate(files):
-	nctemp=numpy.loadtxt(file)
+	nctemp=numpy.load(file)
 #	ncsurf=numpy.loadtxt(surf[i])
 	#nctemp -= ncsurf # uncomment this line to get protein-only energies
 	nc=numpy.vstack((nc,nctemp))
@@ -152,19 +155,21 @@ E_from_file = nc.copy()
 K = numreplicas
 files=[]
 for i in range(len(T)):
-	files.append(direc+'/fractionnative'+str(int(T[i]))+'.txt')
+	files.append(direc+'/fractionnative'+str(int(T[i]))+'.npy')
 #	files.append('replicaexchange/simlog99/fractionnative'+str(int(T[i]))+'.txt')
 
 	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 #	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
 
 
-nc=numpy.loadtxt(files[0])
+nc=numpy.load(files[0])
 
 for file in files:
-	nctemp=numpy.loadtxt(file)
+	nctemp=numpy.load(file)
 	nc=numpy.vstack((nc,nctemp))
 nc=nc[1:numreplicas+1,:]
+if temporary:
+	nc = nc[:,::10]
 nc = nc[:,-NumIterations:-1]
 
 N_k = numpy.zeros(K,numpy.int32)
