@@ -401,8 +401,8 @@ for i in range(len(T)):
         	replicas.append(Simulation(name, direc, coord, T[i]))
         replicas[i].whoami = i
         if pdbfile:
-            mcoord = moviecoord(coord, transform)
-            writepdb(mcoord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
+           # mcoord = moviecoord(coord, transform)
+            writepdb(replicas[i].coord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 
 if extend:
 	extenddirec = './replicaexchange/simlog%i' % extend

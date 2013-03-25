@@ -18,11 +18,11 @@ parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", hel
 (options,args)=parser.parse_args()
 
 
-file = options.datafile+'/Qtraj_singleprot.txt'
+file = options.datafile+'/Qtraj_singleprot.npy'
 n = options.average
 
 #file = '/home/edz3fz/proteinmontecarlo/replicaexchange/simlog24/Qtraj_singleprot.txt'
-Q = numpy.loadtxt(file)
+Q = numpy.load(file)
 Q = Q - .5
 numrep = options.replicas
 save = options.step
@@ -73,7 +73,7 @@ print numpy.average(count_new)
 
 plt.savefig(options.datafile+'/Qtraj_singleprot_avg.png')
 
-orgdataplt = True
+orgdataplt = False
 if orgdataplt:
 	plt.figure(2)
 	import cPickle

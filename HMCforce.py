@@ -265,7 +265,7 @@ def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
     forces = numpy.zeros((numbeads,3))
     for i in range(len(surf_coord)):
    	forces += -F[i*numbeads:i*numbeads+numbeads,:]
-    return forces/4.184
+    return forces*4.184
 
 def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param):
     forces = numpy.zeros((numbeads,3))
@@ -274,7 +274,7 @@ def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param):
     for ( int i = 0; i < numint; i++){
         x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
         y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
-        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        z = 0 - PROT_COORD2(i % numbeads, 2);
         r2 = x*x + y*y + z*z;
         r = sqrt(r2);
         dV = PARAM2(i,1)*PARAM2(i,1)/r2;

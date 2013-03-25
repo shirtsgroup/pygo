@@ -46,66 +46,6 @@ dT = 1.25              # Temperature increment for calculating Cv(T)
 #=========================================================
 # SUBROUTINES
 #=========================================================
-
-def read_total_energies(pathname):
-       """Reads in the TEMP#/ener_box#.output file and parses it, returning an array of energies 
-       ARGUMENTS
-             filename (string) - the path to the folder of the simulation
-       """
-
-       print "--Reading total energies from %s/..." % pathname
-
-
-       # Initialize Return variables
-       E_kn = numpy.zeros([NumTemps,NumIterations], numpy.float64)
-       
-       #Read files
-       for k in range(NumTemps):
-             #Construct each TEMP#/ener_box#.output name and read in the file
-             filename = os.path.join(pathname,'TEMP'+str(k), 'ener_box'+str(k)+'.output')
-             infile = open(filename, 'r')
-             lines = infile.readlines()
-             infile.close()
-             numLines = len(lines)
-
-             #Initialize arrays for E
-             E_from_file = numpy.zeros(NumIterations, numpy.float64)      
-       
-             #Parse lines in each file
-             for n in range(NumIterations):
-                  m = numLines - 2 - n #Count down (the 2 is for index purposes(1) and to not use the double-counted last line (1))
-                  elements = lines[m].split()
-                  E_from_file[n] = float(elements[TE_COL_NUM])
-             
-             #Add in the E's for each timestep (n) at this temperature (k)
-             E_kn[k] = E_from_file;
-       return E_kn   
-
-def read_simulation_temps(pathname):
-       """Reads in the various temperatures from each TEMP#/simul.output file by knowing
-             beforehand the total number of temperatures (parameter at top)
-       """
-       
-       print "--Reading temperatures from %s/..." % pathname       
-
-       # Initialize return variable
-       temps_from_file = numpy.zeros(NumTemps, numpy.float64)
-
-       for k in range(NumTemps):
-             infile = open(os.path.join(pathname,'TEMP'+ str(k), 'simul'+str(k)+'.output'), 'r')
-             lines = infile.readlines()
-             infile.close()
-
-             l = len(lines)-1
-             test = 'test'
-             while (test != 'Temperature_av:'):
-                  line = lines[l].split()
-                  if (len(line) > 1) : test = line[1]
-                  l = l-1 
-             temps_from_file[k] = float(line[2])
-       
-       return temps_from_file
-
 #========================================================================
 # MAIN
 #========================================================================
@@ -295,4 +235,5 @@ plt.xlabel('Temperature (K)')
 plt.ylabel('Q fraction native')
 #plt.title('Heat Capacity from Go like model MC simulation of 1BSQ')
 plt.savefig(direc+'/foldingcurve.png')
+numpy.save(direc+'/foldingcurve',numpy.array([Temp_k, Q, dQ]))
 plt.show()

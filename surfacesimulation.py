@@ -174,7 +174,9 @@ def run_surf(self, nummoves, dict):
     spacing = dict['spacing']
     yspacing = dict['yspacing']
     mass = dict['mass']
-    
+    Simulation.tsteps = dict['tsteps']
+    Simulation.tsize = dict['tsize']
+ 
     for i in xrange(nummoves):
         randmove = random.random()
         randdir = random.random()
@@ -274,7 +276,7 @@ def run_surf(self, nummoves, dict):
 
         # run molecular dynamics
         else:
-            self=moveset.runMD_surf(self, 18, .1, dict)
+            self=moveset.runMD_surf(self, Simulation.tsteps, Simulation.tsize, dict)
             movetype = 'md'
             self.mdmoves += 1
             torschange = numpy.arange(Simulation.numbeads-3)
