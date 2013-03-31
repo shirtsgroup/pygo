@@ -40,7 +40,7 @@ def writesurf(filename, surf_coord):
 def update_energy(self, torschange, angchange):
     self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
     self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
-    self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+    self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
     self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
     self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+self.newsurfE
     return self
@@ -65,7 +65,7 @@ class SurfaceSimulation(Simulation):
     def __init__(self, name, outputdirectory, coord, temp, surf_coord):
         Simulation.__init__(self, name, outputdirectory, coord, temp)
         self.addsurface(surf_coord)
-        self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+        self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
         self.surfE_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         self.surfE_array[0] = self.surfE
         #self.radgyr = numpy.empty(Simulation.totmoves/Simulation.step + 1)
@@ -111,7 +111,7 @@ class SurfaceSimulation(Simulation):
       
     def loadstate(self):
 	Simulation.loadstate(self)
-        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
 	self.u0 += self.surfE
 	self.surfE_array = numpy.load('%s/surfenergy%i.npy' %(self.out, int(self.T)))
 
@@ -169,6 +169,7 @@ def run_surf(self, nummoves, dict):
     SurfaceSimulation.nspint = dict['nspint']
     SurfaceSimulation.nsurf = dict['nsurf']
     SurfaceSimulation.surfparam = dict['surfparam']
+    SurfaceSimulation.scale = dict['scale']
     xlength = dict['xlength']
     ylength = dict['ylength']
     spacing = dict['spacing']

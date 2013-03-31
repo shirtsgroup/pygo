@@ -637,6 +637,7 @@ def runMD_surf(self,nsteps,h,dict):
         surfparam = dict['surfparam']
         nspint = dict['nspint']
 	positiontemplate=dict['positiontemplate']
+	scale = dict['scale']
 	#m=120.368 # average mass of all residues
 	tol=1e-8
 	maxloop=1000
@@ -648,7 +649,7 @@ def runMD_surf(self,nsteps,h,dict):
         bonds=self.coord[0:numbeads-1,:]-self.coord[1:numbeads,:]
 	d2=numpy.sum(bonds**2,axis=1)
 	d=d2**.5
-        force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.cgetsurfforce(self.coord, surface, nspint, numbeads, surfparam)
+        force = HMCforce.cangleforces(self.coord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.coord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.cgetsurfforce(self.coord, surface, nspint, numbeads, surfparam, scale)
 	a = numpy.transpose(force) / m
 	self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
         self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
@@ -664,7 +665,7 @@ def runMD_surf(self,nsteps,h,dict):
 			break
 		self.newcoord += h * v_half #constrained r(t+dt)
 		bonds = self.newcoord[0:numbeads-1,:]-self.newcoord[1:numbeads,:] #rij(t+dt)
-		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.cgetsurfforce(self.newcoord, surface, nspint, numbeads, surfparam)
+		force = HMCforce.cangleforces(self.newcoord, angleparam,bonds,d,numbeads) + HMCforce.cdihedforces(torsparam, bonds, d2, d, numbeads) + HMCforce.cnonbondedforces(self.newcoord,numint,numbeads,nativeparam_n,nonnativeparam,nnepsil) + HMCforce.cgetsurfforce(self.newcoord, surface, nspint, numbeads, surfparam, scale)
 		a=transpose(force)/m
 		self.vel = v_half + h/2*transpose(a) # unconstrained v(t+dt)
 		self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)

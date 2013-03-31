@@ -168,13 +168,13 @@ def getindex(res):
 	else:
 		print res
 
-def getsurfparam(file, numbeads, nsurf, numint):
+def getsurfparam(file, numbeads, nsurf, numint, scale):
 	"""
 	Gets all surface-protein interaction parameters
 		Needs original .pdb file of protein to get sequence of residues
 		Uses matrix of epsilon and simga parameters for all possible residue interactions
 	"""
-	param = numpy.zeros((numint,2))
+	param = numpy.zeros((numint,3))
 	ep_all = numpy.loadtxt('avgep.txt')
 	sig_all = numpy.loadtxt('avgsig.txt')
 	# get sequence of residues
@@ -210,6 +210,7 @@ def getsurfparam(file, numbeads, nsurf, numint):
 	sig = sig*nsurf
 	param[:,0] = ep
 	param[:,1] = sig
+	param[:,2] = param[:,0]*((param[:,1]/20)**12-2*scale*(param[:,1]/20)**6)
 	return param
 
 #==========================================
@@ -296,7 +297,7 @@ def csurfenergy_updater2(prot_coord, surf_coord, numbeads, numint, param, r2old,
     info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'change', 'surfEnew', 'r2new', 'n'], headers=['<math.h>', '<stdlib.h>'])
     return r2new, surfEnew
 
-def csurfenergy(prot_coord, surf_coord, numbeads, numint, param):
+def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, scale):
     energy = numpy.array([0.])
     code = """
     double x, y, z, r2, e;
@@ -305,13 +306,15 @@ def csurfenergy(prot_coord, surf_coord, numbeads, numint, param):
         y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
         z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
         r2 = x*x + y*y + z*z;
-        e = PARAM2(i,1)*PARAM2(i,1)/r2;
-        e = e*e*e;
-        e = PARAM2(i,0)*(e*e-2*e);
-        ENERGY1(0) += e;
+	if (r2<400){
+            e = PARAM2(i,1)*PARAM2(i,1)/r2;
+            e = e*e*e;
+            e = PARAM2(i,0)*(e*e-2*scale*e)-PARAM2(i,2);
+            ENERGY1(0) += e;
+	}
     }
     """
-    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy'], headers=['<math.h>', '<stdlib.h>'])
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy','scale'], headers=['<math.h>', '<stdlib.h>'])
     return energy[0]
 
 def getforcer(mpos, numint, numbeads):

@@ -73,7 +73,7 @@ print numpy.average(count_new)
 
 plt.savefig(options.datafile+'/Qtraj_singleprot_avg.png')
 
-orgdataplt = False
+orgdataplt = True
 if orgdataplt:
 	plt.figure(2)
 	import cPickle

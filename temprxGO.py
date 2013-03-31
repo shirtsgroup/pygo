@@ -231,14 +231,15 @@ if surf:
     writesurf('surface.pdb',surface)
     nsurf = len(surface)
     nspint = nsurf*numbeads # surface-protein interactions
-    surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint)
-    surfparam[:,0] = surfparam[:,0]*scale
+    surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint, scale)
+    #/surfparam[:,0] = surfparam[:,0]*scale
     print 'Surface energy parameters scaled by %f' % scale
+    SurfaceSimulation.scale = scale
     SurfaceSimulation.surface = surface
     SurfaceSimulation.nsurf = nsurf
     SurfaceSimulation.nspint = nspint
     SurfaceSimulation.surfparam = surfparam
-    dict.update({'nspint':nspint, 'nsurf':nsurf, 'surfparam':surfparam, 'surface':surface, 'xlength':xlength, 'ylength':ylength, 'spacing':spacing, 'yspacing':yspacing})
+    dict.update({'nspint':nspint, 'nsurf':nsurf, 'surfparam':surfparam, 'surface':surface, 'xlength':xlength, 'ylength':ylength, 'spacing':spacing, 'yspacing':yspacing, 'scale':scale})
 #======================================================================================================
 # SUBROUTINES
 #======================================================================================================

@@ -267,7 +267,7 @@ def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
    	forces += -F[i*numbeads:i*numbeads+numbeads,:]
     return forces*4.184
 
-def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param):
+def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param, scale):
     forces = numpy.zeros((numbeads,3))
     code = """
     double x, y, z, r2, r, dV, F;
@@ -276,18 +276,20 @@ def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param):
         y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
         z = 0 - PROT_COORD2(i % numbeads, 2);
         r2 = x*x + y*y + z*z;
-        r = sqrt(r2);
-        dV = PARAM2(i,1)*PARAM2(i,1)/r2;
-        dV = dV*dV*dV;
-        dV = PARAM2(i,0)*(-12*dV*dV/r + 12*dV/r);
-        F = -dV/r;
-        x = F*x; y = F*y; z = F*z;
-        FORCES2(i % numbeads, 0) -= x;
-        FORCES2(i % numbeads, 1) -= y;
-        FORCES2(i % numbeads, 2) -= z;
+	if(r2<400){
+            r = sqrt(r2);
+            dV = PARAM2(i,1)*PARAM2(i,1)/r2;
+            dV = dV*dV*dV;
+            dV = PARAM2(i,0)*(-12*dV*dV/r + 12*scale*dV/r) - PARAM2(i,2);
+            F = -dV/r;
+            x = F*x; y = F*y; z = F*z;
+            FORCES2(i % numbeads, 0) -= x;
+            FORCES2(i % numbeads, 1) -= y;
+            FORCES2(i % numbeads, 2) -= z;
+	}
     }
     """
-    info = weave.inline(code, ['forces', 'prot_coord', 'surf_coord', 'numbeads', 'numint', 'param'], headers=['<math.h>', '<stdlib.h>'])
+    info = weave.inline(code, ['forces', 'prot_coord', 'surf_coord', 'numbeads', 'numint', 'param','scale'], headers=['<math.h>', '<stdlib.h>'])
     return forces*4.184
 
 #==========================================
