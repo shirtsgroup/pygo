@@ -220,7 +220,7 @@ def getsurfparam(file, numbeads, nsurf, numint, scale):
 
 def umbrellaenergy(prot_coord, z, mass, totmass):
     com_z = numpy.sum(mass*prot_coord[:,2])/totmass
-    return 2.5*(z-com_z)**2
+    return (z-com_z)**2
 
 def getr2surf(prot_coord, surf_coord, numbeads, numint):
     """Deprecated"""
@@ -298,7 +298,7 @@ def csurfenergy_updater2(prot_coord, surf_coord, numbeads, numint, param, r2old,
     return r2new, surfEnew
 
 def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, scale):
-    energy = numpy.array([0.])
+    energy = numpy.array([0.,0.])
     code = """
     double x, y, z, r2, e;
     for (int i = 0; i < numint; i++){
@@ -309,13 +309,14 @@ def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, scale):
 	if (r2<400){
             e = PARAM2(i,1)*PARAM2(i,1)/r2;
             e = e*e*e;
-            e = PARAM2(i,0)*(e*e-2*scale*e)-PARAM2(i,2);
-            ENERGY1(0) += e;
+           // e = PARAM2(i,0)*(e*e-2*scale*e)-PARAM2(i,2);
+            ENERGY1(0) += PARAM2(i,0)*e*e-PARAM2(i,2);
+            ENERGY1(1) += -PARAM2(i,0)*2*scale*e;
 	}
     }
     """
     info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy','scale'], headers=['<math.h>', '<stdlib.h>'])
-    return energy[0]
+    return energy
 
 def getforcer(mpos, numint, numbeads):
     r2array = numpy.empty((numint,3)) # distance vectors

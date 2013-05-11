@@ -15,16 +15,16 @@ except: pass
 def update_energy(self, torschange, angchange):
     self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
     self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
-    self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam)
+    self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
     self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
-    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+self.newsurfE
+    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+numpy.sum(self.newsurfE)
     self.u1 += energyfunc.umbrellaenergy(self.newcoord, self.z_pin, self.mass, self.totmass)
     return self
 
 def save(self):
     index = self.move/Simulation.step
     self.energyarray[index] = self.u0
-    self.surfE_array[index] = self.surfE
+    self.surfE_array[index,:] = self.surfE
     self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     #self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
 #    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)

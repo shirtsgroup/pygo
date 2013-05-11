@@ -224,7 +224,7 @@ if verbose:
 if surf:
     xlength = 135
     ylength = 135
-    spacing = 5
+    spacing = 7
     print 'Surface is %i by %i with spacing %i (Angstroms)' %( xlength, ylength, spacing)
     yspacing = spacing*3.**.5
     surface = getsurf(xlength+15,ylength+15,spacing)
@@ -419,7 +419,10 @@ if extend:
 
 if cluster:
 	# running on the cluster
-	f = open('nodefile%i.txt'% id,'r')
+	if umbrella:
+		f = open('nodefile%i-%i.txt'% (id,umbrella),'r')
+	else:
+		f = open('nodefile%i.txt'% id,'r')
 	ppservers = f.read().split("\n")
 	f.close()
 	ppservers = filter(None,ppservers)

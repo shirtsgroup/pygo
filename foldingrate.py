@@ -34,7 +34,7 @@ fig =plt.figure(1)
 #plt.axes(frameon=False)
 #plt.xticks([])
 #plt.yticks([])
-plt.xlabel('move/1000')
+plt.xlabel('move/%i'%save*n)
 plt.ylabel('Q fraction native')
 Q_new = numpy.zeros((numrep,len(Q[0,:])/n))
 for rep in range(numrep):
@@ -70,10 +70,10 @@ print numpy.average(count)
 print 'Average every '+str(n)+' data points'
 print count_new
 print numpy.average(count_new)
-
+pdb.set_trace()
 plt.savefig(options.datafile+'/Qtraj_singleprot_avg.png')
 
-orgdataplt = True
+orgdataplt = False
 if orgdataplt:
 	plt.figure(2)
 	import cPickle

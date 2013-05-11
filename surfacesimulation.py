@@ -42,13 +42,13 @@ def update_energy(self, torschange, angchange):
     self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
     self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
     self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
-    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+self.newsurfE
+    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+numpy.sum(self.newsurfE)
     return self
 
 def save(self):
     index = self.move/Simulation.step
     self.energyarray[index] = self.u0
-    self.surfE_array[index] = self.surfE
+    self.surfE_array[index,:] = self.surfE
     self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam_n, Simulation.nsigma2)
     #self.radgyr[self.move/Simulation.step] = energyfunc.radgyr(self.coord)
 #    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
@@ -66,8 +66,8 @@ class SurfaceSimulation(Simulation):
         Simulation.__init__(self, name, outputdirectory, coord, temp)
         self.addsurface(surf_coord)
         self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
-        self.surfE_array = numpy.empty(Simulation.totmoves/Simulation.step + 1)
-        self.surfE_array[0] = self.surfE
+        self.surfE_array = numpy.empty((Simulation.totmoves/Simulation.step + 1,2))
+        self.surfE_array[0,:] = self.surfE
         #self.radgyr = numpy.empty(Simulation.totmoves/Simulation.step + 1)
         #self.radgyr[0] = energyfunc.radgyr(self.coord)
         self.moveparam = numpy.array([2., # translation
@@ -77,7 +77,7 @@ class SurfaceSimulation(Simulation):
                         1., # global crankshaft
                         5.]) # ParRot move
         self.moveparam = self.moveparam * numpy.pi / 180 * self.T / 300 * 50 / Simulation.numbeads
-	self.u0 += self.surfE
+	self.u0 += numpy.sum(self.surfE)
         self.energyarray[0] = self.u0
 #        self.rmsd_array[0] = 0.0
         self.coord_nat = writetopdb.moviecoord(self.coord, Simulation.transform)
@@ -112,7 +112,7 @@ class SurfaceSimulation(Simulation):
     def loadstate(self):
 	Simulation.loadstate(self)
         self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
-	self.u0 += self.surfE
+	self.u0 += sum(self.surfE)
 	self.surfE_array = numpy.load('%s/surfenergy%i.npy' %(self.out, int(self.T)))
 
  
