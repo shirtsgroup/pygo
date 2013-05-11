@@ -34,7 +34,11 @@ fig =plt.figure(1)
 #plt.axes(frameon=False)
 #plt.xticks([])
 #plt.yticks([])
+<<<<<<< .mine
+plt.xlabel('move/%i'% (n*save))
+=======
 plt.xlabel('move/%i'%save*n)
+>>>>>>> .r102
 plt.ylabel('Q fraction native')
 Q_new = numpy.zeros((numrep,len(Q[0,:])/n))
 for rep in range(numrep):
@@ -43,7 +47,7 @@ for rep in range(numrep):
 	plt.subplot(numrep/2,2,rep+1)
 	plt.plot(numpy.arange(len(Q_new[0,:])),Q_new[rep,:]+.5)
 	plt.ylim(0,1)
-fig.text(.5,.04, 'move/%i' % save, ha='center',va='center', fontdict=font)
+fig.text(.5,.04, 'move/%i' % (n*save), ha='center',va='center', fontdict=font)
 fig.text(.5,.96, 'Q trajectories for single proteins', ha='center',va='center',fontdict=font)
 fig.text(.06,.5,'Q fraction native',ha='center',va='center',rotation='vertical',fontdict=font)
 
