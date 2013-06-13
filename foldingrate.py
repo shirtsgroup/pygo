@@ -34,11 +34,7 @@ fig =plt.figure(1)
 #plt.axes(frameon=False)
 #plt.xticks([])
 #plt.yticks([])
-<<<<<<< .mine
 plt.xlabel('move/%i'% (n*save))
-=======
-plt.xlabel('move/%i'%save*n)
->>>>>>> .r102
 plt.ylabel('Q fraction native')
 Q_new = numpy.zeros((numrep,len(Q[0,:])/n))
 for rep in range(numrep):

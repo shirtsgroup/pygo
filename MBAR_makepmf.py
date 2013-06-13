@@ -20,7 +20,7 @@ parser=OptionParser()
 parser.add_option("-t", "--temp", nargs=1, default=200, type="int", dest="temp", help="temperature")
 parser.add_option("--direc", dest="datafile",  help="directory of files")
 parser.add_option("-n", default=8, type="int",dest="n", help="number of umbrellas")
-parser.add_option("-z", "--zrange", nargs=2, default=[9,33], type="float", dest="zrange", help="range of z pinnings for umbrellas, assuming spacing of 2")
+parser.add_option("-z", "--zrange", nargs=2, default=[9,31.5], type="float", dest="zrange", help="range of z pinnings for umbrellas, assuming spacing of 2")
 parser.add_option("-k", dest="k", type="float",default=1, help="harmonic constant")
 
 (options,args) = parser.parse_args()
@@ -35,14 +35,14 @@ K = options.n # number of umbrellas
 k = options.k
 zrange = options.zrange
 direc = options.datafile
-N_max = 1001 # maximum number of snapshots/simulation
+N_max = 5001 # maximum number of snapshots/simulation
 T_k = numpy.ones(K,float)*T # inital temperatures are all equal 
 beta = 1.0 / (kB * T) # inverse temperature of simulations (in 1/(kJ/mol))
-nbins = 36 # number of bins for 1D PMF
+nbins = 25 # number of bins for 1D PMF
 # Allocate storage for simulation data
 N_k = numpy.ones([K], numpy.int32)*N_max # N_k[k] is the number of snapshots from umbrella simulation k
 K_k = k*numpy.ones(K, numpy.float64) # K_k[k] is the spring constant (in kJ/mol/deg**2) for umbrella simulation k
-z0_k = numpy.arange(zrange[0],zrange[1],3, numpy.float64) # chi0_k[k] is the spring center location (in deg) for umbrella simulation k
+z0_k = numpy.arange(zrange[0],zrange[1],1.5, numpy.float64) # chi0_k[k] is the spring center location (in deg) for umbrella simulation k
 z_kn = numpy.zeros([K,N_max], numpy.float64) # chi_kn[k,n] is the torsion angle (in deg) for snapshot n from umbrella simulation k
 u_kn = numpy.zeros([K,N_max], numpy.float64) # u_kn[k,n] is the reduced potential energy without umbrella restraints of snapshot n of umbrella simulation k
 
@@ -53,7 +53,7 @@ for index, i in enumerate(z0_k):
 	ufile = '%s/%i/energy%i.npy' %(direc, int(i), T)
 	u_kn[index,:]=numpy.load(ufile)[-N_max::]
 
-#plt.show()	
+plt.show()	
 
 z_min = numpy.min(z_kn) # min for PMF
 z_max = numpy.max(z_kn) # max for PMF
@@ -81,6 +81,7 @@ for k in range(K):
     for n in range(N_k[k]):
         # Compute bin assignment.
         bin_kn[k,n] = int((z_kn[k,n] - z_min) / delta)
+pdb.set_trace()
 # Evaluate reduced energies in all umbrellas
 print "Evaluating reduced potential energies..."
 for k in range(K):
@@ -113,4 +114,4 @@ numpy.save(direc+'/PMF%i' %T, save)
 df = numpy.sqrt(df_i[numpy.argmin(f_i)]**2 + df_i[numpy.argmax(f_i)]**2)
 print 'The well depth is %f +- %f kcal/mol' % (numpy.min(f_i), df)
 plt.savefig(direc+'/PMF%i.png' %T)
-#plt.show()
+plt.show()

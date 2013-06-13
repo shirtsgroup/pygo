@@ -32,7 +32,7 @@ kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
 #NumTemps = 24          # Last TEMP # + 1 (start counting at 1)
-NumIterations = 1000  # The number of energies to be taken and analyzed, starting from the last
+N_max = 30000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
 dT = 1.25              # Temperature increment for calculating Cv(T)
 
@@ -59,75 +59,40 @@ print("Preparing data:")
 #E_from_file = read_total_energies(simulation)
 #K = len(T_from_file)
 
-#trange = [300.0, 450.0]
-#numreplicas = 24
-T = numpy.empty(numreplicas)
-alpha = (trange[1]/trange[0])**(1/float(numreplicas-1))
-T[0]=trange[0]
-for i in range(1,numreplicas):
-	T[i]=T[i-1]*alpha
-if tfile:
-	T = numpy.loadtxt(tfile)
+T = numpy.loadtxt(tfile)
+
 print T
-files=[]
-surf=[]
-for i in range(len(T)):
-	files.append(direc+'/energy'+str(int(T[i]))+'.npy')
 
-	#files.append('replicaexchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
-#	files.append('replicaexchange/simlog99/energy'+str(int(T[i]))+'.txt')
-#	files.append('surface_replica_exchange/replica'+str(i)+'/energy'+str(int(T[i]))+'.txt')
+K = len(T)
+U_kn = numpy.empty([K,N_max/10], numpy.float64)
+Q_kn = numpy.empty([K,N_max/10], numpy.float64)
 
-nc=numpy.load(files[0])
+print "Reading data..."
+for i, t in enumerate(T):
+	ufile = '%s/energy%i.npy' %(direc, t)
+	data = numpy.load(ufile)[-N_max::]
+	U_kn[i,:] = data[::10]
+	Qfile = '%s/fractionnative%i.npy' %(direc, t)
+	data = numpy.load(Qfile)[-N_max::]
+	Q_kn[i,:] = data[::10]
 
-for i,file in enumerate(files):
-	nctemp=numpy.load(file)
-#	ncsurf=numpy.loadtxt(surf[i])
-	#nctemp -= ncsurf # uncomment this line to get protein-only energies
-	nc=numpy.vstack((nc,nctemp))
-nc=nc[1:numreplicas+1,:]
-temporary = True
-if temporary:
-	nc = nc[:,::10]
-nc = nc[:,-NumIterations:-1]
-T_from_file = T
-E_from_file = nc.copy()
-K = numreplicas
-files=[]
-for i in range(len(T)):
-	files.append(direc+'/fractionnative'+str(int(T[i]))+'.npy')
-#	files.append('replicaexchange/simlog99/fractionnative'+str(int(T[i]))+'.txt')
-
-	#files.append('replicaexchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
-#	files.append('surface_replica_exchange/replica'+str(i)+'/fractionnative'+str(int(T[i]))+'.txt')
-
-
-nc=numpy.load(files[0])
-
-for file in files:
-	nctemp=numpy.load(file)
-	nc=numpy.vstack((nc,nctemp))
-nc=nc[1:numreplicas+1,:]
-if temporary:
-	nc = nc[:,::10]
-nc = nc[:,-NumIterations:-1]
-
+N_max = len(Q_kn[0,:])
 N_k = numpy.zeros(K,numpy.int32)
 g = numpy.zeros(K,numpy.float64)
 for k in range(K):  # subsample the energies
-   g[k] = timeseries.statisticalInefficiency(E_from_file[k])#,suppress_warning=True)
-   indices = numpy.array(timeseries.subsampleCorrelatedData(E_from_file[k],g=g[k])) # indices of uncorrelated samples
-   N_k[k] = len(indices) # number of uncorrelated samples
-   E_from_file[k,0:N_k[k]] = E_from_file[k,indices]
-   nc[k,0:N_k[k]] = nc[k,indices]
+   g[k] = timeseries.statisticalInefficiency(U_kn[k])#,suppress_warning=True)
+   indices = numpy.array(timeseries.subsampleCorrelatedData(U_kn[k],g=g[k])) # indices of uncorrelated samples
+   N_k[k] = len(indices) # number of uncorrelated samplesadsf
+   U_kn[k,0:N_k[k]] = U_kn[k,indices]
+   Q_kn[k,0:N_k[k]] = Q_kn[k,indices]
 
 #------------------------------------------------------------------------
 # Insert Intermediate T's and corresponding blank U's and E's
 #------------------------------------------------------------------------
 # Set up variables
-Temp_k = T_from_file
-currentT = T_from_file[0] + dT
-maxT = T_from_file[len(T_from_file) - 1]
+Temp_k = T
+currentT = T[0] + dT
+maxT = T[-1]
 i = 1
 
 print("--Inserting intermediate temperatures...")
@@ -147,16 +112,16 @@ K = len(Temp_k)
 print("--Inserting blank energies to match up with inserted temperatures...")
 
 # Loop, inserting E's into blank matrix (leaving blanks only where new Ts are inserted)
-
+Q_fromfile = Q_kn
 Nall_k = numpy.zeros([K], numpy.int32) # Number of samples (n) for each state (k) = number of iterations/energies
-E_kn = numpy.zeros([K, NumIterations], numpy.float64)
-Q_kn = numpy.zeros([K, NumIterations], numpy.float64)
+E_kn = numpy.zeros([K, N_max], numpy.float64)
+Q_kn = numpy.zeros([K, N_max], numpy.float64)
 i = 0
 
 for k in range(K):
-       if (Temp_k[k] == T_from_file[i]):
-             E_kn[k,0:N_k[i]] = E_from_file[i,0:N_k[i]]
-	     Q_kn[k,0:N_k[i]] = nc[i,0:N_k[i]]
+       if (Temp_k[k] == T[i]):
+             E_kn[k,0:N_k[i]] = U_kn[i,0:N_k[i]]
+	     Q_kn[k,0:N_k[i]] = Q_fromfile[i,0:N_k[i]]
              Nall_k[k] = N_k[i]
              i = i + 1
 #------------------------------------------------------------------------
@@ -170,7 +135,7 @@ beta_k = 1 / (kB * Temp_k)
 
 print "--Computing reduced energies..."
 
-u_kln = numpy.zeros([K,K,NumIterations], numpy.float64) # u_kln is reduced pot. ener. of segment n of temp k evaluated at temp l
+u_kln = numpy.zeros([K,K,N_max], numpy.float64) # u_kln is reduced pot. ener. of segment n of temp k evaluated at temp l
 
 for k in range(K):
        for l in range(K):
@@ -194,8 +159,8 @@ mbar = pymbar.MBAR(u_kln, Nall_k, method = 'adaptive', verbose=True, relative_to
 # Compute Expectations for E_kt and E2_kt as E_expect and E2_expect
 #------------------------------------------------------------------------
 print ""
-print "Computing Expectations for E..."
-(E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
+#print "Computing Expectations for E..."
+#(E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
 #print "Computing Expectations for E^2..."
 #(E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
 
@@ -225,7 +190,7 @@ print "Computing Expectations for Q..."
 
 #numpy.savetxt('/home/edz3fz/Qtemp.tt',Temp_k)
 import matplotlib.pyplot as plt
-ncavg = numpy.average(nc, axis=1)
+ncavg = numpy.average(Q_fromfile, axis=1)
 
 plt.figure(1)
 plt.plot(T, ncavg, 'ko')

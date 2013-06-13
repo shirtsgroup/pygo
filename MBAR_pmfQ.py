@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 #===================================================================================================
 
 kB = 1.3806503 * 6.0221415 / 4184.0 # Boltzmann constant in kcal/mol/K
-N_max = 10001 # maximum number of snapshots/state
+N_max = 25000 # maximum number of snapshots/state
 #===================================================================================================
 # PARAMETERS
 #===================================================================================================
@@ -24,17 +24,12 @@ parser=OptionParser()
 parser.add_option("-t", "--temp", nargs=1, default=300, type="int", dest="temp", help="target temperature")
 parser.add_option("--tfile", dest="tfile", default="T.txt", help="temperature file T.txt")
 parser.add_option("--direc", dest="datafile",  help="directory of files")
-parser.add_option("-k", dest="k", type="float",default=1, help="harmonic constant")
-parser.add_option("-z", dest="z", type="float",default=30, help="umbrella")
 
 (options,args) = parser.parse_args()
 target_temperature = options.temp
-nbins = 40
+nbins = 50
 tfile = options.tfile
-k = options.k
 direc = options.datafile
-z0 = options.z
-
 #data_directory = 'data/' # directory containing the parallel tempering data
 #temperature_list_filename = os.path.join(data_directory, 'temperatures') # file containing temperatures in K
 #potential_energies_filename = os.path.join(data_directory, 'energies', 'potential-energies') # file containing total energies (in kcal/mol) for each temperature and snapshot
@@ -141,7 +136,6 @@ def write_free_energies(filename, f_k):
 temperature_k = numpy.loadtxt(tfile) # temperature_k[k] is temperature of temperature index k in K
 K = len(temperature_k)
 beta_k = (kB * temperature_k)**(-1) # compute inverse temperatures
-
 # Read list of temperatures.
 #lines = read_file(temperature_list_filename)
 # Construct list of temperatures
@@ -161,22 +155,19 @@ beta_k = (kB * temperature_k)**(-1) # compute inverse temperatures
 # Read potential eneriges
 #===================================================================================================
 
-z_kn = numpy.empty([K,N_max], numpy.float64) # z_kn[k,n] is the z dist from the surface (in A) for snapshot n from temperature simulation k
-U_kn = numpy.empty([K,N_max], numpy.float64)
-Q_kn = numpy.empty([K,N_max], numpy.float64)
+U_kn = numpy.empty([K,N_max/10], numpy.float64)
+Q_kn = numpy.empty([K,N_max/10], numpy.float64)
 
 print "Reading data..."
 for i, t in enumerate(temperature_k):
-	zfile = '%s/%i/z_traj%i_%i.npy' %(direc, z0, z0, t)
-	z_kn[i,:] = numpy.load(zfile)[-N_max::]
-	ufile = '%s/%i/energy%i.npy' %(direc, z0, t)
-	U_kn[i,:] = numpy.load(ufile)[-N_max::]
-	Qfile = '%s/%i/fractionnative%i.npy' %(direc, z0, t)
-	Q_kn[i,:] = numpy.load(Qfile)[-N_max::]
-for i in range(K):
-	U_kn[i,:] -= k*(z_kn[i,:] - z0)**2
+	ufile = '%s/energy%i.npy' %(direc, t)
+	data = numpy.load(ufile)[-N_max::]
+	U_kn[i,:] = data[::10]
+	Qfile = '%s/fractionnative%i.npy' %(direc, t)
+	data = numpy.load(Qfile)[-N_max::]
+	Q_kn[i,:] = data[::10]
 
-
+N_max = len(Q_kn[0,:])
 #===================================================================================================
 # Compute reduced potential energy of all snapshots at all temperatures
 #===================================================================================================
@@ -185,7 +176,7 @@ print "Computing reduced potential energies..."
 u_kln = numpy.zeros([K,K,N_max], numpy.float32) # u_kln[k,l,n] is reduced potential energy of trajectory segment n of temperature k evaluated at temperature l
 for k in range(K):
    for l in range(K):
-      u_kln[k,l,:] = beta_k[l] * U_kn[k,:]
+      	u_kln[k,l,:] = beta_k[l] * U_kn[k,:]
 N_k = numpy.zeros([K], numpy.int32)
 N_k[:] = N_max
 #===================================================================================================
@@ -248,15 +239,15 @@ for i in range(nbins):
    print '%8d %6.1f %8d %10.3f %10.3f' % (i, bin_centers[i], bin_counts[i], f_i[i], sqrt(d2f_i[i,imin]))
    error[i] = sqrt(d2f_i[i,imin])
 
-plt.errorbar(bin_centers,f_i,error)
-plt.xlabel('z distance from surface (A)')
+plt.errorbar(bin_centers[1::],f_i[1::],error[1::])
+plt.xlabel('Q')
 plt.ylabel('PMF (kcal/mol)')
 save = numpy.zeros((nbins,3))
 save[:,0] = bin_centers
 save[:,1] = f_i
 save[:,2] = error
-numpy.save(direc+'/PMF%i_Q%i' % ( z0, target_temperature), save)
+numpy.save(direc+'/PMF_Q%i' % ( target_temperature), save)
 #df = numpy.sqrt(df_i[numpy.argmin(f_i)]**2 + df_i[numpy.argmax(f_i)]**2)
 #print 'The well depth is %f +- %f kcal/mol' % (numpy.min(f_i), df)
-plt.savefig(direc+'/PMF%i_Q%i.png' % (z0,target_temperature))
+plt.savefig(direc+'/PMF_Q%i.png' % (target_temperature))
 plt.show()
