@@ -32,9 +32,9 @@ kB = 0.00831447/4.184  #Boltzmann constant (Gas constant) in kJ/(mol*K)
 #TE_COL_NUM = 11  #The column number of the total energy in ener_box#.output
 
 #NumTemps = 24          # Last TEMP # + 1 (start counting at 1)
-N_max = 30000  # The number of energies to be taken and analyzed, starting from the last
+N_max = 120000  # The number of energies to be taken and analyzed, starting from the last
                   # Extra data will be ignored
-dT = 1.25              # Temperature increment for calculating Cv(T)
+dT = 2.5              # Temperature increment for calculating Cv(T)
 
 ###########################################################
 # For Cv vs T    _____
@@ -80,8 +80,8 @@ N_max = len(Q_kn[0,:])
 N_k = numpy.zeros(K,numpy.int32)
 g = numpy.zeros(K,numpy.float64)
 for k in range(K):  # subsample the energies
-   g[k] = timeseries.statisticalInefficiency(U_kn[k])#,suppress_warning=True)
-   indices = numpy.array(timeseries.subsampleCorrelatedData(U_kn[k],g=g[k])) # indices of uncorrelated samples
+   g[k] = timeseries.statisticalInefficiency(Q_kn[k])#,suppress_warning=True)
+   indices = numpy.array(timeseries.subsampleCorrelatedData(Q_kn[k],g=g[k])) # indices of uncorrelated samples
    N_k[k] = len(indices) # number of uncorrelated samplesadsf
    U_kn[k,0:N_k[k]] = U_kn[k,indices]
    Q_kn[k,0:N_k[k]] = Q_kn[k,indices]

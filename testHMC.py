@@ -254,6 +254,12 @@ print 'Variance / Slope ' + str(std(pot+K)/coeff[0])
 #f.write('END\r\n')
 #f.close
 
+
+ham = K + pot
+drift = (ham-ham[0])/ham[0]
+total_drift = abs(1./nsteps*sum(drift))
+print 'Drift: ' + str(total_drift)
+
 print 'Simulation time: '+str(datetime.now()-t1)
 
 plt.figure(1)
