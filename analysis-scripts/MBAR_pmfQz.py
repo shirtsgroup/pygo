@@ -10,6 +10,7 @@ import pdb
 import matplotlib.pyplot as plt
 import optparse
 import wham
+import pickle
 
 def parse_args():
 	parser = optparse.OptionParser(description='Calculates the PMF(Q) at various input temperatures')
@@ -37,10 +38,12 @@ def main():
 	spring_constant = 1.5 #check this 
 
 	T = numpy.loadtxt(tfile)
+#	T = numpy.array([305.,320.,330.,340.]) # testing purposes
 	beta_k = 1 / (kB * T)
-	print 'temperature states are', T
+	print 'temperature states are\n', T
 	Z = numpy.arange(9,31.5,1.5)
-	print 'distance states are', z	
+#	Z = numpy.array([15,16.5,18]) # testing purposes
+	print 'distance states are\n', Z	
 
 	K = len(T)*len(Z)
 
@@ -87,7 +90,7 @@ def main():
 	mask_kn = numpy.zeros([K,N_max], dtype=numpy.bool)
 	for k in range(0,K):
 		mask_kn[k,0:N_k[k]] = True
-	indices = nump.where(mask_kn)
+	indices = numpy.where(mask_kn)
 	
 	# compute reduced potential energy of all snapshots at all temperatures and distances
 	print 'Computing reduced potential energies...'
@@ -98,7 +101,7 @@ def main():
 			T_index = l%len(T) # T is inner dimension
 			dz = z_kn[k,0:N_k[k]] - Z[z_index]
 			u_kln[k,l,0:N_k[k]] = beta_k[T_index] * U_kn[k,0:N_k[k]] + spring_constant*(dz)**2
-	temp_file = 'u_kln.npy'
+	temp_file = '%s/u_kln.npy' % direc
 	print 'Saving u_kln matrix to %s...' % temp_file
 	numpy.save(temp_file, u_kln)
 
@@ -109,7 +112,7 @@ def main():
 	dQ = (Q_max - Q_min) / float(nbins_per)
 	z_min = numpy.min(z_kn[indices])
 	z_max = numpy.max(z_kn[indices])
-	dz = (z_max - z_in) / float(nbins_per)
+	dz = (z_max - z_min) / float(nbins_per)
 	bin_kn = numpy.zeros([K,N_max],numpy.int16)
 	bin_counts = []
 	bin_centers = []
@@ -118,12 +121,13 @@ def main():
 		for j in range(nbins_per):
 			z = z_min + dz * (i + 0.5)
 			Q = Q_min + dQ * (j + 0.5)
-			in_bin = (Q-dQ/2 <= Q_kn[indices]) and (Q_kn[indices] < Q+dQ/2) and (z-dz/2 <= z_kn[indices]) and (z_kn[indices] < z+dz/2)
+			in_bin = (Q-dQ/2 <= Q_kn[indices]) & (Q_kn[indices] < Q+dQ/2) & (z-dz/2 <= z_kn[indices]) & (z_kn[indices] < z+dz/2)
 			bin_count = in_bin.sum()
+			indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
 			if bin_count > 0:
 				bin_centers.append((z,Q))
 				bin_counts.append(bin_count)
-				bin_kn[in_bin] = bin
+				bin_kn[indices_in_bin] = nbins
 				nbins += 1
 	print '%i bins were populated:' %nbins
 	for i in range(nbins):
@@ -138,19 +142,21 @@ def main():
 		mbar = pymbar.MBAR(u_kln, N_k, maximum_iterations = 0, verbose = True, initial_f_k = f_k)
 	else:
 		print 'Using WHAM to generate historgram-based initial guess of dimensionless free energies f_k...'
-		f_k = histogram_wham(beta_k, U_kn, N_k)
+		beta_k = numpy.array(beta_k.tolist()*len(Z)) 
+		f_k = wham.histogram_wham(beta_k, U_kn, N_k)
 		print 'Initializing MBAR...'
 		mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k)
-		f_file = 'f_k.pkl'
+		f_file = '%s/f_k.npy' % direc
 		print 'Writing free energies to %s' % f_file
 		numpy.save(f_file, mbar.f_k)
 	
-	mbar_file = 'mbar.pkl'
-	with open(mbar_file,'wb'):
-		print 'Saving mbar object to %s' mbar_file
-		pickle.dump(mbar_file, mbar)
-	
+	mbar_file = '%s/mbar.pkl' % direc
+	f = file(mbar_file,'wb')
+	print 'Saving mbar object to %s' % mbar_file
+	pickle.dump(mbar,f)
+	f.close()	
 
+	target_temperatures = [300,325,350]
 	f_i = numpy.zeros((nbins,len(target_temperatures)))
 	df_i = numpy.zeros((nbins,len(target_temperatures)))
 	for i,temp in enumerate(target_temperatures):
@@ -160,11 +166,28 @@ def main():
 		imin = f_i.argmin()
 		for j in range(nbins):
 			df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
-	
-	#plotting
-	for i in range(len(target_temperatures)):
-		plt.errorbar(bin_centers,f_i[:,i],df_i[:,i])
-	plt.xlabel('Q')
-	plt.ylabel('PMF (kcal/mol)')
-	plt.show()
+
+	pmf_file = '%s/pmf.pkl' % direc
+	f = file(pmf_file,'wb')
+	print 'saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
+	pickle.dump(target_temperatures,f)
+	pickle.dump(bin_centers,f)
+	pickle.dump(f_i,f)
+	pickle.dump(df_i,f)
+	f.close()
+
+if __name__ == '__main__':
+	main()
+
+
+
+	#plot in separate script
+
+
+#	#plotting
+#	for i in range(len(target_temperatures)):
+#		plt.errorbar(bin_centers,f_i[:,i],df_i[:,i])
+#	plt.xlabel('Q')
+#	plt.ylabel('PMF (kcal/mol)')
+#	plt.show()
 
