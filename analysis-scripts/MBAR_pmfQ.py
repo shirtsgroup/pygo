@@ -1,253 +1,145 @@
+#!/usr/bin/python2.4
+
 import numpy
 from math import *
-import pymbar # for MBAR analysis
-import timeseries # for timeseries analysis
+import pymbar
+import timeseries
 import commands
 import os
-import os.path
-import pdb
-from optparse import OptionParser
-import matplotlib.pyplot as plt
+#import pdb
+#import matplotlib.pyplot as plt
+import optparse
+import wham
 
+def parse_args():
+	parser = optparse.OptionParser(description='Calculates the PMF(Q)')
+#	parser.add_option('-t','--temp', dest= 'temp', nargs = 2, type = 'float', help = 'desired temperatures')
+	parser.add_option('--tfile', dest='tfile', default='T.txt', help = 'simulation temperature file')
+	parser.add_option('--direc', dest='direc', help='directory of simulation data')
+	parser.add_option("-n", "--N_max", default=100000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
+	parser.add_option("-s", "--skip", default=1, type="int",dest="skip", help="skip every n data points")
+	(options,args) = parser.parse_args()
+	return options
 
-#===================================================================================================
-# CONSTANTS
-#===================================================================================================
+def read_data(args,K,T):
+ 	print "Reading data..."
+	U_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
+	Q_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
+	for i, t in enumerate(T):
+		ufile = '%s/energy%i.npy' %(args.direc, t)
+		data = numpy.load(ufile)[-N_max::]
+		U_kn[i,:] = data[::args.skip]
+		Qfile = '%s/fractionnative%i.npy' %(args.direc, t)
+		data = numpy.load(Qfile)[-N_max::]
+		Q_kn[i,:] = data[::args.skip]
+	N_max /= skip
+	return U_kn, Q_kn, N_max
 
-kB = 1.3806503 * 6.0221415 / 4184.0 # Boltzmann constant in kcal/mol/K
-N_max = 25000 # maximum number of snapshots/state
-#===================================================================================================
-# PARAMETERS
-#===================================================================================================
+def subsample(U_kn,Q_kn,K,N_max):
+    assume_uncorrelated = False
+    if assume_uncorrelated:
+        print 'Assuming data is uncorrelated'
+        N_k = numpy.zeros(K, numpy.int32)
+        N_k[:] = N_max
+    else:	
+        print 'Subsampling the data...'
+        N_k = numpy.zeros(K,numpy.int32)
+        g = numpy.zeros(K,numpy.float64)
+        for k in range(K):  # subsample the energies
+            g[k] = timeseries.statisticalInefficiency(Q_kn[k])#,suppress_warning=True)
+            indices = numpy.array(timeseries.subsampleCorrelatedData(Q_kn[k],g=g[k])) # indices of uncorrelated samples
+            N_k[k] = len(indices) # number of uncorrelated samplesadsf
+            U_kn[k,0:N_k[k]] = U_kn[k,indices]
+            Q_kn[k,0:N_k[k]] = Q_kn[k,indices]
+    return U_kn, Q_kn, N_k
 
-parser=OptionParser()
-parser.add_option("-t", "--temp", nargs=1, default=300, type="int", dest="temp", help="target temperature")
-parser.add_option("--tfile", dest="tfile", default="T.txt", help="temperature file T.txt")
-parser.add_option("--direc", dest="datafile",  help="directory of files")
+def get_bins(nbins,K,N_max,Q_kn):
+    print 'Binning Q'
+	Q_min = 0
+	Q_max = 1
+	dQ = (Q_max - Q_min) / float(nbins)
+	bin_kn = numpy.zeros([K,N_max],numpy.int16)
+	bin_counts = list()
+	bin_centers = list()
+    bin = 0
+	for i in range(nbins):
+		Q = Q_min + dQ * (i + 0.5)
+		in_bin = (Q-dQ/2 <= Q_kn) & (Q_kn < Q+dQ/2)
+		bin_count = in_bin.sum()
+		if bin_count > 0:
+			bin_centers.append(Q)
+			bin_counts.append(bin_count)
+			bin_kn[in_bin] = bin
+			bin += 1
+    return bin, bin_centers, bin_counts, bin_kn
 
-(options,args) = parser.parse_args()
-target_temperature = options.temp
-nbins = 50
-tfile = options.tfile
-direc = options.datafile
-#data_directory = 'data/' # directory containing the parallel tempering data
-#temperature_list_filename = os.path.join(data_directory, 'temperatures') # file containing temperatures in K
-#potential_energies_filename = os.path.join(data_directory, 'energies', 'potential-energies') # file containing total energies (in kcal/mol) for each temperature and snapshot
-#trajectory_segment_length = 20 # number of snapshots in each contiguous trajectory segment
-#niterations = 500 # number of iterations to use
-#target_temperature = 302 # target temperature for 2D PMF (in K)
-#nbins_per_torsion = 10 # number of bins per torsion dimension
+def get_ukln(N_max,K,U_kn,N_k,beta_k):
+    print 'Computing reduced potential energies...'
+    u_kln = numpy.zeros([K,K,N_max], numpy.float64) # u_kln is reduced pot. ener. of segment n of temp k evaluated at temp l
+	for k in range(K):
+	       for l in range(K):
+	             u_kln[k,l,0:N_k[k]] = beta_k[l] * U_kn[k,0:N_k[k]]
+    return u_kln
 
-#===================================================================================================
-# SUBROUTINES
-#===================================================================================================
-def logSum(log_terms):
-   max_log_term = log_terms.max()
-   terms = numpy.exp(log_terms - max_log_term)
-   log_sum = log( terms.sum() ) + max_log_term
-   return log_sum
+def get_mbar(beta_k,U_kn,N_k,u_kln):
+    print 'Initializing mbar...'
+	f_k = wham.histogram_wham(beta_k, U_kn, N_k)
+	mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k, verbose=True)
+    return mbar 
 
-def histogram_wham(beta_k, U_kn, N_k, nbins = 100, bin_width = None, maximum_iterations = 5000, relative_tolerance = 1.0e-8, initial_f_k = None):
-   K = N_k.size
-   N_max = N_k.max()
-   mask_kn = numpy.zeros([K,N_max], dtype=numpy.bool)
-   for k in range(0,K):
-      mask_kn[k,0:N_k[k]] = True
-   sample_indices = numpy.where(mask_kn)
-   M = nbins # number of energy bins
-   SMALL = 1.0e-6
-   U_min = U_kn[sample_indices].min()
-   U_max = U_kn[sample_indices].max()
-   U_max += (U_max - U_min) * SMALL # increment by a bit
-   delta_U = (U_max - U_min) / float(M)
-   if (bin_width != None):
-      delta_U = bin_width
-      M = int(numpy.ceil((U_max - U_min) / bin_width))
-      print "Using %d bins to achieve bin width of %f" % (M, delta_U)
-   else:
-      print "Bin width is %f energy units to achieve nbins = %d" % (delta_U, M)
-   U_m = U_min + delta_U * (0.5 + numpy.arange(0,M,dtype = numpy.float64))
-   H_m = numpy.zeros([M], numpy.float64)
-   bin_kn = numpy.zeros([K,N_max], numpy.int32) # bin_kn[k,n] is bin index of U_kn[k,n]
-   bin_kn[sample_indices] = numpy.array(((U_kn[sample_indices] - U_min) / delta_U), numpy.int32)
-   H_m = numpy.bincount(bin_kn[sample_indices])
-   LOG_ZERO = -1000.0 # replacement for log(0)
-   log_H_m = numpy.ones([M], numpy.float64) * LOG_ZERO
-   for m in range(M):
-      if (H_m[m] > 0):
-         log_H_m[m] = log(H_m[m])
-   log_N_k = numpy.ones([K], numpy.float64) * LOG_ZERO
-   for k in range(K):
-      if (N_k[k] > 0):
-         log_N_k[k] = log(N_k[k])
-   f_k = numpy.zeros([K], numpy.float64)
-   if (initial_f_k != None):
-      f_k = initial_f_k.copy()
-   f_k_new = numpy.zeros([K], numpy.float64)
-   max_delta = 0.0
-   for iteration in range(maximum_iterations):
-      log_w_mi = numpy.zeros([M,K], numpy.float64)
-      for m in range(M):
-         exp_arg_k = log_N_k[:] + f_k[:] - beta_k[:]*U_m[m]
-         log_w_mi[m,:] = exp_arg_k[:] - logSum(exp_arg_k[:])
-      w_mi = numpy.zeros([M,K], numpy.float64)
-      for m in range(M):
-         exp_arg_k = f_k[:] - beta_k[:]*U_m[m]
-         max_arg = exp_arg_k.max()
-         numerators_i = N_k[:] * numpy.exp(exp_arg_k[:] - max_arg)
-         w_mi[m,:] = numerators_i[:] / numerators_i.sum()
-      for i in range(K):
-         f_k_new[i] = f_k[i] + log(N_k[i]) - logSum(log_H_m[:] + log_w_mi[:,i])
-      f_k_new -= f_k_new[0]
-      Delta_f_k = f_k_new - f_k
-      f_k = f_k_new.copy()
-      if numpy.all(f_k == 0.0):
-        break
-      max_delta = (numpy.abs(Delta_f_k) / (numpy.abs(f_k_new)).max()).max()
-      print "iteration %8d relative max_delta = %8e" % (iteration, max_delta)
-      if numpy.isnan(max_delta) or (max_delta < relative_tolerance):
-         break
-   if (iteration == maximum_iterations):
-      print "Did not converge in %d iterations (final relative tolerance %e)" % (maximum_iterations, max_delta)
-      print "f_k = "
-      print f_k
-      return f_k
-   print "Converged to relative tolerance of %e (convergence tolerance %e) in %d iterations" % (max_delta, relative_tolerance, iteration)
-   print "f_k = "
-   print f_k
-   return f_k
+def main():
+	options = parse_args()
+	
+    # set constants
+	kB = 0.00831447/4.184
+	nbins = 25
 
-def write_free_energies(filename, f_k):
-   K = f_k.size
-   outfile = open(filename, 'w')
-   for k in range(K):
-      outfile.write("%f " % f_k[k])
-   outfile.write("\n")
-   outfile.close()
-   return
-#===================================================================================================
-# MAIN
-#===================================================================================================
+    # get temperature states
+	T = numpy.loadtxt(tfile)
+	beta_k = 1 / (kB * T)
+	print 'temperature states are\n', T
+	K = len(T)
+	
+    # read in data
+    U_kn, Q_kn, N_max = read_data(options,K,T)
 
-#===================================================================================================
-# Read temperatures
-#===================================================================================================
+    # test for statistical inefficiencies
+    U_kn, Q_kn, N_k = subsample(U_kn, Q_kn, K, N_max)
 
-temperature_k = numpy.loadtxt(tfile) # temperature_k[k] is temperature of temperature index k in K
-K = len(temperature_k)
-beta_k = (kB * temperature_k)**(-1) # compute inverse temperatures
-# Read list of temperatures.
-#lines = read_file(temperature_list_filename)
-# Construct list of temperatures
-#temperatures = lines[0].split()
-# Create numpy array of temperatures
-#K = len(temperatures)
-#temperature_k = numpy.zeros([K], numpy.float32) # temperature_k[k] is temperature of temperature index k in K
-#for k in range(K):
-#   temperature_k[k] = float(temperatures[k])
-# Compute inverse temperatures
-#beta_k = (kB * temperature_k)**(-1) 
+	# binning data
+    nbins, bin_centers, bin_counts, bin_kn = get_bins(nbins,K,N_max,Q_kn)
+    print '%i bins were populated:' %nbins
+    for i in range(nbins):
+        print 'bin %5i (%6.1f) %12i conformations' % (i, bin_centers[i], bin_counts[i])
 
-# Define other constants
-#T = trajectory_segment_length * niterations # total number of snapshots per temperature
+    # compute reduced potential energy of all snapshots at all temperatures
+    u_kln = get_ukln(N_max,K,U_kn,N_k,beta_k)
 
-#===================================================================================================
-# Read potential eneriges
-#===================================================================================================
+    # initialize mbar
+    mbar = get_mbar(beta_k,U_kn,N_k,u_kln)
 
-U_kn = numpy.empty([K,N_max/10], numpy.float64)
-Q_kn = numpy.empty([K,N_max/10], numpy.float64)
+    target_temperatures = numpy.arange(295.,360.,5.)
+    target_temperatures = [300, 325, 350]
+    print 'Calculating the PMF at', target_temperatures
 
-print "Reading data..."
-for i, t in enumerate(temperature_k):
-	ufile = '%s/energy%i.npy' %(direc, t)
-	data = numpy.load(ufile)[-N_max::]
-	U_kn[i,:] = data[::10]
-	Qfile = '%s/fractionnative%i.npy' %(direc, t)
-	data = numpy.load(Qfile)[-N_max::]
-	Q_kn[i,:] = data[::10]
+#	f_i = numpy.zeros((nbins,len(target_temperatures)))
+#	df_i = numpy.zeros((nbins,len(target_temperatures)))
+	for i,temp in enumerate(target_temperatures):
+		target_beta = 1.0 / (kB * temp)
+		u_kn = target_beta * U_kn
+		f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
+#		imin = f_i.argmin()
+#		for j in range(nbins):
+#			df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
+        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
+        f = file(pmf_file, 'wb')
+        print 'Saving target temperature, bin centers, f_i, df_i to %s' % pmf_file
+        cPickle.dump(temp,f)
+        cPickle.dump(bin_centers,f)
+        cPickle.dump(f_i,f)
+        cPickle.dump(d2f_i,f)
+        f.close()
+	
+if __name__ == '__main__':
+    main()
 
-N_max = len(Q_kn[0,:])
-#===================================================================================================
-# Compute reduced potential energy of all snapshots at all temperatures
-#===================================================================================================
-
-print "Computing reduced potential energies..."
-u_kln = numpy.zeros([K,K,N_max], numpy.float32) # u_kln[k,l,n] is reduced potential energy of trajectory segment n of temperature k evaluated at temperature l
-for k in range(K):
-   for l in range(K):
-      	u_kln[k,l,:] = beta_k[l] * U_kn[k,:]
-N_k = numpy.zeros([K], numpy.int32)
-N_k[:] = N_max
-#===================================================================================================
-# Bin torsions into histogram bins for PMF calculation
-#===================================================================================================
-
-# Here, we bin the (phi,psi) samples into bins in a 2D histogram.
-# We assign indices 0...(nbins-1) to the bins, even though the histograms are in two dimensions.
-# All bins must have at least one sample in them.
-# This strategy scales to an arbitrary number of dimensions.
-print "Binning Q..."
-# Determine torsion bin size (in degrees)
-Q_min = 0.
-Q_max = 1.
-dx = (Q_max - Q_min) / float(nbins)
-# Assign torsion bins
-bin_kn = numpy.zeros([K,N_max], numpy.int16) # bin_kn[k,n] is the index of which histogram bin sample n from temperature index k belongs to
-nbins2 = nbins
-nbins = 0
-bin_counts = list()
-bin_centers = list() # bin_centers[i] is a (phi,psi) tuple that gives the center of bin i
-for i in range(nbins2):
-      Q = Q_min + dx * (i + 0.5)
-      in_bin = (Q-dx/2 <= Q_kn) & (Q_kn < Q+dx/2)
-      bin_count = in_bin.sum()
-      if (bin_count > 0):
-         bin_centers.append( Q )
-         bin_counts.append( bin_count )
-         bin_kn[in_bin] = nbins
-         nbins += 1
-print "Using WHAM to generate histogram-based initial guess of dimensionless free energies f_k..."
-f_k = histogram_wham(beta_k, U_kn, N_k)
-print "Initializing MBAR (will estimate free energy differences first time)..."
-mbar = pymbar.MBAR(u_kln, N_k, verbose = True, initial_f_k = f_k)
-#write_free_energies(free_energies_filename, mbar.f_k)
-
-#===================================================================================================
-# Compute PMF at the desired temperature.
-#===================================================================================================
-
-print "Computing potential of mean force..."
-
-# Compute reduced potential energies at the temperaure of interest
-target_beta = 1.0 / (kB * target_temperature)
-u_kn = target_beta * U_kn
-# Compute PMF at this temperature, returning dimensionless free energies and uncertainties.
-# f_i[i] is the dimensionless free energy of bin i (in kT) at the temperature of interest
-# d2f_ij[i,j] is an estimate of the covariance in the estimate of (f_i[i] - f_j[j])
-(f_i, d2f_i) = mbar.computePMF_states(u_kn, bin_kn, nbins)
-
-# Find index of bin with lowest free energy.
-imin = f_i.argmin()
-
-# Show free energy and uncertainty of each occupied bin relative to lowest free energy
-print "PMF"
-print ""
-print "%8s %6s %8s %10s %10s" % ('bin', 'Q', 'N', 'f', 'df')
-error = numpy.zeros(nbins)
-for i in range(nbins):
-   print '%8d %6.1f %8d %10.3f %10.3f' % (i, bin_centers[i], bin_counts[i], f_i[i], sqrt(d2f_i[i,imin]))
-   error[i] = sqrt(d2f_i[i,imin])
-
-plt.errorbar(bin_centers[1::],f_i[1::],error[1::])
-plt.xlabel('Q')
-plt.ylabel('PMF (kcal/mol)')
-save = numpy.zeros((nbins,3))
-save[:,0] = bin_centers
-save[:,1] = f_i
-save[:,2] = error
-numpy.save(direc+'/PMF_Q%i' % ( target_temperature), save)
-#df = numpy.sqrt(df_i[numpy.argmin(f_i)]**2 + df_i[numpy.argmax(f_i)]**2)
-#print 'The well depth is %f +- %f kcal/mol' % (numpy.min(f_i), df)
-plt.savefig(direc+'/PMF_Q%i.png' % (target_temperature))
-plt.show()
