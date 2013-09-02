@@ -10,6 +10,7 @@ import os
 #import matplotlib.pyplot as plt
 import optparse
 import wham
+import cPickle
 
 def parse_args():
 	parser = optparse.OptionParser(description='Calculates the PMF(Q)')
@@ -22,18 +23,18 @@ def parse_args():
 	return options
 
 def read_data(args,K,T):
- 	print "Reading data..."
-	U_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
-	Q_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
-	for i, t in enumerate(T):
-		ufile = '%s/energy%i.npy' %(args.direc, t)
-		data = numpy.load(ufile)[-N_max::]
-		U_kn[i,:] = data[::args.skip]
-		Qfile = '%s/fractionnative%i.npy' %(args.direc, t)
-		data = numpy.load(Qfile)[-N_max::]
-		Q_kn[i,:] = data[::args.skip]
-	N_max /= skip
-	return U_kn, Q_kn, N_max
+    print "Reading data..."
+    U_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
+    Q_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
+    for i, t in enumerate(T):
+        ufile = '%s/energy%i.npy' %(args.direc, t)
+        data = numpy.load(ufile)[-args.N_max::]
+        U_kn[i,:] = data[::args.skip]
+        Qfile = '%s/fractionnative%i.npy' %(args.direc, t)
+        data = numpy.load(Qfile)[-args.N_max::]
+        Q_kn[i,:] = data[::args.skip]
+    N_max = args.N_max/args.skip
+    return U_kn, Q_kn, N_max
 
 def subsample(U_kn,Q_kn,K,N_max):
     assume_uncorrelated = False
@@ -55,50 +56,50 @@ def subsample(U_kn,Q_kn,K,N_max):
 
 def get_bins(nbins,K,N_max,Q_kn):
     print 'Binning Q'
-	Q_min = 0
-	Q_max = 1
-	dQ = (Q_max - Q_min) / float(nbins)
-	bin_kn = numpy.zeros([K,N_max],numpy.int16)
-	bin_counts = list()
-	bin_centers = list()
+    Q_min = 0
+    Q_max = 1
+    dQ = (Q_max - Q_min) / float(nbins)
+    bin_kn = numpy.zeros([K,N_max],numpy.int16)
+    bin_counts = list()
+    bin_centers = list()
     bin = 0
-	for i in range(nbins):
-		Q = Q_min + dQ * (i + 0.5)
-		in_bin = (Q-dQ/2 <= Q_kn) & (Q_kn < Q+dQ/2)
-		bin_count = in_bin.sum()
-		if bin_count > 0:
-			bin_centers.append(Q)
-			bin_counts.append(bin_count)
-			bin_kn[in_bin] = bin
-			bin += 1
+    for i in range(nbins):
+        Q = Q_min + dQ * (i + 0.5)
+        in_bin = (Q-dQ/2 <= Q_kn) & (Q_kn < Q+dQ/2)
+        bin_count = in_bin.sum()
+        if bin_count > 0:
+            bin_centers.append(Q)
+            bin_counts.append(bin_count)
+            bin_kn[in_bin] = bin
+            bin += 1
     return bin, bin_centers, bin_counts, bin_kn
 
 def get_ukln(N_max,K,U_kn,N_k,beta_k):
     print 'Computing reduced potential energies...'
     u_kln = numpy.zeros([K,K,N_max], numpy.float64) # u_kln is reduced pot. ener. of segment n of temp k evaluated at temp l
-	for k in range(K):
+    for k in range(K):
 	       for l in range(K):
 	             u_kln[k,l,0:N_k[k]] = beta_k[l] * U_kn[k,0:N_k[k]]
     return u_kln
 
 def get_mbar(beta_k,U_kn,N_k,u_kln):
     print 'Initializing mbar...'
-	f_k = wham.histogram_wham(beta_k, U_kn, N_k)
-	mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k, verbose=True)
+    f_k = wham.histogram_wham(beta_k, U_kn, N_k)
+    mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k, verbose=True)
     return mbar 
 
 def main():
-	options = parse_args()
+    options = parse_args()
 	
     # set constants
-	kB = 0.00831447/4.184
-	nbins = 25
+    kB = 0.00831447/4.184
+    nbins = 25
 
     # get temperature states
-	T = numpy.loadtxt(tfile)
-	beta_k = 1 / (kB * T)
-	print 'temperature states are\n', T
-	K = len(T)
+    T = numpy.loadtxt(tfile)
+    beta_k = 1 / (kB * T)
+    print 'temperature states are\n', T
+    K = len(T)
 	
     # read in data
     U_kn, Q_kn, N_max = read_data(options,K,T)
@@ -124,12 +125,12 @@ def main():
 
 #	f_i = numpy.zeros((nbins,len(target_temperatures)))
 #	df_i = numpy.zeros((nbins,len(target_temperatures)))
-	for i,temp in enumerate(target_temperatures):
-		target_beta = 1.0 / (kB * temp)
-		u_kn = target_beta * U_kn
-		f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
-#		imin = f_i.argmin()
-#		for j in range(nbins):
+    for i,temp in enumerate(target_temperatures):
+        target_beta = 1.0 / (kB * temp)
+        u_kn = target_beta * U_kn
+        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
+#       imin = f_i.argmin()
+#       for j in range(nbins):
 #			df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
         pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
         f = file(pmf_file, 'wb')
