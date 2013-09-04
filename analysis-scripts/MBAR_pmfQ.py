@@ -96,7 +96,7 @@ def main():
     nbins = 25
 
     # get temperature states
-    T = numpy.loadtxt(tfile)
+    T = numpy.loadtxt(options.tfile)
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     K = len(T)
@@ -120,7 +120,7 @@ def main():
     mbar = get_mbar(beta_k,U_kn,N_k,u_kln)
 
     target_temperatures = numpy.arange(295.,360.,5.)
-    target_temperatures = [300, 325, 350]
+#    target_temperatures = [300, 325, 350]
     print 'Calculating the PMF at', target_temperatures
 
 #	f_i = numpy.zeros((nbins,len(target_temperatures)))

@@ -129,6 +129,14 @@ def read_data(args,K,Z,T,spring_constant):
             zfile = '%s/%i/z_traj%i_%i.npy' %(args.direc, z, z, t)
             data = numpy.load(zfile)[-args.N_max::]
             z_kn[i,:] = data[::args.skip]
+            sfile = '%s/%i/surfenergy%i.npy' %(args.direc,z,t)
+            data = numpy.load(sfile)[-args.N_max::]
+            if numpy.shape(data)==(args.N_max,2):
+                if numpy.all(data[:,0]==data[:,1]):
+                    data = data[:,0]
+                else:
+                    data = numpy.sum(data,axis=1)
+            U_kn[i,:] -= data[::args.skip]
             U_kn[i,:] -= spring_constant*(z_kn[i,:] - z)**2
             i += 1
     N_max = args.N_max/args.skip
