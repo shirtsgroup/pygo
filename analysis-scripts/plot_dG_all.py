@@ -9,6 +9,7 @@ import plot_dG
 import plot_dG_solution
 def main():
     lam = [.1, .2, .3, .4, .5, .525, .55, .6, .625, .675, .7]
+    lam = [.1, .2, .3, .35, .4, .45, .5, .6, .7]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw.pkl' % str(x)[1::] for x in lam]
     colors = cm.summer(numpy.linspace(0,1,len(lam)))
     for i in range(len(lam)):

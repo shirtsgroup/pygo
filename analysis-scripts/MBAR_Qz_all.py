@@ -40,16 +40,13 @@ def main():
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     Z = numpy.arange(9,31.5,1.5)
+    Z = numpy.concatenate((Z,numpy.array([33,36,39,42])))
 #    Z = numpy.array([15,16.5,18]) # smaller subset for testing purposes
     print 'distance states are\n', Z	
     K = len(T)*len(Z)
 
     # read in data
     U_kn, Q_kn, z_kn, N_max = MBAR_pmfQz.read_data(options, K, Z, T, spring_constant)    
-
-    # produce a histogram of Q and z
-#    plt.hist(numpy.reshape(z_kn,N_max*K),400)
-#    plt.savefig('%s/z_hist.png' % options.direc)
 
 	# test for statistical inefficiencies
     U_kn, Q_kn, z_kn, N_k = MBAR_pmfQz.subsample(U_kn, Q_kn, z_kn, K, N_max)

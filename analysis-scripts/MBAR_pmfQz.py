@@ -30,19 +30,18 @@ def get_ukln(args,N_max,K,Z,T,spring_constant,U_kn,z_kn,N_k,beta_k):
             print 'Reading in u_kln matrix from %s/u_kln.npy' % args.direc
             u_kln = numpy.load('%s/u_kln.npy' % args.direc)
             return u_kln
-    else:
-    	print 'Computing reduced potential energies...'
-    	u_kln = numpy.zeros([K,K,N_max], numpy.float32)
-    	for k in range(K):
-    		for l in range(K):
-    			z_index = l/len(T) # z is outer dimension
-    			T_index = l%len(T) # T is inner dimension
-    			dz = z_kn[k,0:N_k[k]] - Z[z_index]
-    			u_kln[k,l,0:N_k[k]] = beta_k[T_index] * U_kn[k,0:N_k[k]] + spring_constant*(dz)**2
-    	temp_file = '%s/u_kln.npy' % args.direc
-    	print 'Saving u_kln matrix to %s...' % temp_file
-    	numpy.save(temp_file, u_kln)
-        return u_kln
+    print 'Computing reduced potential energies...'
+    u_kln = numpy.zeros([K,K,N_max], numpy.float32)
+    for k in range(K):
+   		for l in range(K):
+   			z_index = l/len(T) # z is outer dimension
+   			T_index = l%len(T) # T is inner dimension
+   			dz = z_kn[k,0:N_k[k]] - Z[z_index]
+   			u_kln[k,l,0:N_k[k]] = beta_k[T_index] * (U_kn[k,0:N_k[k]] + spring_constant*(dz)**2)
+    temp_file = '%s/u_kln.npy' % args.direc
+    print 'Saving u_kln matrix to %s...' % temp_file
+    numpy.save(temp_file, u_kln)
+    return u_kln
 
 def get_mbar(args, beta_k, Z, U_kn, N_k, u_kln):
     if args.cpt:
@@ -52,21 +51,20 @@ def get_mbar(args, beta_k, Z, U_kn, N_k, u_kln):
             mbar = cPickle.load(f)
             f.close()
             return mbar
-    else:
-    	print 'Using WHAM to generate historgram-based initial guess of dimensionless free energies f_k...'
-    	beta_k = numpy.array(beta_k.tolist()*len(Z)) 
-    	f_k = wham.histogram_wham(beta_k, U_kn, N_k)
-    	print 'Initializing MBAR...'
-    	mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k, use_optimized=0, verbose=True)
-    	mbar_file = '%s/mbar.pkl' % args.direc
-    	f = file(mbar_file,'wb')
-    	print 'Saving mbar object to %s' % mbar_file
-        saving = False
-        if saving:
-    	    cPickle.dump(mbar,f)
-        print 'saving mbar did not work'
-        f.close()	
-        return mbar
+    print 'Using WHAM to generate historgram-based initial guess of dimensionless free energies f_k...'
+    beta_k = numpy.array(beta_k.tolist()*len(Z)) 
+    f_k = wham.histogram_wham(beta_k, U_kn, N_k)
+    print 'Initializing MBAR...'
+    mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k, use_optimized=1, verbose=True)
+    mbar_file = '%s/mbar.pkl' % args.direc
+    f = file(mbar_file,'wb')
+    print 'Saving mbar object to %s' % mbar_file
+    saving = False
+    if saving:
+    	cPickle.dump(mbar,f)
+    print 'saving mbar did not work'
+    f.close()	
+    return mbar
 
 def get_bins(args,nbins_per,K,N_max,indices,Q_kn,z_kn):
     if args.cpt:
@@ -79,38 +77,37 @@ def get_bins(args,nbins_per,K,N_max,indices,Q_kn,z_kn):
             bin_kn = cPickle.load(f)
             f.close()
             return nbins, bin_centers, bin_counts, bin_kn
-    else:
-    	print 'Binning data...'
-    	Q_min = 0
-    	Q_max = 1
-    	dQ = (Q_max - Q_min) / float(nbins_per)
-    	z_min = numpy.min(z_kn[indices])
-    	z_max = numpy.max(z_kn[indices])
-    	dz = (z_max - z_min) / float(nbins_per)
-    	bin_kn = numpy.zeros([K,N_max],numpy.int16)
-    	bin_counts = []
-    	bin_centers = []
-    	nbins = 0
-    	for i in range(nbins_per):
-    		for j in range(nbins_per):
-    			z = z_min + dz * (i + 0.5)
-    			Q = Q_min + dQ * (j + 0.5)
-    			in_bin = (Q-dQ/2 <= Q_kn[indices]) & (Q_kn[indices] < Q+dQ/2) & (z-dz/2 <= z_kn[indices]) & (z_kn[indices] < z+dz/2)
-    			bin_count = in_bin.sum()
-    			indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
-    			if bin_count > 0:
-    				bin_centers.append((z,Q))
-    				bin_counts.append(bin_count)
-    				bin_kn[indices_in_bin] = nbins
-    				nbins += 1
-        bin_file = '%s/bin_data.pkl' % args.direc
-        f = open(bin_file,'wb')
-        cPickle.dump(nbins,f)
-        cPickle.dump(bin_centers,f)
-        cPickle.dump(bin_counts,f)
-        cPickle.dump(bin_kn,f)
-        f.close()
-        return nbins, bin_centers, bin_counts, bin_kn
+    print 'Binning data...'
+    Q_min = 0
+    Q_max = 1
+    dQ = (Q_max - Q_min) / float(nbins_per)
+    z_min = numpy.min(z_kn[indices])
+    z_max = numpy.max(z_kn[indices])
+    dz = (z_max - z_min) / float(nbins_per)
+    bin_kn = numpy.zeros([K,N_max],numpy.int16)
+    bin_counts = []
+    bin_centers = []
+    nbins = 0
+    for i in range(nbins_per):
+    	for j in range(nbins_per):
+    		z = z_min + dz * (i + 0.5)
+    		Q = Q_min + dQ * (j + 0.5)
+    		in_bin = (Q-dQ/2 <= Q_kn[indices]) & (Q_kn[indices] < Q+dQ/2) & (z-dz/2 <= z_kn[indices]) & (z_kn[indices] < z+dz/2)
+    		bin_count = in_bin.sum()
+    		indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    		if bin_count > 0:
+    			bin_centers.append((z,Q))
+    			bin_counts.append(bin_count)
+    			bin_kn[indices_in_bin] = nbins
+    			nbins += 1
+    bin_file = '%s/bin_data.pkl' % args.direc
+    f = open(bin_file,'wb')
+    cPickle.dump(nbins,f)
+    cPickle.dump(bin_centers,f)
+    cPickle.dump(bin_counts,f)
+    cPickle.dump(bin_kn,f)
+    f.close()
+    return nbins, bin_centers, bin_counts, bin_kn
 
 def read_data(args,K,Z,T,spring_constant):
     U_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
@@ -129,14 +126,14 @@ def read_data(args,K,Z,T,spring_constant):
             zfile = '%s/%i/z_traj%i_%i.npy' %(args.direc, z, z, t)
             data = numpy.load(zfile)[-args.N_max::]
             z_kn[i,:] = data[::args.skip]
-            sfile = '%s/%i/surfenergy%i.npy' %(args.direc,z,t)
-            data = numpy.load(sfile)[-args.N_max::]
-            if numpy.shape(data)==(args.N_max,2):
-                if numpy.all(data[:,0]==data[:,1]):
-                    data = data[:,0]
-                else:
-                    data = numpy.sum(data,axis=1)
-            U_kn[i,:] -= data[::args.skip]
+#            sfile = '%s/%i/surfenergy%i.npy' %(args.direc,z,t)
+#            data = numpy.load(sfile)[-args.N_max::]
+#            if numpy.shape(data)==(args.N_max,2):
+#                if numpy.all(data[:,0]==data[:,1]):
+#                    data = data[:,0]
+#                else:
+#                    data = numpy.sum(data,axis=1)
+#            U_kn[i,:] -= data[::args.skip]
             U_kn[i,:] -= spring_constant*(z_kn[i,:] - z)**2
             i += 1
     N_max = args.N_max/args.skip
@@ -177,6 +174,7 @@ def main():
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     Z = numpy.arange(9,31.5,1.5)
+    Z = numpy.concatenate((Z,numpy.array([33,36,39,42])))
 #    Z = numpy.array([15,16.5,18]) # smaller subset for testing purposes
     print 'distance states are\n', Z	
     K = len(T)*len(Z)
