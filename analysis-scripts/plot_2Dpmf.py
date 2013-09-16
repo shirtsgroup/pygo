@@ -17,7 +17,7 @@ def plot_2D_PMF(temp,lam,bin_centers,f):
 	Y = [data[1] for data in bin_centers]
 	Z = f 
 	
-	plt.hexbin(X,Y,C=Z)
+	plt.hexbin(X,Y,C=Z, gridsize=20)
 	plt.xlabel('COM distance from surface')
 	plt.ylabel('Q fraction native contacts')
 	plt.title('temperature = %i, lambda = %3.1f' % (temp, lam))

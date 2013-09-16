@@ -60,6 +60,7 @@ def main():
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     Z = numpy.arange(9,31.5,1.5)
+    Z = numpy.concatenate((Z,numpy.array([33,36,39,42])))
 #    Z = numpy.array([15,16.5,18]) # smaller subset for testing purposes
     print 'distance states are\n', Z	
     K = len(T)*len(Z)
@@ -85,7 +86,8 @@ def main():
 
 	# bin data for PMF calculation
     nbins = 4
-    bin_centers = [(10.5,.225),(13.5,.925),(28.5,.225),(28.5,.925)]
+    #bin_centers = [(10.5,.225),(13.5,.925),(28.5,.225),(28.5,.925)]
+    bin_centers = [(13.5,.225),(13.5,.925),(40.5,.225),(40.5,.925)]
     bin_counts, bin_kn = get_4_state_bins(bin_centers, K, N_max, indices, Q_kn, z_kn)
     print '%i bins were populated:' %nbins
     for i in range(nbins):

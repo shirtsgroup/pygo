@@ -15,12 +15,12 @@ def parse_args():
     parser.add_option("-r", "--replicas", default=24, type="int",dest="replicas", help="number of replicas (default: 24)")
     parser.add_option("-n", "--N_max", default=100000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
     parser.add_option("-s", "--skip", default=1, type="int",dest="skip", help="skip every n data points")
-    parser.add_option("--direc", dest="datafile", help="Qtraj_singleprot.txt file location")
+    parser.add_option("--direc", dest="direc", help="Qtraj_singleprot.txt file location")
     parser.add_option("--tfile", dest="tfile", default="/home/edz3fz/proteinmontecarlo/T.txt", help="file of temperatures (default: T.txt)")
     (options,args) = parser.parse_args()
     return options
 
-def read_data(args,T,K,N_max,skip):
+def read_data(args,T,K):
     U_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
     Q_kn = numpy.empty([K,args.N_max/args.skip], numpy.float64)
     print "Reading data..."
@@ -31,17 +31,17 @@ def read_data(args,T,K,N_max,skip):
     	Qfile = '%s/fractionnative%i.npy' %(args.direc, t)
     	data = numpy.load(Qfile)[-args.N_max::]
     	Q_kn[i,:] = data[::args.skip]
-        if args.surf:
-            sfile = '%s/surfenergy%i.npy' %(args.direc, t)
-            data = numpy.load(sfile)[-args.N_max::]
-            if numpy.shape(data) == (N_max,2):
-                if data[:,0]==data[:,1]:
-                    data = data[:,0]
-                else:
-                    data = numpy.sum(data,axis=1)
-            U_kn[i,:] -= data[::args.skip]
+#        if args.surf:
+#            sfile = '%s/surfenergy%i.npy' %(args.direc, t)
+#            data = numpy.load(sfile)[-args.N_max::]
+#            if numpy.shape(data) == (N_max,2):
+#                if data[:,0]==data[:,1]:
+#                    data = data[:,0]
+#                else:
+#                    data = numpy.sum(data,axis=1)
+#            U_kn[i,:] -= data[::args.skip]
     N_max = args.N_max/args.skip
-    return U_kn,Q_k,N_max
+    return U_kn,Q_kn,N_max
 
 def main():
     options = parse_args()
@@ -51,7 +51,9 @@ def main():
     T = numpy.loadtxt(options.tfile)
     print 'Initial temperature states are', T
     K = len(T)
-   
+  
+    U_kn, Q_kn, N_max = read_data(options,T,K)
+ 
     N_k = numpy.zeros(K,numpy.int32)
     g = numpy.zeros(K,numpy.float64)
     for k in range(K):  # subsample the energies
@@ -94,11 +96,11 @@ def main():
     i = 0
     
     for k in range(K):
-           if (Temp_k[k] == T[i]):
-                 E_kn[k,0:N_k[i]] = U_kn[i,0:N_k[i]]
-    	     Q_kn[k,0:N_k[i]] = Q_fromfile[i,0:N_k[i]]
-                 Nall_k[k] = N_k[i]
-                 i = i + 1
+        if (Temp_k[k] == T[i]):
+            E_kn[k,0:N_k[i]] = U_kn[i,0:N_k[i]]
+            Q_kn[k,0:N_k[i]] = Q_fromfile[i,0:N_k[i]]
+            Nall_k[k] = N_k[i]
+            i = i + 1
     #------------------------------------------------------------------------
     # Compute inverse temperatures
     #------------------------------------------------------------------------
@@ -174,6 +176,9 @@ def main():
     plt.xlabel('Temperature (K)')
     plt.ylabel('Q fraction native contacts')
     #plt.title('Heat Capacity from Go like model MC simulation of 1BSQ')
-    plt.savefig(direc+'/foldingcurve.png')
-    numpy.save(direc+'/foldingcurve',numpy.array([Temp_k, Q, dQ]))
-    plt.show()
+    plt.savefig(options.direc+'/foldingcurve.png')
+    numpy.save(options.direc+'/foldingcurve',numpy.array([Temp_k, Q, dQ]))
+#    plt.show()
+
+if __name__ == '__main__':
+    main()

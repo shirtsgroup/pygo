@@ -51,34 +51,36 @@ def solution(file):
     ddHf = (ddGf[1:-1]**2 + (temp_sub*ddSf)**2)**.5
 
     # plotting
-    plot(1,target_temperatures,dGf,ddGf,'temperature (K)','dG_folding (kcal/mol)','')
-    plot(3,temp_sub,dSf,ddSf,'temperature (K)','dS_folding (kcal/molK)','')
-    plot(5,temp_sub,dHf,ddHf,'temperature (K)','dH_folding (kcal/mol)','')
+#    plot(1,target_temperatures,dGf,ddGf,'temperature (K)','dG_folding (kcal/mol)','')
+#    plot(3,temp_sub,dSf,ddSf,'temperature (K)','dS_folding (kcal/molK)','')
+#    plot(5,temp_sub,dHf,ddHf,'temperature (K)','dH_folding (kcal/mol)','')
 
     # making publication figure
-    if __name__ == '__main__':
-        f=plt.figure(8)
-        plt.rc('text',usetex=True)
+    f=plt.figure(1)
+    plt.rc('text',usetex=True)
      
-        ax1 = plt.subplot(311)
-        ax1.errorbar(target_temperatures,dGf,ddGf)
-        plt.xlim((300,350))
-        plt.ylabel(r'$\Delta$G_{folding}$')
-        plt.setp(ax1.get_xticklabels(), visible=False)
-        
-        ax2 = plt.subplot(312)
-        plt.xlim((300,350))
-        ax2.errorbar(temp_sub,dSf,ddSf)
-        plt.setp(ax2.get_xticklabels(), visible=False)
-        plt.ylabel(r'$\Delta$S_{folding}$')
-        
-        ax3 = plt.subplot(313)
-        plt.xlim((300,350))
-        ax3.errorbar(temp_sub,dHf,ddHf)
-        plt.xlabel(r'temperature (K)')
-        plt.ylabel(r'$\Delta$H_{folding}$')
-    
-        f.subplots_adjust(hspace=0)
+    ax1 = plt.subplot(311)
+    ax1.errorbar(target_temperatures,dGf,ddGf,color='k',label='solution')
+    plt.xlim((300,350))
+    plt.ylabel(r'$\Delta$G_{folding}$')
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.legend(prop={'size':6})
+ 
+    ax2 = plt.subplot(312)
+    plt.xlim((300,350))
+    ax2.errorbar(temp_sub,dSf,ddSf,color='k',label='solution')
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    plt.ylabel(r'$\Delta$S_{folding}$')
+    plt.legend(prop={'size':6})
+ 
+    ax3 = plt.subplot(313)
+    plt.xlim((300,350))
+    ax3.errorbar(temp_sub,dHf,ddHf,color='k',label='solution')
+    plt.xlabel(r'temperature (K)')
+    plt.ylabel(r'$\Delta$H_{folding}$')
+    plt.legend(prop={'size':6})
+
+    f.subplots_adjust(hspace=0)
 
 def solution_pmf(direc):
     T = numpy.arange(300,355,5)

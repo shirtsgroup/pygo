@@ -97,7 +97,7 @@ def main():
 
 	# bin data for 4 state PMF calculation
     nbins = 4
-    bin_centers = [(10.5,.225),(13.5,.925),(28.5,.225),(28.5,.925)]
+    bin_centers = [(13.5,.225),(13.5,.925),(40.5,.225),(40.5,.925)]
     bin_counts, bin_kn = MBAR_4_state_pmf.get_4_state_bins(bin_centers, K, N_max, indices, Q_kn, z_kn)
     print '%i bins were populated:' %nbins
     for i in range(nbins):
