@@ -35,6 +35,25 @@ def get_2_state_bins(bin_centers,K,N_max,Q_kn):
         bin_kn[in_bin] = i
     return bin_counts, bin_kn
 
+def get_2_state_bins_all(Q_cutoff,K,N_max,Q_kn):
+    print 'Binning Q'
+    bin_kn = numpy.zeros([K,N_max],numpy.int16)
+    bin_counts = list()
+
+    # unfolded
+    in_bin = (Q_kn <= Q_cutoff)
+    bin_count = in_bin.sum()
+    bin_counts.append(bin_count)
+    bin_kn[in_bin] = 0
+
+    # folded
+    in_bin = (Q_kn > Q_cutoff)
+    bin_count = in_bin.sum()
+    bin_counts.append(bin_count)
+    bin_kn[in_bin] = 1
+    
+    return bin_counts, bin_kn
+
 def main():
     options = parse_args()
 	
@@ -56,8 +75,8 @@ def main():
 
 	# binning data
     nbins = 2
-    bin_centers = [.225,.925]
-    bin_counts, bin_kn = get_2_state_bins(bin_centers,K,N_max,Q_kn)
+    bin_centers = [.225,.925] # dummy
+    bin_counts, bin_kn = get_2_state_bins_all(0.6,K,N_max,Q_kn)
     print '%i bins were populated:' %nbins
     for i in range(nbins):
         print 'bin %5i (%6.1f) %12i conformations' % (i, bin_centers[i], bin_counts[i])

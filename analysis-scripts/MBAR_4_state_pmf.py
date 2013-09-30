@@ -41,6 +41,42 @@ def get_4_state_bins(bin_centers,K,N_max,indices,Q_kn,z_kn):
         bin_kn[indices_in_bin] = i
     return bin_counts, bin_kn
 
+def get_4_state_bins_alldata(Q_cutoff,z_cutoff,K,N_max,indices,Q_kn,z_kn):
+    print 'Binning data...'
+    bin_kn = numpy.zeros([K,N_max],numpy.int16)
+    bin_counts = []
+    
+    # unfolded, adsorbed
+    in_bin = (Q_kn[indices] <= Q_cutoff) & (z_kn[indices] <= z_cutoff)
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 0
+
+    # folded, adsorbed
+    in_bin = (Q_kn[indices] > Q_cutoff) & (z_kn[indices] <= z_cutoff)
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 1
+    
+    # unfolded, unadsorbed
+    in_bin = (Q_kn[indices] <= Q_cutoff) & (z_kn[indices] > z_cutoff)
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 2
+    
+    # folded, unadsorbed
+    in_bin = (Q_kn[indices] > Q_cutoff) & (z_kn[indices] > z_cutoff)
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 3
+
+    return bin_counts, bin_kn
+
+
 def main():
     # read in parameters
     options = parse_args()

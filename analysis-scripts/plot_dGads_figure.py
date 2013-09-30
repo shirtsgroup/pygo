@@ -9,9 +9,23 @@ import optparse
 import plot_dG_solution
 
 def main():
-    lam = [.1, .15, .2, .3, .35, .4, .45, .5, .55, .6, .7]
+    lam = [.1, .15, .2, .3, .35, .4, .45, .5, .55, .6]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw.pkl' % str(x)[1::] for x in lam]
-    colors = cm.summer(numpy.linspace(0,1,len(lam)))
+    colors = cm.spring(numpy.linspace(0,1,len(lam)))
+
+    dGf = numpy.zeros(len(lam))
+    dHf = numpy.zeros(len(lam))
+    dSf = numpy.zeros(len(lam))
+    dGu = numpy.zeros(len(lam))
+    dHu = numpy.zeros(len(lam))
+    dSu = numpy.zeros(len(lam))
+    ddGf = numpy.zeros(len(lam))
+    ddHf = numpy.zeros(len(lam))
+    ddSf = numpy.zeros(len(lam))
+    ddGu = numpy.zeros(len(lam))
+    ddHu = numpy.zeros(len(lam))
+    ddSu = numpy.zeros(len(lam))
+
     for i in range(len(lam)):
         print 'Reading %s' % files[i]
         f = open(files[i],'rb')
@@ -49,6 +63,19 @@ def main():
         ddSads_unfolded = (ddGads_unfolded[0:-2]**2 + ddGads_unfolded[2::]**2)**.5/10
         ddHads_unfolded = (ddGads_unfolded[1:-1]**2 + (temp_sub*ddSads_unfolded)**2)**.5
      
+        dGf[i] = dGads_folded[6]        
+        dHf[i] = dHads_folded[5]        
+        dSf[i] = dSads_folded[5]        
+        dGu[i] = dGads_unfolded[6]        
+        dHu[i] = dHads_unfolded[5]        
+        dSu[i] = dSads_unfolded[5]        
+        ddGf[i] = ddGads_folded[6]        
+        ddHf[i] = ddHads_folded[5]        
+        ddSf[i] = ddSads_folded[5]        
+        ddGu[i] = ddGads_unfolded[6]        
+        ddHu[i] = ddHads_unfolded[5]        
+        ddSu[i] = ddSads_unfolded[5]        
+
         f=plt.figure(1)
         plt.rc('text',usetex=True)
         
@@ -70,6 +97,33 @@ def main():
         ax3 = plt.subplot(313)
         plt.xlim((300,350))
         ax3.errorbar(temp_sub,dHads_folded,ddHads_folded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
+        plt.xlabel(r'temperature (K)')
+        plt.ylabel(r'$\Delta$H_{adsorption}$')
+        plt.legend(prop={'size':6})
+    
+        f.subplots_adjust(hspace=0)
+
+        f=plt.figure(3)
+        plt.rc('text',usetex=True)
+        
+        ax1 = plt.subplot(311)
+        ax1.errorbar(target_temperatures,dGads_folded-dGads_unfolded,ddGads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
+        plt.xlim((300,350))
+        plt.ylabel(r'$\Delta$G_{adsorption}$')
+        plt.setp(ax1.get_xticklabels(), visible=False)
+        plt.legend(prop={'size':6})
+        plt.title('Relative thermodynamics of adsorption (folded-unfolded)')        
+        
+        ax2 = plt.subplot(312)
+        plt.xlim((300,350))
+        ax2.errorbar(temp_sub,dSads_folded-dSads_unfolded,ddSads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
+        plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.ylabel(r'$\Delta$S_{adsorption}$')
+        plt.legend(prop={'size':6})
+        
+        ax3 = plt.subplot(313)
+        plt.xlim((300,350))
+        ax3.errorbar(temp_sub,dHads_folded-dHads_unfolded,ddHads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
         plt.xlabel(r'temperature (K)')
         plt.ylabel(r'$\Delta$H_{adsorption}$')
         plt.legend(prop={'size':6})
@@ -103,8 +157,36 @@ def main():
     
         f.subplots_adjust(hspace=0)
 
+
     #soln = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/dG_raw.pkl'
-    #plot_dG_solution.solution(soln)
+    #plot_dG_solution.solution(asoln)
+    
+    f=plt.figure(4)
+    plt.rc('text',usetex=True)
+    ax1 = plt.subplot(311)
+    ax1.errorbar(lam,dGf,ddGf,label='folded')    
+    ax1.errorbar(lam,dGu,ddGu,label='unfolded')    
+    plt.ylabel(r'$\Delta$G_{adsorption}$')
+    plt.setp(ax1.get_xticklabels(), visible=False)
+    plt.title('Thermodynamics of adsorption')        
+    plt.legend(prop={'size':6})
+
+    ax2 = plt.subplot(312)
+    ax2.errorbar(lam,dSf,ddSf,label='folded')    
+    ax2.errorbar(lam,dSu,ddSu,label='unfolded')    
+    plt.setp(ax2.get_xticklabels(), visible=False)
+    plt.ylabel(r'$\Delta$S_{adsorption}$')
+    plt.legend(prop={'size':6})
+    
+    ax3 = plt.subplot(313)
+    ax3.errorbar(lam,dHf,ddHf,label='folded')    
+    ax3.errorbar(lam,dHu,ddHu,label='unfolded')    
+    plt.xlabel(r'$\lambda$')
+    plt.ylabel(r'$\Delta$H_{adsorption}$')
+    plt.legend(prop={'size':6})
+
+    f.subplots_adjust(hspace=0)
+
     plt.show()
     
 if __name__ == '__main__':

@@ -45,25 +45,21 @@ def get_ukln(args,N_max,K,Z,T,spring_constant,U_kn,z_kn,N_k,beta_k):
 
 def get_mbar(args, beta_k, Z, U_kn, N_k, u_kln):
     if args.cpt:
-        if os.path.exists('%s/mbar.pkl' % args.direc):
-            print 'Reading in mbar object from %s/mbar.pkl' % args.direc
-            f = file('%s/mbar.pkl' % args.direc,'rb')
-            mbar = cPickle.load(f)
-            f.close()
+        if os.path.exists('%s/f_k.npy' % args.direc):
+            print 'Reading in free energies from %s/f_k.npy' % args.direc
+            f_k = numpy.load('%s/f_k.npy' % args.direc)
+            mbar = pymbar.MBAR(u_kln,N_k,initial_f_k = f_k, maximum_iterations=0,verbose=True,use_optimized=1)
             return mbar
     print 'Using WHAM to generate historgram-based initial guess of dimensionless free energies f_k...'
     beta_k = numpy.array(beta_k.tolist()*len(Z)) 
     f_k = wham.histogram_wham(beta_k, U_kn, N_k)
     print 'Initializing MBAR...'
     mbar = pymbar.MBAR(u_kln, N_k, initial_f_k = f_k, use_optimized=1, verbose=True)
-    mbar_file = '%s/mbar.pkl' % args.direc
-    f = file(mbar_file,'wb')
-    print 'Saving mbar object to %s' % mbar_file
-    saving = False
+    mbar_file = '%s/f_k.npy' % args.direc
+    print 'Saving free energies to %s' % mbar_file
+    saving = True
     if saving:
-    	cPickle.dump(mbar,f)
-    print 'saving mbar did not work'
-    f.close()	
+    	numpy.save(mbar_file, mbar.f_k)
     return mbar
 
 def get_bins(args,nbins_per,K,N_max,indices,Q_kn,z_kn):
@@ -174,7 +170,7 @@ def main():
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     Z = numpy.arange(9,31.5,1.5)
-    Z = numpy.concatenate((Z,numpy.array([33,36,39,42])))
+    Z = numpy.concatenate((Z,numpy.array([33,36,39,42,45,48])))
 #    Z = numpy.array([15,16.5,18]) # smaller subset for testing purposes
     print 'distance states are\n', Z	
     K = len(T)*len(Z)
@@ -210,7 +206,7 @@ def main():
 
 
     # calculate PMF at the target temperatures
-    target_temperatures = [300,325,350]
+    target_temperatures = [300,350]
     print 'Calculating the PMF at', target_temperatures
     
 #    f_i = numpy.zeros((nbins,len(target_temperatures)))

@@ -40,7 +40,7 @@ def main():
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     Z = numpy.arange(9,31.5,1.5)
-    Z = numpy.concatenate((Z,numpy.array([33,36,39,42])))
+    Z = numpy.concatenate((Z,numpy.array([33,36,39,42,45,48])))
 #    Z = numpy.array([15,16.5,18]) # smaller subset for testing purposes
     print 'distance states are\n', Z	
     K = len(T)*len(Z)
@@ -70,35 +70,35 @@ def main():
 	# then initialize MBAR
     mbar = MBAR_pmfQz.get_mbar(options, beta_k, Z, U_kn, N_k, u_kln)
 
-
-    # calculate PMF at the target temperatures
-    target_temperatures = [300,325,350]
-    print 'Calculating the PMF at', target_temperatures
-    
-#    f_i = numpy.zeros((nbins,len(target_temperatures)))
-#    df_i = numpy.zeros((nbins,len(target_temperatures)))
-#    df_i = [] 
-    for i,temp in enumerate(target_temperatures):
-        target_beta = 1.0 / (kB * temp)
-        u_kn = target_beta * U_kn
-        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
-#        imin = f_i.argmin()
-#        for j in range(nbins):
-#           df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
-
-        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
-        f = file(pmf_file,'wb')
-        print 'Saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
-        cPickle.dump(temp,f)
-        cPickle.dump(bin_centers,f)
-        cPickle.dump(f_i,f)
-        cPickle.dump(d2f_i,f)
-        f.close()
+#
+#    # calculate PMF at the target temperatures
+#    target_temperatures = [300,325,350]
+#    print 'Calculating the PMF at', target_temperatures
+#    
+##    f_i = numpy.zeros((nbins,len(target_temperatures)))
+##    df_i = numpy.zeros((nbins,len(target_temperatures)))
+##    df_i = [] 
+#    for i,temp in enumerate(target_temperatures):
+#        target_beta = 1.0 / (kB * temp)
+#        u_kn = target_beta * U_kn
+#        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
+##        imin = f_i.argmin()
+##        for j in range(nbins):
+##           df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
+#
+#        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
+#        f = file(pmf_file,'wb')
+#        print 'Saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
+#        cPickle.dump(temp,f)
+#        cPickle.dump(bin_centers,f)
+#        cPickle.dump(f_i,f)
+#        cPickle.dump(d2f_i,f)
+#        f.close()
 
 	# bin data for 4 state PMF calculation
     nbins = 4
     bin_centers = [(13.5,.225),(13.5,.925),(40.5,.225),(40.5,.925)]
-    bin_counts, bin_kn = MBAR_4_state_pmf.get_4_state_bins(bin_centers, K, N_max, indices, Q_kn, z_kn)
+    bin_counts, bin_kn = MBAR_4_state_pmf.get_4_state_bins_alldata(.62,35,K, N_max, indices, Q_kn, z_kn)
     print '%i bins were populated:' %nbins
     for i in range(nbins):
         print 'bin %5i (%6.1f, %6.1f) %12i conformations' % (i, bin_centers[i][0], bin_centers[i][1], bin_counts[i])
