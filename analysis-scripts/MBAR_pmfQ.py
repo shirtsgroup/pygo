@@ -14,7 +14,6 @@ import cPickle
 
 def parse_args():
 	parser = optparse.OptionParser(description='Calculates the PMF(Q)')
-#	parser.add_option('-t','--temp', dest= 'temp', nargs = 2, type = 'float', help = 'desired temperatures')
 	parser.add_option('--tfile', dest='tfile', default='T.txt', help = 'simulation temperature file')
 	parser.add_option('--direc', dest='direc', help='directory of simulation data')
 	parser.add_option("-n", "--N_max", default=100000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
@@ -120,18 +119,13 @@ def main():
     mbar = get_mbar(beta_k,U_kn,N_k,u_kln)
 
     target_temperatures = numpy.arange(295.,360.,5.)
-#    target_temperatures = [300, 325, 350]
+#   target_temperatures = [300, 325, 350]
     print 'Calculating the PMF at', target_temperatures
 
-#	f_i = numpy.zeros((nbins,len(target_temperatures)))
-#	df_i = numpy.zeros((nbins,len(target_temperatures)))
     for i,temp in enumerate(target_temperatures):
         target_beta = 1.0 / (kB * temp)
         u_kn = target_beta * U_kn
         f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
-#       imin = f_i.argmin()
-#       for j in range(nbins):
-#			df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
         pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
         f = file(pmf_file, 'wb')
         print 'Saving target temperature, bin centers, f_i, df_i to %s' % pmf_file

@@ -136,10 +136,10 @@ def main():
     # Compute Expectations for E_kt and E2_kt as E_expect and E2_expect
     #------------------------------------------------------------------------
     print ""
-    #print "Computing Expectations for E..."
-    #(E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
-    #print "Computing Expectations for E^2..."
-    #(E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
+    print "Computing Expectations for E..."
+    (E_expect, dE_expect) = mbar.computeExpectations(u_kln)*(beta_k)**(-1)
+    print "Computing Expectations for E^2..."
+    (E2_expect,dE2_expect) = mbar.computeExpectations(u_kln*u_kln)*(beta_k)**(-2)
     
     print "Computing Expectations for Q..."
     (Q,dQ) = mbar.computeExpectations(Q_kn)
@@ -150,12 +150,12 @@ def main():
     #print ""
     #print "Computing Heat Capacity as ( <E^2> - <E>^2 ) / ( R*T^2 )..."
     
-    #Cv_expect = numpy.zeros([K], numpy.float64)
-    #dCv_expect = numpy.zeros([K], numpy.float64)
+    Cv_expect = numpy.zeros([K], numpy.float64)
+    dCv_expect = numpy.zeros([K], numpy.float64)
     
-    #for i in range(K):
-    #       Cv_expect[i] = (E2_expect[i] - (E_expect[i]*E_expect[i])) / ( kB * Temp_k[i] * Temp_k[i])
-    #       dCv_expect[i] = 2*dE_expect[i]**2 / (kB *Temp_k[i]*Temp_k[i])   # from propagation of error
+    for i in range(K):
+           Cv_expect[i] = (E2_expect[i] - (E_expect[i]*E_expect[i])) / ( kB * Temp_k[i] * Temp_k[i])
+           dCv_expect[i] = 2*dE_expect[i]**2 / (kB *Temp_k[i]*Temp_k[i])   # from propagation of error
     
     #print "Temperature  dA         <E> +/- d<E>       <E^2> +/- d<E^2>       Cv +/- dCv"     
     #print "-------------------------------------------------------------------------------"
@@ -178,6 +178,7 @@ def main():
     #plt.title('Heat Capacity from Go like model MC simulation of 1BSQ')
     plt.savefig(options.direc+'/foldingcurve.png')
     numpy.save(options.direc+'/foldingcurve',numpy.array([Temp_k, Q, dQ]))
+    numpy.save(options.direc+'/heatcap',numpy.array([Temp_k, Cv_expect, dCv_expect]))
 #    plt.show()
 
 if __name__ == '__main__':

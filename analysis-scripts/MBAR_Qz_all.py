@@ -70,30 +70,30 @@ def main():
 	# then initialize MBAR
     mbar = MBAR_pmfQz.get_mbar(options, beta_k, Z, U_kn, N_k, u_kln)
 
-#
-#    # calculate PMF at the target temperatures
-#    target_temperatures = [300,325,350]
-#    print 'Calculating the PMF at', target_temperatures
-#    
-##    f_i = numpy.zeros((nbins,len(target_temperatures)))
-##    df_i = numpy.zeros((nbins,len(target_temperatures)))
-##    df_i = [] 
-#    for i,temp in enumerate(target_temperatures):
-#        target_beta = 1.0 / (kB * temp)
-#        u_kn = target_beta * U_kn
-#        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
-##        imin = f_i.argmin()
-##        for j in range(nbins):
-##           df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
-#
-#        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
-#        f = file(pmf_file,'wb')
-#        print 'Saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
-#        cPickle.dump(temp,f)
-#        cPickle.dump(bin_centers,f)
-#        cPickle.dump(f_i,f)
-#        cPickle.dump(d2f_i,f)
-#        f.close()
+
+    # calculate PMF at the target temperatures
+    target_temperatures = [300,325,350]
+    print 'Calculating the PMF at', target_temperatures
+    
+#    f_i = numpy.zeros((nbins,len(target_temperatures)))
+    df_i = numpy.zeros((nbins,len(target_temperatures)))
+#    df_i = [] 
+    for i,temp in enumerate(target_temperatures):
+        target_beta = 1.0 / (kB * temp)
+        u_kn = target_beta * U_kn
+        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
+#        imin = f_i.argmin()
+#        for j in range(nbins):
+#           df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
+
+        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
+        f = file(pmf_file,'wb')
+        print 'Saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
+        cPickle.dump(temp,f)
+        cPickle.dump(bin_centers,f)
+        cPickle.dump(f_i,f)
+        cPickle.dump(d2f_i,f)
+        f.close()
 
 	# bin data for 4 state PMF calculation
     nbins = 4

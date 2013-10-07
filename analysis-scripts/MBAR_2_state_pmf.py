@@ -15,7 +15,6 @@ import cPickle
 
 def parse_args():
 	parser = optparse.OptionParser(description='Calculates the PMF(Q)')
-#	parser.add_option('-t','--temp', dest= 'temp', nargs = 2, type = 'float', help = 'desired temperatures')
 	parser.add_option('--tfile', dest='tfile', default='T.txt', help = 'simulation temperature file')
 	parser.add_option('--direc', dest='direc', help='directory of simulation data')
 	parser.add_option("-n", "--N_max", default=100000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
