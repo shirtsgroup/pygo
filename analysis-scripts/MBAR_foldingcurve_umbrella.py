@@ -75,7 +75,7 @@ def main():
  
     # insert unweighted states
     T_new = numpy.arange(200,410,10)
-    T_new = numpy.array([200,225,250,275,300,305,310,315,320,325,330,335,340,345,350,375,400])
+    T_new = numpy.array([200,210,220,230,235,240,245,250,255,260,265,270,275,280,285,290,295,300,305,310,315,320,325,330,335,340,345,350,375,400])
     Z_new = numpy.zeros(len(T_new))
     K_new = len(T_new)
     print 'inserting unweighted temperature states', T_new
