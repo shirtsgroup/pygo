@@ -15,9 +15,9 @@ parser.add_option("-e", "--surfE", action="store_true", default=False, help="plo
 parser.add_option("-f", "--nosurfhist", action="store_true", default=False, help="plots protein energy histogram")
 parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number")
 parser.add_option("--direc", dest="datafile", default="replicaexchange/simlog0/", help="Qtraj_singleprot.txt file location")
-parser.add_option("--show", action="store_false", default=True, help="shows plots")
+parser.add_option("--show", action="store_true", default=True, help="shows plots")
 parser.add_option("--tfile", dest="tfile", default="", help="file of temperatures")
-parser.add_option("--subplot", action="store_false", default=True, help="shows plots")
+parser.add_option("--subplot", action="store_true", default=True, help="show subplots")
 
 
 (options,args) = parser.parse_args()

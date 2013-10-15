@@ -12,23 +12,21 @@ import optparse
 import wham
 import cPickle
 import MBAR_pmfQz
-import MBAR_foldingcurve_umbrella
 import MBAR_4_state_pmf
 
 def parse_args():
     parser = optparse.OptionParser(description='Calculates the PMF(Q,z)')
-#	parser.add_option('-t','--temp', dest= 'temp', nargs = 2, type = 'float', help = 'desired temperatures')
     parser.add_option('--tfile', dest='tfile', default='T.txt', help = 'simulation temperature file')
     parser.add_option('--direc', dest='direc', help='directory of simulation data')
-    parser.add_option("-n", "--N_max", default=100000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
-    parser.add_option("-s", "--skip", default=1, type="int",dest="skip", help="skip every n data points")
-#	parser.add_option('--f_file', dest='f_file', default='', help='free energy filename, if it exists')
+    parser.add_option("-n", "--N_max", default=10000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
+    parser.add_option("-s", "--skip", default=2, type="int",dest="skip", help="skip every n data points")
     parser.add_option('--cpt', action="store_true", default=False, help="use checkpoint files, if they exist")
     (options,args) = parser.parse_args()
     return options
 def main():
     # read in parameters
     options = parse_args()
+    print 'Reading in last %i snapshots with skip %i' %(options.N_max,options.skip)
 
     # set constants
     kB = 0.00831447/4.184
@@ -60,51 +58,49 @@ def main():
 	
 	# compute reduced potential energy of all snapshots at all temperatures and distances
     u_kln = MBAR_pmfQz.get_ukln(options, N_max, K, Z, T, spring_constant, U_kn, z_kn, N_k, beta_k)
-
-	# bin data for PMF calculation
-    nbins, bin_centers, bin_counts, bin_kn = MBAR_pmfQz.get_bins(options, nbins_per, K, N_max, indices, Q_kn, z_kn)
-    print '%i bins were populated:' %nbins
-    for i in range(nbins):
-        print 'bin %5i (%6.1f, %6.1f) %12i conformations' % (i, bin_centers[i][0], bin_centers[i][1], bin_counts[i])
-
 	# use WHAM to quickly compute an initial guess of dimensionless free energies f_k
 	# then initialize MBAR
     mbar = MBAR_pmfQz.get_mbar(options, beta_k, Z, U_kn, N_k, u_kln)
 
+#----------- this section commented since 2D PMFs not needed for most surfaces ------------#
+#
+#	# bin data for PMF calculation
+#    nbins, bin_centers, bin_counts, bin_kn = MBAR_pmfQz.get_bins(options, nbins_per, K, N_max, indices, Q_kn, z_kn)
+#    print '%i bins were populated:' %nbins
+#    for i in range(nbins):
+#        print 'bin %5i (%6.1f, %6.1f) %12i conformations' % (i, bin_centers[i][0], bin_centers[i][1], bin_counts[i])
+#
+#    # calculate PMF at the target temperatures
+#    target_temperatures = [300,325,350]
+#    print 'Calculating the PMF at', target_temperatures
+#    
+##    f_i = numpy.zeros((nbins,len(target_temperatures)))
+#    df_i = numpy.zeros((nbins,len(target_temperatures)))
+##    df_i = [] 
+#    for i,temp in enumerate(target_temperatures):
+#        target_beta = 1.0 / (kB * temp)
+#        u_kn = target_beta * U_kn
+#        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
+#
+#        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
+#        f = file(pmf_file,'wb')
+#        print 'Saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
+#        cPickle.dump(temp,f)
+#        cPickle.dump(bin_centers,f)
+#        cPickle.dump(f_i,f)
+#        cPickle.dump(d2f_i,f)
+#        f.close()
 
-    # calculate PMF at the target temperatures
-    target_temperatures = [300,325,350]
-    print 'Calculating the PMF at', target_temperatures
-    
-#    f_i = numpy.zeros((nbins,len(target_temperatures)))
-    df_i = numpy.zeros((nbins,len(target_temperatures)))
-#    df_i = [] 
-    for i,temp in enumerate(target_temperatures):
-        target_beta = 1.0 / (kB * temp)
-        u_kn = target_beta * U_kn
-        f_i, d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
-#        imin = f_i.argmin()
-#        for j in range(nbins):
-#           df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
-
-        pmf_file = '%s/pmf_%i.pkl' % (options.direc, temp)
-        f = file(pmf_file,'wb')
-        print 'Saving target temperatures, bin centers, f_i, df_i to %s' % pmf_file
-        cPickle.dump(temp,f)
-        cPickle.dump(bin_centers,f)
-        cPickle.dump(f_i,f)
-        cPickle.dump(d2f_i,f)
-        f.close()
-
-	# bin data for 4 state PMF calculation
+# ----- bin data for 4 state PMF calculation, with variable z cutoff (dependent on Rg) ------#
     nbins = 4
     bin_centers = [(13.5,.225),(13.5,.925),(40.5,.225),(40.5,.925)]
-    bin_counts, bin_kn = MBAR_4_state_pmf.get_4_state_bins_alldata(.62,35,K, N_max, indices, Q_kn, z_kn)
+    Q_cutoff = 0.6
+    bin_counts, bin_kn = MBAR_4_state_pmf.get_4_state_bins_varz(Q_cutoff,K, N_max, indices, Q_kn, z_kn)
     print '%i bins were populated:' %nbins
     for i in range(nbins):
         print 'bin %5i (%6.1f, %6.1f) %12i conformations' % (i, bin_centers[i][0], bin_centers[i][1], bin_counts[i])
 
-    # calculate PMF at the target temperatures
+# -----------------calculate PMF at the target temperatures--------------- #
     target_temperatures = numpy.arange(295.,360.,5)
     
     f_i = numpy.zeros((len(target_temperatures),nbins))
@@ -114,13 +110,8 @@ def main():
         target_beta = 1.0 / (kB * temp)
         u_kn = target_beta * U_kn
         f_i[i,:], d2f_i = mbar.computePMF_states(u_kn, bin_kn, nbins)
-#        imin = f_i.argmin()
-#        for j in range(nbins):
-#           df_i[j,i] = sqrt(d2f_i[j,imin]) # uncertainty relative to lowest free energy
         df_i.append(d2f_i)
-
-
-    results_file = '%s/dG_raw.pkl' % options.direc
+    results_file = '%s/dG_raw_varz_5.pkl' % options.direc
     f = file(results_file,'wb')
     print 'Saving target temperatures, bin centers, f_i, df_i to %s' % results_file
     cPickle.dump(target_temperatures,f)
@@ -128,8 +119,6 @@ def main():
     cPickle.dump(f_i,f)
     cPickle.dump(df_i,f)
     f.close()
-
-    MBAR_foldingcurve_umbrella.main()
 
 
 if __name__ == '__main__':

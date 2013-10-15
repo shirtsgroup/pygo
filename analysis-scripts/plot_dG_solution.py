@@ -64,21 +64,21 @@ def solution(file):
     plt.xlim((300,350))
     plt.ylabel(r'$\Delta$G_{folding}$')
     plt.setp(ax1.get_xticklabels(), visible=False)
-    plt.legend(prop={'size':6})
+ #   plt.legend(prop={'size':6})
  
     ax2 = plt.subplot(312)
     plt.xlim((300,350))
     ax2.errorbar(temp_sub,dSf,ddSf,color='k',label='solution')
     plt.setp(ax2.get_xticklabels(), visible=False)
     plt.ylabel(r'$\Delta$S_{folding}$')
-    plt.legend(prop={'size':6})
+#    plt.legend(prop={'size':6})
  
     ax3 = plt.subplot(313)
     plt.xlim((300,350))
     ax3.errorbar(temp_sub,dHf,ddHf,color='k',label='solution')
     plt.xlabel(r'temperature (K)')
     plt.ylabel(r'$\Delta$H_{folding}$')
-    plt.legend(prop={'size':6})
+#    plt.legend(prop={'size':6})
 
     f.subplots_adjust(hspace=0)
 

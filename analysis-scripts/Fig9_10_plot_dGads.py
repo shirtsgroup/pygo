@@ -10,7 +10,8 @@ import plot_dG_solution
 
 def main():
     lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6]
-    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz_2.pkl' % str(x)[1::] for x in lam]
+    #lam = [.1, .15, .2, .25, .3, .35, .4]
+    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz_5.pkl' % str(x)[1::] for x in lam]
     colors = cm.spring(numpy.linspace(0,1,len(lam)))
     matplotlib.rc('font', family = 'serif')
     font = {'family' : 'serif',
@@ -79,34 +80,7 @@ def main():
         ddHu[i,:] = ddHads_unfolded        
         ddSu[i,:] = ddSads_unfolded        
 
-        f=plt.figure(1)
-        plt.rc('text',usetex=True)
-        
-        ax1 = plt.subplot(311)
-        ax1.errorbar(target_temperatures,dGads_folded,ddGads_folded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.xlim((300,350))
-        plt.ylabel(r'$\Delta$G_{adsorption}$')
-        plt.setp(ax1.get_xticklabels(), visible=False)
-        plt.legend(prop={'size':6})
-        plt.title('Thermodynamics of adsorption, folded')        
-
-        ax2 = plt.subplot(312)
-        plt.xlim((300,350))
-        ax2.errorbar(temp_sub,dSads_folded,ddSads_folded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.setp(ax2.get_xticklabels(), visible=False)
-        plt.ylabel(r'$\Delta$S_{adsorption}$')
-        plt.legend(prop={'size':6})
-        
-        ax3 = plt.subplot(313)
-        plt.xlim((300,350))
-        ax3.errorbar(temp_sub,dHads_folded,ddHads_folded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.xlabel(r'temperature (K)')
-        plt.ylabel(r'$\Delta$H_{adsorption}$')
-        plt.legend(prop={'size':6})
-    
-        f.subplots_adjust(hspace=0)
-
-        f=plt.figure(3)
+        f=plt.figure(10,(7,10))
         plt.rc('text',usetex=True)
         
         ax1 = plt.subplot(311)
@@ -135,60 +109,39 @@ def main():
     
         f.subplots_adjust(hspace=0)
 
-        f=plt.figure(2)
-        plt.rc('text',usetex=True)
-        
-        ax1 = plt.subplot(311)
-        ax1.errorbar(target_temperatures,dGads_unfolded,ddGads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.xlim((300,350))
-        plt.ylabel(r'$\Delta$G_{adsorption}$')
-        plt.setp(ax1.get_xticklabels(), visible=False)
-        plt.legend(prop={'size':6})
-        plt.title('Thermodynamics of adsorption, unfolded')        
-        
-        ax2 = plt.subplot(312)
-        plt.xlim((300,350))
-        ax2.errorbar(temp_sub,dSads_unfolded,ddSads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.setp(ax2.get_xticklabels(), visible=False)
-        plt.ylabel(r'$\Delta$S_{adsorption}$')
-        plt.legend(prop={'size':6})
-        
-        ax3 = plt.subplot(313)
-        plt.xlim((300,350))
-        ax3.errorbar(temp_sub,dHads_unfolded,ddHads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.xlabel(r'temperature (K)')
-        plt.ylabel(r'$\Delta$H_{adsorption}$')
-        plt.legend(prop={'size':6})
-    
-        f.subplots_adjust(hspace=0)
+    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads.pdf')
 
-    f=plt.figure(4)
+    f=plt.figure(9,(7,10))
     plt.rc('text',usetex=True)
     ax1 = plt.subplot(311)
-    ax1.errorbar(lam,dGf[:,6],ddGf[:,6],label='folded')    
-    ax1.errorbar(lam,dGu[:,6],ddGu[:,6],label='unfolded')    
+    i=6
+    ax1.errorbar(lam,dGf[:,i],ddGf[:,i],label='folded')    
+    ax1.errorbar(lam,dGu[:,i],ddGu[:,i],label='unfolded')    
     plt.ylabel(r'$\Delta$G_{adsorption}$')
     plt.setp(ax1.get_xticklabels(), visible=False)
     #plt.title('Thermodynamics of adsorption')        
     plt.legend(prop={'size':9})
 
     ax2 = plt.subplot(312)
-    ax2.errorbar(lam,dSf[:,5],ddSf[:,5],label='folded')    
-    ax2.errorbar(lam,dSu[:,5],ddSu[:,5],label='unfolded')    
+    i -= 1
+    ax2.errorbar(lam,dSf[:,i],ddSf[:,i],label='folded')    
+    ax2.errorbar(lam,dSu[:,i],ddSu[:,i],label='unfolded')    
     plt.setp(ax2.get_xticklabels(), visible=False)
     plt.ylabel(r'$\Delta$S_{adsorption}$')
     plt.legend(prop={'size':9})
     plt.yticks(numpy.arange(-.2,.05,.05))
 
     ax3 = plt.subplot(313)
-    ax3.errorbar(lam,dHf[:,5],ddHf[:,5],label='folded')    
-    ax3.errorbar(lam,dHu[:,5],ddHu[:,5],label='unfolded')    
+    ax3.errorbar(lam,dHf[:,i],ddHf[:,i],label='folded')    
+    ax3.errorbar(lam,dHu[:,i],ddHu[:,i],label='unfolded')    
     plt.xlabel(r'$\lambda$')
     plt.ylabel(r'$\Delta$H_{adsorption}$')
     plt.legend(prop={'size':9})
     plt.yticks(numpy.arange(-100,20,20))
 
     f.subplots_adjust(hspace=0)
+    
+    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig9_dGads.pdf')
     
 #    f=plt.figure(4)
 #    plt.rc('text',usetex=True)

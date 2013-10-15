@@ -76,6 +76,7 @@ def main():
     print 'Number of transitions for smoothed data:'
     print HMD_count_smooth
     print numpy.average(HMD_count_smooth)
+    print numpy.std(HMD_count_smooth)
     HMD_index = get_4_index(HMD_count_smooth)
     plot(1,HMD_Q,HMD_index,'HMD')
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1a_HMD.eps')
@@ -89,6 +90,7 @@ def main():
     print 'Number of transitions for smoothed data:'
     print HMC_count_smooth
     print numpy.average(HMC_count_smooth)
+    print numpy.std(HMC_count_smooth)
     HMC_index = get_4_index(HMC_count_smooth)
     plot(2,HMC_Q,HMC_index,'HMC')
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1b_HMC.eps')
@@ -102,6 +104,7 @@ def main():
     print 'Number of transitions for smoothed data:'
     print MD_count_smooth
     print numpy.average(MD_count_smooth)
+    print numpy.std(MD_count_smooth)
     MD_index = get_4_index(MD_count_smooth)
     plot(3,MD_Q,MD_index,'MD')
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1c_MD.eps')
@@ -115,6 +118,7 @@ def main():
     print 'Number of transitions for smoothed data:'
     print MC_count_smooth
     print numpy.average(MC_count_smooth)
+    print numpy.std(MC_count_smooth)
     MC_index = get_4_index(MC_count_smooth)
     plot(4,MC_Q,MC_index,'MC')
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1d_MC.eps')

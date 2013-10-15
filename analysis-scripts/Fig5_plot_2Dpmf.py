@@ -19,7 +19,7 @@ def plot_2D_PMF(subplot,temp,lam,bin_centers,f):
 #    plt.title('temperature = %i, lambda = %3.1f' % (temp, lam),fontsize=6)
 
 def main():
-    fig = plt.figure(1,(10,9))
+    fig = plt.figure(1,(10*.8,9*.8))
     matplotlib.rc('text', usetex = True)
     matplotlib.rc('font', family = 'serif')
     font = {'family' : 'serif',
@@ -39,14 +39,14 @@ def main():
         plot_2D_PMF('33%i' %(i+1),temp,lam[i/3],bin_centers,f_i)
     fig.text(.5,.04,'z', ha='center',va='center',fontdict=font)
     fig.text(.06,.5,'Q',ha='center',va='center',rotation='vertical',fontdict=font)
-    font = {'family' : 'serif',
-            'size'   : 'smaller'}
-    fig.text(.24,.93, r'$\lambda$ = 0.1', ha='center',va='center',fontdict=font)
-    fig.text(.52,.93, r'$\lambda$ = 0.35', ha='center',va='center',fontdict=font)
-    fig.text(.79,.93, r'$\lambda$ = 0.6', ha='center',va='center',fontdict=font)
-    fig.text(.98,.2, 'T = 300 K', ha='right',va='center',fontdict=font)
-    fig.text(.98,.5, 'T = 325 K', ha='right',va='center',fontdict=font)
-    fig.text(.98,.8, 'T = 350 K', ha='right',va='center',fontdict=font)
+    font = {'family' : 'serif'}
+           # 'size'   : 'normal'}
+    fig.text(.24,.93, '300 K', ha='center',va='center',fontdict=font)
+    fig.text(.52,.93, '325 K', ha='center',va='center',fontdict=font)
+    fig.text(.79,.93, '350 K', ha='center',va='center',fontdict=font)
+    fig.text(.98,.2, r'$\lambda$ = 0.6', ha='right',va='center',fontdict=font)
+    fig.text(.98,.5, r'$\lambda$ = 0.35', ha='right',va='center',fontdict=font)
+    fig.text(.98,.8, r'$\lambda$ = 0.1', ha='right',va='center',fontdict=font)
     #file = options.file[0:options.file.rfind('/')]
     #plt.savefig('%s/%i.png' % (file,temp))	
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig5_plot_2DPMF.eps')

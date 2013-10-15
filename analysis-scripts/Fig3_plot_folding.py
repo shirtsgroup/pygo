@@ -25,7 +25,7 @@ def main():
     ax2 = ax1.twinx()
     Cv = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/heatcap.npy'
     data = numpy.load(Cv)
-    ax2.errorbar(data[0,:],data[1,:],data[2,:], color='k')
+    ax2.errorbar(data[0,:],data[1,:],data[2,:], color='k',fmt='-')
     ax2.set_ylabel('C_{v}', fontdict = font)
 
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig3_solution.pdf')

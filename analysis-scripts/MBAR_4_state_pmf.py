@@ -76,6 +76,54 @@ def get_4_state_bins_alldata(Q_cutoff,z_cutoff,K,N_max,indices,Q_kn,z_kn):
 
     return bin_counts, bin_kn
 
+def get_cutoff(Q_kn,func_file):
+    data = numpy.loadtxt(func_file)
+    Q = data[0,:]
+    bins = len(Q)
+    assert bins == 51
+    z = data[1,:]
+    z_cutoff_index = Q_kn*(bins-1)
+    z_cutoff_index = z_cutoff_index.astype(int)
+    z_cutoff = z[z_cutoff_index]
+    return z_cutoff
+
+def get_4_state_bins_varz(Q_cutoff,K,N_max,indices,Q_kn,z_kn):
+    print 'Binning data...'
+    bin_kn = numpy.zeros([K,N_max],numpy.int16)
+    bin_counts = []
+ 
+    z_cutoff = get_cutoff(Q_kn,'/home/edz3fz/proteinmontecarlo/z_cutoff_5.txt')
+   
+    # unfolded, adsorbed
+    in_bin = (Q_kn[indices] <= Q_cutoff) & (z_kn[indices] <= z_cutoff[indices])
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 0
+
+    # folded, adsorbed
+    in_bin = (Q_kn[indices] > Q_cutoff) & (z_kn[indices] <= z_cutoff[indices])
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 1
+    
+    # unfolded, unadsorbed
+    in_bin = (Q_kn[indices] <= Q_cutoff) & (z_kn[indices] > z_cutoff[indices])
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 2
+    
+    # folded, unadsorbed
+    in_bin = (Q_kn[indices] > Q_cutoff) & (z_kn[indices] > z_cutoff[indices])
+    bin_count = in_bin.sum()
+    indices_in_bin = (indices[0][in_bin], indices[1][in_bin])
+    bin_counts.append(bin_count)
+    bin_kn[indices_in_bin] = 3
+
+    return bin_counts, bin_kn
+
 
 def main():
     # read in parameters
@@ -96,7 +144,7 @@ def main():
     beta_k = 1 / (kB * T)
     print 'temperature states are\n', T
     Z = numpy.arange(9,31.5,1.5)
-    Z = numpy.concatenate((Z,numpy.array([33,36,39,42])))
+    Z = numpy.concatenate((Z,numpy.array([33,36,39,42,45,48])))
 #    Z = numpy.array([15,16.5,18]) # smaller subset for testing purposes
     print 'distance states are\n', Z	
     K = len(T)*len(Z)
@@ -124,7 +172,8 @@ def main():
     nbins = 4
     #bin_centers = [(10.5,.225),(13.5,.925),(28.5,.225),(28.5,.925)]
     bin_centers = [(13.5,.225),(13.5,.925),(40.5,.225),(40.5,.925)]
-    bin_counts, bin_kn = get_4_state_bins(bin_centers, K, N_max, indices, Q_kn, z_kn)
+    Q_cutoff = 0.6
+    bin_counts, bin_kn = get_4_state_bins_varz(Q_cutoff, K, N_max, indices, Q_kn, z_kn)
     print '%i bins were populated:' %nbins
     for i in range(nbins):
         print 'bin %5i (%6.1f, %6.1f) %12i conformations' % (i, bin_centers[i][0], bin_centers[i][1], bin_counts[i])
@@ -150,7 +199,7 @@ def main():
         df_i.append(d2f_i)
 
 
-    results_file = '%s/dG_raw.pkl' % options.direc
+    results_file = '%s/dG_raw_varz_5.pkl' % options.direc
     f = file(results_file,'wb')
     print 'Saving target temperatures, bin centers, f_i, df_i to %s' % results_file
     cPickle.dump(target_temperatures,f)

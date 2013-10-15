@@ -3,15 +3,23 @@
 import numpy
 import matplotlib.pyplot as plt
 import matplotlib.cm as cm
-import matplotlib as mpl
+import matplotlib
 import cPickle
 import optparse
 import plot_dG_solution
 
 def main():
-    lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55]
-    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw.pkl' % str(x)[1::] for x in lam]
-    colors = cm.jet(numpy.linspace(0,1,len(lam)))
+    lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6]
+    #lam = [.1, .15, .2, .25, .3, .35, .4]
+    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz_5.pkl' % str(x)[1::] for x in lam]
+    colors = cm.spring(numpy.linspace(0,1,len(lam)))
+    plt.rc('text',usetex=True)
+    matplotlib.rc('font', family = 'serif')
+    font = {'family' : 'serif',
+            'size'   : 'larger'}
+    fig=plt.figure(1,(7,10))
+    soln = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/dG_raw.pkl'
+    plot_dG_solution.solution(soln)
     for i in range(len(lam)):
         print 'Reading %s' % files[i]
         f = open(files[i],'rb')
@@ -49,33 +57,36 @@ def main():
         ddSf_des = (ddGf_des[0:-2]**2 + ddGf_des[2::]**2)**.5/10
         ddHf_des = (ddGf_des[1:-1]**2 + (temp_sub*ddSf_des)**2)**.5
      
-        f=plt.figure(1)
-        plt.rc('text',usetex=True)
+        fig.subplots_adjust(hspace=0)
         
         ax1 = plt.subplot(311)
         ax1.errorbar(target_temperatures,dGf,ddGf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
         plt.xlim((300,350))
         plt.ylabel(r'$\Delta$G_{folding}$')
+        box = ax1.get_position()
+        ax1.set_position([box.x0,box.y0,box.width*.82,box.height])
         plt.setp(ax1.get_xticklabels(), visible=False)
-        
-        ax2 = plt.subplot(312)
-        plt.xlim((300,350))
-        ax2.errorbar(temp_sub,dSf,ddSf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
-        plt.setp(ax2.get_xticklabels(), visible=False)
-        plt.ylabel(r'$\Delta$S_{folding}$')
         
         ax3 = plt.subplot(313)
         plt.xlim((300,350))
         ax3.errorbar(temp_sub,dHf,ddHf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
         plt.xlabel(r'temperature (K)')
         plt.ylabel(r'$\Delta$H_{folding}$')
-    
-        f.subplots_adjust(hspace=0)
+        plt.yticks(numpy.arange(-100,-20,10))
+        box = ax3.get_position()
+        ax3.set_position([box.x0,box.y0,box.width*.82,box.height])
+       
+        ax2 = plt.subplot(312)
+        plt.xlim((300,350))
+        ax2.errorbar(temp_sub,dSf,ddSf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
+        plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.ylabel(r'$\Delta$S_{folding}$')
+        box = ax2.get_position()
+        ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
+        lgd = ax2.legend(bbox_to_anchor=(1.29, .98), prop={'size':10})
+        
 
-
-
-    soln = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/dG_raw.pkl'
-    plot_dG_solution.solution(soln)
+    fig.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig8_dGf.pdf')
     plt.show()
     
 if __name__ == '__main__':
