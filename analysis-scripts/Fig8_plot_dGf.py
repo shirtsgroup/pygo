@@ -11,7 +11,8 @@ import plot_dG_solution
 def main():
     lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6]
     #lam = [.1, .15, .2, .25, .3, .35, .4]
-    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz_5.pkl' % str(x)[1::] for x in lam]
+    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz.pkl' % str(x)[1::] for x in lam]
+    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_noint.pkl' % str(x)[1::] for x in lam]
     colors = cm.spring(numpy.linspace(0,1,len(lam)))
     plt.rc('text',usetex=True)
     matplotlib.rc('font', family = 'serif')

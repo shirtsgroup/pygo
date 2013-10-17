@@ -18,7 +18,7 @@ def get_rate(file):
     smoothing = 50
     N_max = 120000 # make sure amount of data is the same
     Q = numpy.load(file)[0:N_max]
-    Q -= 0.5 # used to count transitions
+    Q -= 0.6 # used to count transitions
     # smooth data
     Q_smooth = numpy.zeros((len(Q),len(Q[0,:])/smoothing))
     for rep in range(len(Q_smooth)):
@@ -40,7 +40,7 @@ def get_rate(file):
             b = Q_smooth[rep,i+1]
             if a*b < 0:
                 count_smooth[rep] += 1
-    return Q_smooth + 0.5, count, count_smooth
+    return Q_smooth + 0.6, count, count_smooth
 
 def get_4_index(count):
     avg = numpy.average(count)
