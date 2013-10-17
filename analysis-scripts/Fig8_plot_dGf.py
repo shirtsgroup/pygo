@@ -73,7 +73,7 @@ def main():
         ax3.errorbar(temp_sub,dHf,ddHf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
         plt.xlabel(r'temperature (K)')
         plt.ylabel(r'$\Delta$H_{folding}$')
-        plt.yticks(numpy.arange(-100,-20,10))
+        plt.yticks(numpy.arange(-100,-10,10))
         box = ax3.get_position()
         ax3.set_position([box.x0,box.y0,box.width*.82,box.height])
        
