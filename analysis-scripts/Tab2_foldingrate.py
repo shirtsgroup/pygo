@@ -64,7 +64,7 @@ def plot(i,Q):
 
 
 def main():
-    lam = [.1, .15, .2, .25, .3, .35, .45, .5, .55, .6]
+    lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s' % str(x)[1::] for x in lam]
     
     Z = numpy.arange(9,31.5,1.5)
