@@ -23,11 +23,11 @@ def parse_args():
     return options
 
 def get_ukln(args,N_max,K,Z,T,spring_constant,U_kn,z_kn,N_k,beta_k):
-    if args.cpt:
-        if os.path.exists('%s/u_kln.npy' % args.direc):
-            print 'Reading in u_kln matrix from %s/u_kln.npy' % args.direc
-            u_kln = numpy.load('%s/u_kln.npy' % args.direc)
-            return u_kln
+#    if args.cpt:
+#        if os.path.exists('%s/u_kln.npy' % args.direc):
+#            print 'Reading in u_kln matrix from %s/u_kln.npy' % args.direc
+#            u_kln = numpy.load('%s/u_kln.npy' % args.direc)
+#            return u_kln
     print 'Computing reduced potential energies...'
     u_kln = numpy.zeros([K,K,N_max], numpy.float32)
     for k in range(K):
@@ -36,9 +36,9 @@ def get_ukln(args,N_max,K,Z,T,spring_constant,U_kn,z_kn,N_k,beta_k):
    			T_index = l%len(T) # T is inner dimension
    			dz = z_kn[k,0:N_k[k]] - Z[z_index]
    			u_kln[k,l,0:N_k[k]] = beta_k[T_index] * (U_kn[k,0:N_k[k]] + spring_constant*(dz)**2)
-    temp_file = '%s/u_kln.npy' % args.direc
-    print 'Saving u_kln matrix to %s...' % temp_file
-    numpy.save(temp_file, u_kln)
+#    temp_file = '%s/u_kln.npy' % args.direc
+#    print 'Saving u_kln matrix to %s...' % temp_file
+#    numpy.save(temp_file, u_kln)
     return u_kln
 
 def get_mbar(args, beta_k, Z, U_kn, N_k, u_kln):

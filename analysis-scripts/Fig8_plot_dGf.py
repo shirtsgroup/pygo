@@ -7,6 +7,7 @@ import matplotlib
 import cPickle
 import optparse
 import plot_dG_solution
+import pdb
 
 def main():
     lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6]
@@ -30,7 +31,7 @@ def main():
         dG = cPickle.load(f)
         ddG = cPickle.load(f)
         f.close()
-    
+        pdb.set_trace() 
         # Free energies of folding
         dGf = dG[:,1] - dG[:,0] # free energy of folding while adsorbed
         dGf_des = dG[:,3] - dG[:,2] # free eneryg of folding while desorbed

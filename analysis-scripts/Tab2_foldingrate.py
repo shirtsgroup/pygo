@@ -69,6 +69,9 @@ def main():
     
     Z = numpy.arange(9,31.5,1.5)
     Z = numpy.concatenate((Z,numpy.array([33,36,39,42,45,48])))
+    Z = numpy.array([9,10.5,12,13.5,15,16.5])
+    Z = numpy.array([33,36,39,42,45,48])
+
     
     colors = matplotlib.cm.jet(numpy.linspace(0,1,len(Z)))   
     counts = numpy.zeros(len(files))
