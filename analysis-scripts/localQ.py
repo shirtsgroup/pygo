@@ -13,11 +13,6 @@ import matplotlib
 def parse_args():
     parser=OptionParser()
     parser.add_option('-n', '--numbeads', default=162, type='int',dest='numbeads', help='number of residues (default: 162)')
-#    parser.add_option('-r', '--replicas', default=32, type='int',dest='replicas', help='number of replicas (default: 32)')
-#    parser.add_option('-n', '--N_max', default=100000, type='int',dest='N_max', help='number of data points to read in (default: 100k)')
-#    parser.add_option('-s', '--skip', default=1, type='int',dest='skip', help='skip every n data points')
-#    parser.add_option('--direc', dest='direc', help='Qtraj_singleprot.txt file location')
-#    parser.add_option('--tfile', dest='tfile', default='/home/edz3fz/proteinmontecarlo/T.txt', help='file of temperatures (default: T.txt)')
     parser.add_option('-f','--file', dest='file', help='trajectory file')
     parser.add_option('-p','--param', dest='paramfile', help='GO model parameter file')
     (options,args) = parser.parse_args()

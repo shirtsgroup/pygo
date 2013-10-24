@@ -14,7 +14,7 @@ def main():
     #lam = [.1, .15, .2, .25, .3, .35, .4]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz.pkl' % str(x)[1::] for x in lam]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_noint_2.pkl' % str(x)[1::] for x in lam]
-    colors = cm.spring(numpy.linspace(0,1,len(lam)))
+    colors = cm.cool(numpy.linspace(0,1,len(lam)))
     plt.rc('text',usetex=True)
     matplotlib.rc('font', family = 'serif')
     font = {'family' : 'serif',
@@ -31,7 +31,6 @@ def main():
         dG = cPickle.load(f)
         ddG = cPickle.load(f)
         f.close()
-        pdb.set_trace() 
         # Free energies of folding
         dGf = dG[:,1] - dG[:,0] # free energy of folding while adsorbed
         dGf_des = dG[:,3] - dG[:,2] # free eneryg of folding while desorbed

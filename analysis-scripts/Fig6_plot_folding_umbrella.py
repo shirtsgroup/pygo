@@ -18,7 +18,7 @@ def main():
     Cv_files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/heatcap_umbrella.npy' % str(x)[1::] for x in lam]
     Cv_files[-2] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.65/foldingcurve.npy' 
     Cv_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.7/foldingcurve.npy' 
-    colors = cm.spring(numpy.linspace(0,1,len(lam)))
+    colors = cm.cool(numpy.linspace(0,1,len(lam)))
     
     f = plt.figure(1,(6,8))
     plt.rc('text',usetex=True)

@@ -16,12 +16,10 @@ import MBAR_4_state_pmf
 
 def parse_args():
     parser = optparse.OptionParser(description='Calculates the PMF(Q,z)')
-#	parser.add_option('-t','--temp', dest= 'temp', nargs = 2, type = 'float', help = 'desired temperatures')
     parser.add_option('--tfile', dest='tfile', default='T.txt', help = 'simulation temperature file')
     parser.add_option('--direc', dest='direc', help='directory of simulation data')
     parser.add_option("-n", "--N_max", default=100000, type="int",dest="N_max", help="number of data points to read in (default: 100k)")
     parser.add_option("-s", "--skip", default=1, type="int",dest="skip", help="skip every n data points")
-#	parser.add_option('--f_file', dest='f_file', default='', help='free energy filename, if it exists')
     parser.add_option('--cpt', action="store_true", default=False, help="use checkpoint files, if they exist")
     (options,args) = parser.parse_args()
     return options
@@ -60,14 +58,14 @@ def main():
 	# test for statistical inefficiencies
     U_kn, Q_kn, z_kn, N_k = MBAR_pmfQz.subsample(U_kn, Q_kn, z_kn, K, N_max)
 
-	# generate a list of indices of all configurations in kn-indicing
+	# generate a list of indices of all configurations in kn-indicing (for binning)
     mask_kn = numpy.zeros([K,N_max], dtype=numpy.bool)
     for k in range(0,K):
         mask_kn[k,0:N_k[k]] = True
     indices = numpy.where(mask_kn)
 	
     # bootstrap
-    boots = range(1,3)
+    boots = range(3,13) # change this as more bootstraps are generated
     for boot in boots:
         print 'Bootstrap %i' % boot
         for k in range(K):

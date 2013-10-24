@@ -14,7 +14,7 @@ def main():
     PMF_files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/pmfQ_umbrella_325.pkl' % str(x)[1::] for x in lam]
     PMF_files[-2] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.55/pmf_325.pkl'
     #PMF_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.6/pmf_325.pkl'
-    colors = cm.spring(numpy.linspace(0,1,len(lam)))
+    colors = cm.cool(numpy.linspace(0,1,len(lam)))
     
     f = plt.figure(1)
     plt.rc('text',usetex=True)
