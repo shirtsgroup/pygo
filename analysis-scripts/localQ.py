@@ -76,15 +76,14 @@ def main():
     numpy.save(direc+'/localQ.npy',localQ_kn)
 
 def main_noargs():
-    ID = [225,227,230,232,233,234,235]
-    ID = [235,232]
-    T = [271,274,277,280,283]
-    T = [286,289,292]
-    T = [260,265,268]
+    ID = [239,240,241]
+    T = [271,274,277]
+#    T = [286,289,292]
+#    T = [260,265,268]
     files = ['/home/edz3fz/proteinmontecarlo/results/1BSQ/simlog%s/trajectory%s' %(id,t) for id in ID for t in T]
-    T = 6*T
+    T = len(ID)*T
     numbeads = 162
-    N = 60000
+    N = 30000
     paramfile = '/home/edz3fz/proteinmontecarlo/GO_1BSQ.param'
 
     contacts, sig_cutoff = get_contacts(paramfile,numbeads)

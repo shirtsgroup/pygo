@@ -59,12 +59,12 @@ def main():
         dHads_unfolded = dGads_unfolded[1:-1] + temp_sub*dSads_unfolded
     
         # Uncertainties - just propagation of error for now
-        ddGads_folded = [numpy.sqrt(x[1,0]) for x in ddG]
+        ddGads_folded = [numpy.sqrt(x[1,3]) for x in ddG]
         ddGads_folded = numpy.array(ddGads_folded)
         ddSads_folded = (ddGads_folded[0:-2]**2 + ddGads_folded[2::]**2)**.5/10
         ddHads_folded = (ddGads_folded[1:-1]**2 + (temp_sub*ddSads_folded)**2)**.5
     
-        ddGads_unfolded = [numpy.sqrt(x[3,2]) for x in ddG]
+        ddGads_unfolded = [numpy.sqrt(x[0,2]) for x in ddG]
         ddGads_unfolded = numpy.array(ddGads_unfolded)
         ddSads_unfolded = (ddGads_unfolded[0:-2]**2 + ddGads_unfolded[2::]**2)**.5/10
         ddHads_unfolded = (ddGads_unfolded[1:-1]**2 + (temp_sub*ddSads_unfolded)**2)**.5

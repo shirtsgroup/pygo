@@ -64,7 +64,7 @@ def main():
     indices = numpy.where(mask_kn)
 	
     # bootstrap
-    boots = range(6,13) # change this as more bootstraps are generated
+    boots = range(8,12) # change this as more bootstraps are generated
     for boot in boots:
         print 'Bootstrap %i' % boot
         for k in range(K):

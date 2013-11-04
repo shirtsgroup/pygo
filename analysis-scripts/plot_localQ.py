@@ -34,8 +34,9 @@ def subsample(Q_n,localQ):
         
 def main():
     ID = [225,227,230,232,235]
+    ID = [232,238]
 #    ID = [232,235]
-    T = [271,274]
+    T = [274]
     files = ['/home/edz3fz/proteinmontecarlo/results/1BSQ/simlog%s/localQ%s.npy' %(id,t) for id in ID for t in T]
     files = ['/home/edz3fz/proteinmontecarlo/results/1BSQ/simlog%s/localQ%s.npy' %(id,t) for t in T for id in ID]
     
@@ -68,7 +69,7 @@ def main():
             #plt.plot(data,'o',color=colors[k])
             plt.plot(1-pep,color=colors[k],label=str(id))
             plt.plot(1-pep,'o',color=colors[k],label=str(id))
-#           numpy.savetxt('%s.txt' %id, pep)
+            numpy.savetxt('%s.txt' %id, pep)
             i += 1
         plt.legend(loc=3)
     plt.show() 
