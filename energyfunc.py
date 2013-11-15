@@ -175,8 +175,8 @@ def getsurfparam(file, numbeads, nsurf, numint, scale):
 		Uses matrix of epsilon and simga parameters for all possible residue interactions
 	"""
 	param = numpy.zeros((numint,3))
-	ep_all = numpy.loadtxt('avgep.txt')
-	sig_all = numpy.loadtxt('avgsig.txt')
+	ep_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgep.txt')
+	sig_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgsig.txt')
 	# get sequence of residues
 	f = open(file, 'r')
 	missingres = []

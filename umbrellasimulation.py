@@ -8,6 +8,7 @@ import random
 import energyfunc
 import moveset
 import writetopdb
+import cPickle
 try:
 	import matplotlib.pyplot as plt
 except: pass
@@ -31,7 +32,10 @@ def save(self):
 #    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
     self.z_array[index] = numpy.sum(self.mass*self.coord[:,2])/self.totmass
     if (Simulation.pdbfile):
-        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+	f = open('%s/trajectory%i' %(self.out, int(self.T)), 'ab')
+	numpy.save(f,self.coord)
+	f.close()
+#        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
     return self
 
 class UmbrellaSimulation(SurfaceSimulation):
@@ -44,6 +48,7 @@ class UmbrellaSimulation(SurfaceSimulation):
 	self.z_array[0] = numpy.sum(mass*self.coord[:,2])/self.totmass
 	self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, mass, self.totmass)
 	self.energyarray[0] = self.u0
+
     def addsurface(self, surf_coord):
         self.surface = surf_coord
         ## randomly orient protein
@@ -64,3 +69,10 @@ class UmbrellaSimulation(SurfaceSimulation):
 	SurfaceSimulation.loadstate(self)
 	self.z_array = numpy.load('%s/z_traj%i_%i.npy' %(self.out, int(self.z_pin), int(self.T)))
 	self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, self.mass, self.totmass)
+
+    def loadextend(self,extenddirec):
+        SurfaceSimulation.loadextend(self,extenddirec)
+	self.z_array[0] = numpy.sum(self.mass*self.coord[:,2])/self.totmass
+        self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, self.mass, self.totmass)
+        self.energyarray[0] = self.u0
+	

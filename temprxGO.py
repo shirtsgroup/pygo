@@ -41,7 +41,7 @@ parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', h
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--plot", action="store_true", default=False, help="plots energy, rmsd, fractional nativeness")
 parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
-parser.add_option("-e", "--swaps", nargs=1, dest="e", type="int",default=100, help="number of swaps to perform")
+parser.add_option("-e", "--swaps", nargs=1, dest="e", type="int",default=500, help="number of swaps to perform")
 parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number or umbrella id number")
 parser.add_option("--freq", nargs=6, dest="freq", type="float", default=[.2,.4,.7,1.,1.,1.], help="move frequencies")
 parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
@@ -231,7 +231,8 @@ if surf:
     writesurf('surface.pdb',surface)
     nsurf = len(surface)
     nspint = nsurf*numbeads # surface-protein interactions
-    surfparam = getsurfparam('%spdb' % (paramfile[3:-5]), numbeads, nsurf, nspint, scale)
+    sfile = paramfile[0:paramfile.find('GO_')]+paramfile[paramfile.find('GO_')+3:-5] + 'pdb'
+    surfparam = getsurfparam(sfile, numbeads, nsurf, nspint, scale)
     #/surfparam[:,0] = surfparam[:,0]*scale
     print 'Surface energy parameters scaled by %f' % scale
     SurfaceSimulation.scale = scale
@@ -282,13 +283,15 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location):
 #		return Swapaccepted, Swaprejected, protein_location, transmat
 		return Swapaccepted, Swaprejected, protein_location
 #	replica_location = numpy.arange(numreplicas) # keeps track of where the replicas go after 100 (default) swaps in order to properly increment the transition matrix
+	fairweather = 0
 	for k in range(e): # default: try swapping 100 times
-		if random.random() < .5:
+		if fairweather:
 #			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 0) #type 1 switch
 			Swapaccepted, Swaprejected = tryswap(Replicas, Swapaccepted, Swaprejected, 0) #type 1 switch
 		else:	
 #			Swapaccepted, Swaprejected, replica_location = tryswap(Replicas, Swapaccepted, Swaprejected, replica_location, 1) #type 2 switch
 			Swapaccepted, Swaprejected = tryswap(Replicas, Swapaccepted, Swaprejected, 1) #type 2 switch
+		fairweather = -(fairweather-1)
 #	replica_location_indexed = numpy.zeros(numreplicas) # keeps track of which replica went where
 	for i in range(numreplicas):
 #		replica_location_indexed[replica_location[i]] = i #extracts which replica went where
@@ -310,7 +313,7 @@ if not surf:
             newReplicas = [run(Replicas[0], Moves, Dict)]
         else:
             jobs = [job_server.submit(run, (replica, Moves, Dict), (update_energy, save), ("random", "numpy",
-                "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
+                "energyfunc", "moveset", "writetopdb","cPickle")) for replica in Replicas]
             newReplicas = [job() for job in jobs]
         return newReplicas
 else:
@@ -319,7 +322,7 @@ else:
             newReplicas = [run_surf(Replicas[0], Moves, Dict)]
         else:
             jobs = [job_server.submit(run_surf, (replica, Moves, Dict), (update_energy, save), ("random", "numpy",
-                "energyfunc", "moveset", "writetopdb")) for replica in Replicas]
+                "energyfunc", "moveset", "writetopdb","cPickle")) for replica in Replicas]
             newReplicas = [job() for job in jobs]
         return newReplicas
 #def energy(mpos, rsquare, torsE, angE):
@@ -395,18 +398,24 @@ else:
 for i in range(len(T)):
         name = 'replica%i' % i
 	if umbrella:
-		replicas.append(UmbrellaSimulation(name, direc, coord, T[i], surface, umbrella, mass))
+		replicas.append(UmbrellaSimulation(name, os.path.abspath(direc), coord, T[i], surface, umbrella, mass))
 	elif surf:
-		replicas.append(SurfaceSimulation(name, direc, coord, T[i], surface))
+		replicas.append(SurfaceSimulation(name, os.path.abspath(direc), coord, T[i], surface))
 	else:
-        	replicas.append(Simulation(name, direc, coord, T[i]))
+        	replicas.append(Simulation(name, os.path.abspath(direc), coord, T[i]))
         replicas[i].whoami = i
         if pdbfile:
            # mcoord = moviecoord(coord, transform)
-            writepdb(replicas[i].coord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
+           # writepdb(replicas[i].coord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
+	     f = open('%s/trajectory%i' %(replicas[i].out, int(replicas[i].T)), 'wb')
+	     numpy.save(f,replicas[i].coord)
+	     f.close()
 
 if extend:
-	extenddirec = './replicaexchange/simlog%i' % extend
+	if umbrella:
+		extenddirec = os.getcwd()+'/replicaexchange/umbrella%i/%i' % (extend,int(umbrella))
+	else:
+		extenddirec = os.getcwd()+'/replicaexchange/simlog%i' % extend
 	if not os.path.exists(extenddirec):
 		sys.exit('Simulation %i does not exist at %s' % (extend, extenddirec))
 	input = open('%s/protein_location.pkl' %extenddirec, 'rb')
@@ -420,7 +429,11 @@ if extend:
 if cluster:
 	# running on the cluster
 	if umbrella:
-		f = open('nodefile%i-%i.txt'% (id,umbrella),'r')
+		try:
+			f = open('nodefile%i-%s.txt'% (id,umbrella),'r')
+		except:
+			f = open('nodefile%i-%i.txt'% (id,umbrella),'r')
+		
 	else:
 		f = open('nodefile%i.txt'% id,'r')
 	ppservers = f.read().split("\n")

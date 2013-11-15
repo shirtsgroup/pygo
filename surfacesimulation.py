@@ -1,4 +1,5 @@
 from simulationobject import Simulation
+import cPickle
 import numpy
 import pdb
 import random
@@ -54,7 +55,10 @@ def save(self):
 #    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
 #    self.rmsd_array[index] = energyfunc.rmsd(self.coord_nat, self.mcoord)
     if (Simulation.pdbfile):
-        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+	f = open('%s/trajectory%i' %(self.out, int(self.T)), 'ab')
+	numpy.save(f,self.coord)
+	f.close()
+#        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,index,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
     return self
                 
 
@@ -115,7 +119,13 @@ class SurfaceSimulation(Simulation):
 	self.u0 += sum(self.surfE)
 	self.surfE_array = numpy.load('%s/surfenergy%i.npy' %(self.out, int(self.T)))
 
- 
+    def loadextend(self,extenddirec):
+        Simulation.loadextend(self,extenddirec) # u0 is reset
+        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
+	self.u0 += sum(self.surfE) # include surface energy
+	self.energyarray[0] = self.u0
+	self.surfE_array[0,:] = self.surfE
+
     def savesurfenergy(self, plot):
         filename='%s/surfenergy%i' % (self.out, int(self.T))
         numpy.save(filename, self.surfE_array)

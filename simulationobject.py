@@ -11,7 +11,7 @@ try:
 except: pass
 import pdb
 from sys import stdout
-
+import cPickle
 
 def energy(coord):
 	r2, u0 = energyfunc.cgetLJenergy(coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
@@ -40,7 +40,10 @@ def save(self):
 #    self.mcoord = writetopdb.moviecoord(self.coord, Simulation.transform)
 #   self.rmsd_array[self.move/Simulation.step] = energyfunc.rmsd(Simulation.coord_nat, self.mcoord)
     if (Simulation.pdbfile):
-        writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
+	f = open('%s/trajectory%i' %(self.out, int(self.T)), 'ab')
+	numpy.save(f,self.coord)
+	f.close()
+        #writetopdb.addtopdb(self.coord,Simulation.positiontemplate,self.move/Simulation.step,'%s/trajectory%i.pdb' % (self.out,int(self.T)))
     return self
 
         
