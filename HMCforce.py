@@ -250,6 +250,57 @@ def cnonbondedforces(mpos, numint, numbeads, natparam, nonnatparam, nnepsil):
 	return forces * 4.184 # converts force to kJ/mol/K
 
 def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
+    ep = param[0]
+    sig = param[1]
+    scale = param[2]
+    rvec = numpy.zeros((numint,3))
+    for i in range(len(surf_coord)):
+        rvec[i*numbeads:i*numbeads+numbeads] = surf_coord[i,:] - prot_coord
+    r2 = numpy.sum(rvec**2,axis = 1)
+    r = r2**.5
+    ndV = sig*sig/r2
+    ndV6 = ndV*ndV*ndV
+    ndV12 = ndV6*ndV6
+    ndV = -12*ep*ndV12/r+scale[:,0]*ep*(-144*ndV12/r+180*ndV6*ndV*ndV/r - 24*ndV6/r)
+    F = -ndV/r
+    F = numpy.transpose(F)*numpy.transpose(rvec)
+    F = F.transpose()
+    forces = numpy.zeros((numbeads,3))
+    for i in range(len(surf_coord)):
+   	forces += -F[i*numbeads:i*numbeads+numbeads,:]
+    return forces*4.184
+
+def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param, _):
+    forces = numpy.zeros((numbeads,3))
+    ep_in = param[0]
+    sig_in = param[1]
+    scale = param[2][:,0]
+    code = """
+    double ep = ep_in;
+    double sig = sig_in;
+    double x, y, z, r2, r, dV, dV6, F;
+    for ( int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = 0 - PROT_COORD2(i % numbeads, 2);
+        r2 = x*x + y*y + z*z;
+	if(r2<400){
+            r = sqrt(r2);
+            dV = sig*sig/r2;
+            dV6 = dV*dV*dV;
+            dV = SCALE1(i)*ep*(-(12/SCALE1(i)+144)*dV6*dV6/r+180*dV6*dV*dV/r-24*dV6/r);
+            F = -dV/r;
+            x = F*x; y = F*y; z = F*z;
+            FORCES2(i % numbeads, 0) -= x;
+            FORCES2(i % numbeads, 1) -= y;
+            FORCES2(i % numbeads, 2) -= z;
+	}
+    }
+    """
+    info = weave.inline(code, ['forces', 'prot_coord', 'surf_coord', 'numbeads', 'numint', 'ep_in', 'sig_in', 'scale'], headers=['<math.h>', '<stdlib.h>'])
+    return forces*4.184
+
+def getsurfforce_old(prot_coord, surf_coord, numint, numbeads, param):
     rvec = numpy.zeros((numint,3))
     for i in range(len(surf_coord)):
         rvec[i*numbeads:i*numbeads+numbeads] = surf_coord[i,:] - prot_coord
@@ -267,7 +318,7 @@ def getsurfforce(prot_coord, surf_coord, numint, numbeads, param):
    	forces += -F[i*numbeads:i*numbeads+numbeads,:]
     return forces*4.184
 
-def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param, scale):
+def cgetsurfforce_old(prot_coord, surf_coord, numint, numbeads, param, scale):
     forces = numpy.zeros((numbeads,3))
     code = """
     double x, y, z, r2, r, dV, F;
@@ -280,7 +331,7 @@ def cgetsurfforce(prot_coord, surf_coord, numint, numbeads, param, scale):
             r = sqrt(r2);
             dV = PARAM2(i,1)*PARAM2(i,1)/r2;
             dV = dV*dV*dV;
-            dV = PARAM2(i,0)*(-12*dV*dV/r + 12*scale*dV/r) - PARAM2(i,2);
+            dV = PARAM2(i,0)*(-12*dV*dV/r + 12*scale*dV/r);
             F = -dV/r;
             x = F*x; y = F*y; z = F*z;
             FORCES2(i % numbeads, 0) -= x;

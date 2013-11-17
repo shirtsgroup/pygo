@@ -304,8 +304,8 @@ def cgetr2surf(prot_coord, surf_coord, numbeads, numint):
     return r2_array
 
 def surfenergy(prot, surf, numbeads, numint, param):
-    ep = param[0]
-    sig = param[1]
+    ep = float(param[0])
+    sig = float(param[1])
     scale = param[2]
     energy = numpy.array([0.,0.])
     for i in xrange(numint):
@@ -318,12 +318,14 @@ def surfenergy(prot, surf, numbeads, numint, param):
         energy[1] += scale[i]*ep*(12*ne12 - 18*ne6*ne*ne + 4*ne6)
     return energy
 
-def csurfenergy(prot_coord, surf_coord, numbeads, numint, param):
-    ep = param[0]
-    sig = param[1]
+def csurfenergy(prot_coord, surf_coord, numbeads, numint, param,shit):
+    ep_in = param[0]
+    sig_in = param[1]
     scale = param[2]
     energy = numpy.array([0.,0.])
     code = """
+    double ep = ep_in;
+    double sig = sig_in;
     double x, y, z, r2, e, e6, e12;
     for (int i = 0; i < numint; i++){
         x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
@@ -339,7 +341,7 @@ def csurfenergy(prot_coord, surf_coord, numbeads, numint, param):
 	}
     }
     """
-    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy','ep','sig','scale'], headers=['<math.h>', '<stdlib.h>'])
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'energy','ep_in','sig_in','scale'], headers=['<math.h>', '<stdlib.h>'])
     return energy
 
 def surfenergy_old(r2, param):
