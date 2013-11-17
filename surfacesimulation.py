@@ -103,7 +103,7 @@ class SurfaceSimulation(Simulation):
         self.coord = numpy.array([self.coord[0,:]*numpy.cos(rotz)+self.coord[1,:]*numpy.sin(rotz), -self.coord[0,:]*numpy.sin(rotz)+self.coord[1,:]*numpy.cos(rotz), self.coord[2,:]])
         self.coord = numpy.array([self.coord[0,:], numpy.cos(rotx)*self.coord[1,:]+numpy.sin(rotx)*self.coord[2,:], -numpy.sin(rotx)*self.coord[1,:] + numpy.cos(rotx)*self.coord[2,:]])
         self.coord = self.coord.transpose()
-        self.coord[:,2] += 10 - numpy.min(self.coord[:,2]) # protein is minimum 1 nm from surface
+        self.coord[:,2] += 6 - numpy.min(self.coord[:,2]) # protein is minimum 1 nm from surface
         
     def output(self, verbose):
 	Simulation.output(self,verbose)

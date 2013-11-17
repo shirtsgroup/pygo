@@ -225,21 +225,21 @@ def getsurfparam(file, numbeads, nsurf, numint, lam):
     return (ep,sig,param)
 
 def getsurfparam_old(file, numbeads, nsurf, numint, scale):
-	"""
+    """
     The old 12-6, V = eij((sij/r)^12 - 2*lam*(sij/r)^6) + V(cutoff)
 
 	Gets all surface-protein interaction parameters
 		Needs original .pdb file of protein to get sequence of residues
 		Uses matrix of epsilon and simga parameters for all possible residue interactions
-	"""
-	param = numpy.zeros((numint,3))
-	ep_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgep.txt')
-	sig_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgsig.txt')
-	# get sequence of residues
-	f = open(file, 'r')
-	missingres = []
-	res = []
-	while 1:
+    """
+    param = numpy.zeros((numint,3))
+    ep_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgep.txt')
+    sig_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgsig.txt')    	
+    # get sequence of residues
+    f = open(file, 'r')
+    missingres = []
+    res = []
+    while 1:
 		line = f.readline()
 		if not line:
 			break
@@ -251,12 +251,13 @@ def getsurfparam_old(file, numbeads, nsurf, numint, scale):
 			words = line.split(' ')
 			words = [x for x in words if x]
 			res.extend(words[4:-1])
-	res = [res[i] for i in range(len(res)) if i not in missingres]
-	assert(len(res)==numbeads)
-	index = [getindex(residue) for residue in res]
-	ep = []
-	sig = []
-	for j in index:
+    f.close()
+    res = [res[i] for i in range(len(res)) if i not in missingres]
+    assert(len(res)==numbeads)
+    index = [getindex(residue) for residue in res]
+    ep = []
+    sig = []
+    for j in index:
 		i = 10 # all LEU surface
 		if i > j:
 			i, j = j, i
@@ -264,12 +265,12 @@ def getsurfparam_old(file, numbeads, nsurf, numint, scale):
 			pdb.set_trace()
 		ep.append(-ep_all[i,j])
 		sig.append(sig_all[i,j])
-	ep = ep*nsurf
-	sig = sig*nsurf
-	param[:,0] = ep
-	param[:,1] = sig
-	param[:,2] = param[:,0]*((param[:,1]/20)**12-2*scale*(param[:,1]/20)**6)
-	return param
+    ep = ep*nsurf
+    sig = sig*nsurf
+    param[:,0] = ep
+    param[:,1] = sig
+    param[:,2] = param[:,0]*((param[:,1]/20)**12-2*scale*(param[:,1]/20)**6)
+    return param
 
 #==========================================
 # ENERGY CALCULATION METHODS

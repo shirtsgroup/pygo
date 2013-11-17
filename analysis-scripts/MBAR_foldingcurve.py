@@ -18,6 +18,7 @@ def parse_args():
     parser.add_option("-s", "--skip", default=1, type="int",dest="skip", help="skip every n data points")
     parser.add_option("--direc", dest="direc", help="Qtraj_singleprot.txt file location")
     parser.add_option("--tfile", dest="tfile", default="/home/edz3fz/proteinmontecarlo/T.txt", help="file of temperatures (default: T.txt)")
+    parser.add_option('--show', action="store_true", default=False, help="show plot at end")
     (options,args) = parser.parse_args()
     return options
 
@@ -62,6 +63,7 @@ def main():
        g[k] = timeseries.statisticalInefficiency(Q_kn[k])#,suppress_warning=True)
        indices = numpy.array(timeseries.subsampleCorrelatedData(Q_kn[k],g=g[k])) # indices of uncorrelated samples
        N_k[k] = len(indices) # number of uncorrelated samplesadsf
+       print '%i uncorrelated samples out of %i total samples' %(len(indices),options.N_max/options.skip)
        U_kn[k,0:N_k[k]] = U_kn[k,indices]
        Q_kn[k,0:N_k[k]] = Q_kn[k,indices]
 
@@ -143,7 +145,7 @@ def main():
     if insert:
         mbar = pymbar.MBAR(u_kln, Nall_k, method = 'adaptive', verbose=True, relative_tolerance=1e-12)
     else:
-        f_k = wham.histogram_wham(beta_k, U_kn, Nall_k)
+        f_k = wham.histogram_wham(beta_k, U_kn, Nall_k, relative_tolerance = 1.0e-4)
         mbar = pymbar.MBAR(u_kln, Nall_k, initial_f_k = f_k, verbose=True)
     #------------------------------------------------------------------------
     # Compute Expectations for E_kt and E2_kt as E_expect and E2_expect
@@ -192,7 +194,8 @@ def main():
     plt.savefig(options.direc+'/foldingcurve.png')
     numpy.save(options.direc+'/foldingcurve',numpy.array([Temp_k, Q, dQ]))
     numpy.save(options.direc+'/heatcap',numpy.array([Temp_k, Cv_expect, dCv_expect]))
-#    plt.show()
+    if options.show:
+        plt.show()
 
 if __name__ == '__main__':
     main()
