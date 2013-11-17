@@ -168,8 +168,66 @@ def getindex(res):
 	else:
 		print res
 
-def getsurfparam(file, numbeads, nsurf, numint, scale):
+def getsurfparam(file, numbeads, nsurf, numint, lam):
+    """
+	Gets all surface-protein interaction parameters
+		Needs original .pdb file of protein to get sequence of residues
+    
+    Current 12-6, V = e((s/r)^12 - 2*lam*Xi*(s/r)^6) + V(cutoff)
+        e:   average well depth for all native contacts processed
+        s:   average well distance for all native contacts processed
+        lam: scaling of surface
+        X:   hydropathy index of ith protein residue
+
+    Returns:
+        e, constant
+        s, constant
+        surfparam, nint x 2 array: (attractive term scaling, cutoff value)
+    """ 
+    assert((numint == nsurf * numbeads))
+    try:
+        ep_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgep.txt')
+        sig_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgsig.txt')
+        ep = -numpy.mean(ep_all[~numpy.isnan(ep_all[0:20,0:20])])
+        sig = numpy.mean(sig_all[~numpy.isnan(sig_all[0:20,0:20])])
+    except:
+        print "Could not find surface force field files"
+        ep = .76506313905088763
+        sig = 6.8997611300445971
+
+	# get sequence of residues
+    f = open(file, 'r')
+    missingres = [] # residues in SEQRES but not resolved
+    res = []
+    while 1:
+		line = f.readline()
+		if not line:
+			break
+		if line.startswith('REMARK 465'):
+			try:
+				missingres.append(int(line[21:-1])-1)
+			except: pass
+		if line.startswith('SEQRES'):
+			words = line.split(' ')
+			words = [x for x in words if x]
+			res.extend(words[4:-1])
+    res = [res[i] for i in range(len(res)) if i not in missingres]
+    assert(len(res)==numbeads)
+    param = numpy.empty((numint,2))
+    index = [getindex(residue) for residue in res]
+    scale = []
+    hydropathy = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/hydropathy.txt')
+    for i in index:
+        scale.append(lam*(hydropathy[i]-.4)+.4)
+    scale = scale * nsurf
+    param[:,0] = scale
+    param[:,1] = ep*(sig/20.)**12 + param[:,0]*ep*(12*(sig/20.)**12 - 18*(sig/20.)**10 + 4*(sig/20.)**6)
+    return (ep,sig,param)
+
+def getsurfparam_old(file, numbeads, nsurf, numint, scale):
 	"""
+    The old 12-6, V = eij((sij/r)^12 - 2*lam*(sij/r)^6) + V(cutoff)
+
 	Gets all surface-protein interaction parameters
 		Needs original .pdb file of protein to get sequence of residues
 		Uses matrix of epsilon and simga parameters for all possible residue interactions
@@ -217,7 +275,6 @@ def getsurfparam(file, numbeads, nsurf, numint, scale):
 # ENERGY CALCULATION METHODS
 #==========================================
 
-
 def umbrellaenergy(prot_coord, z, mass, totmass):
     com_z = numpy.sum(mass*prot_coord[:,2])/totmass
     return (z-com_z)**2
@@ -230,7 +287,6 @@ def getr2surf(prot_coord, surf_coord, numbeads, numint):
         r2 = numpy.sum(r2**2, axis=1)
         r2_array[i*numbeads:i*numbeads+numbeads] = r2
     return r2_array
-
 
 def cgetr2surf(prot_coord, surf_coord, numbeads, numint):
     """Deprecated"""
@@ -247,7 +303,46 @@ def cgetr2surf(prot_coord, surf_coord, numbeads, numint):
     info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'r2_array'], headers=['<math.h>', '<stdlib.h>'])
     return r2_array
 
-def surfenergy(r2, param):
+def surfenergy(prot, surf, numbeads, numint, param):
+    ep = param[0]
+    sig = param[1]
+    scale = param[2]
+    energy = numpy.array([0.,0.])
+    for i in xrange(numint):
+        r2 = surf[i/numbeads,:] - prot[i%numbeads,:]
+        r2 = numpy.sum(r2**2)
+        ne = sig*sig/r2
+        ne6 = ne*ne*ne
+        ne12 = ne6*ne6
+        energy[0] += ep*ne12
+        energy[1] += scale[i]*ep*(12*ne12 - 18*ne6*ne*ne + 4*ne6)
+    return energy
+
+def csurfenergy(prot_coord, surf_coord, numbeads, numint, param):
+    ep = param[0]
+    sig = param[1]
+    scale = param[2]
+    energy = numpy.array([0.,0.])
+    code = """
+    double x, y, z, r2, e, e6, e12;
+    for (int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        r2 = x*x + y*y + z*z;
+	if (r2<400){
+            e = sig*sig/r2;
+            e6 = e*e*e;
+            e12 = e6*e6;
+            ENERGY1(0) += ep*e12-SCALE2(i,1);
+            ENERGY1(1) += SCALE2(i,0)*ep*(12*e12-18*e6*e*e+4*e6);
+	}
+    }
+    """
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy','ep','sig','scale'], headers=['<math.h>', '<stdlib.h>'])
+    return energy
+
+def surfenergy_old(r2, param):
     #native calculation
     nE = param[:,1] * param[:,1] / r2 #sigma2/r2
     nE6 = nE * nE * nE
@@ -255,6 +350,27 @@ def surfenergy(r2, param):
     nE = param[:,0]*(nE6*nE6 - 2*nE6)
     return numpy.sum(nE)
 
+def csurfenergy_old(prot_coord, surf_coord, numbeads, numint, param, scale):
+    energy = numpy.array([0.,0.])
+    code = """
+    double x, y, z, r2, e;
+    for (int i = 0; i < numint; i++){
+        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
+        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
+        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
+        r2 = x*x + y*y + z*z;
+	if (r2<400){
+            e = PARAM2(i,1)*PARAM2(i,1)/r2;
+            e = e*e*e;
+           // e = PARAM2(i,0)*(e*e-2*scale*e)-PARAM2(i,2);
+            ENERGY1(0) += PARAM2(i,0)*e*e-PARAM2(i,2);
+            ENERGY1(1) += -PARAM2(i,0)*2*scale*e;
+	}
+    }
+    """
+    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy','scale'], headers=['<math.h>', '<stdlib.h>'])
+    return energy
+ 
 def csurfenergy_withr2(prot_coord, surf_coord, numbeads, numint, param):
     """Used in surfacesimulationbig for large proteins, keeps track of energies and r2"""
     energy = numpy.zeros(numbeads)
@@ -296,27 +412,6 @@ def csurfenergy_updater2(prot_coord, surf_coord, numbeads, numint, param, r2old,
     """
     info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'change', 'surfEnew', 'r2new', 'n'], headers=['<math.h>', '<stdlib.h>'])
     return r2new, surfEnew
-
-def csurfenergy(prot_coord, surf_coord, numbeads, numint, param, scale):
-    energy = numpy.array([0.,0.])
-    code = """
-    double x, y, z, r2, e;
-    for (int i = 0; i < numint; i++){
-        x = SURF_COORD2(i/numbeads,0) - PROT_COORD2(i % numbeads, 0);
-        y = SURF_COORD2(i/numbeads,1) - PROT_COORD2(i % numbeads, 1);
-        z = SURF_COORD2(i/numbeads,2) - PROT_COORD2(i % numbeads, 2);
-        r2 = x*x + y*y + z*z;
-	if (r2<400){
-            e = PARAM2(i,1)*PARAM2(i,1)/r2;
-            e = e*e*e;
-           // e = PARAM2(i,0)*(e*e-2*scale*e)-PARAM2(i,2);
-            ENERGY1(0) += PARAM2(i,0)*e*e-PARAM2(i,2);
-            ENERGY1(1) += -PARAM2(i,0)*2*scale*e;
-	}
-    }
-    """
-    info = weave.inline(code, ['prot_coord', 'surf_coord', 'numint', 'numbeads', 'param', 'energy','scale'], headers=['<math.h>', '<stdlib.h>'])
-    return energy
 
 def getforcer(mpos, numint, numbeads):
     r2array = numpy.empty((numint,3)) # distance vectors
