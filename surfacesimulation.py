@@ -208,7 +208,7 @@ def run_surf(self, nummoves, dict):
         elif randmove < SurfaceSimulation.percentmove[1]:
             jac = 1
             [a,b,g] = numpy.random.normal(0, self.moveparam[1], 3)
-            self.newcoord = moveset.rotation(self.coord, a, b, g)
+            self.newcoord, jac = moveset.rotation(self.coord, a, b, g)
             self.rmoves += 1
             movetype = 'rot'
             torschange = numpy.array([])

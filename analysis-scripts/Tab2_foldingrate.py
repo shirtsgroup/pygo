@@ -70,11 +70,11 @@ def main():
     Z = numpy.arange(9,31.5,1.5)
     Z = numpy.concatenate((Z,numpy.array([33,36,39,42,45,48])))
     Z = numpy.array([9,10.5,12,13.5,15,16.5])
-    Z = numpy.array([33,36,39,42,45,48])
 
     
     colors = matplotlib.cm.jet(numpy.linspace(0,1,len(Z)))   
     counts = numpy.zeros(len(files))
+    uncert = numpy.zeros(len(files))
     Q_all = [[] for x in range(len(files))]
     for i,direc in enumerate(files):
         print 'Analyzing', direc
@@ -84,11 +84,42 @@ def main():
             q, count, count_smooth = get_rate(f)
             Q_all[i].append(q)
             counts[i] += numpy.average(count_smooth)
+            uncert[i] += numpy.std(count_smooth)**2
             #Q_all[i].append(numpy.zeros((24,24)))
             #print 'Number of transitions for raw data:', numpy.average(count)
             #print 'Number of transitions for smoothed data:', numpy.average(count_smooth)
         #plot(i,Q_all[i])
     print counts
+    data = numpy.zeros((len(files),2))
+    data[:,0] = counts
+    data[:,1] = uncert**.5
+    numpy.save('adsorbed_rate.out',data)
+
+    Z = numpy.array([33,36,39,42,45,48])
+    counts = numpy.zeros(len(files))
+    uncert = numpy.zeros(len(files))
+    Q_all = [[] for x in range(len(files))]
+    for i,direc in enumerate(files):
+        print 'Analyzing', direc
+        for z in Z:
+    #        print 'Analyzing', z
+            f = '%s/%i/Qtraj_singleprot.npy' % (direc,z)
+            q, count, count_smooth = get_rate(f)
+            Q_all[i].append(q)
+            counts[i] += numpy.average(count_smooth)
+            uncert[i] += numpy.std(count_smooth)**2
+            #Q_all[i].append(numpy.zeros((24,24)))
+            #Q_all[i].append(numpy.zeros((24,24)))
+            #print 'Number of transitions for raw data:', numpy.average(count)
+            #print 'Number of transitions for smoothed data:', numpy.average(count_smooth)
+        #plot(i,Q_all[i])
+    print counts
+    data = numpy.zeros((len(files),2))
+    data[:,0] = counts
+    data[:,1] = uncert**.5
+    numpy.save('desorbed_rate.out',data)
+
+   
 
     #plt.show()
 if __name__ == '__main__':

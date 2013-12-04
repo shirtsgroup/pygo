@@ -70,6 +70,9 @@ print numpy.average(count)
 print 'Average every '+str(n)+' data points'
 print count_new
 print numpy.average(count_new)
+passed = [x for x in count_new if x]
+print '%i replicas passed Q = 0.6' % len(passed)
+
 
 if ofile:
 	plt.savefig(ofile+'.png')

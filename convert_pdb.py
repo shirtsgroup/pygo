@@ -8,7 +8,7 @@ import energyfunc
 
 def parse_args():
     parser = optparse.OptionParser(description='converts a npy trajectory into a pdb trajectory for VMD')
-    parser.add_option('--pdb', dest='pdbfile', help='original pdb file')
+    parser.add_option('--pdb', dest='pdbfile', default='GO_1BSQ.pdb', help='original pdb file (default: GO_1BSQ.pdb)')
     parser.add_option('--traj', dest='trajfile', default='', help='trajectory file to convert')
     (options,args) = parser.parse_args()
     return options
