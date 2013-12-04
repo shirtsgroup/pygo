@@ -8,6 +8,7 @@ import cPickle
 import optparse
 import plot_dG
 import plot_dG_solution
+import pdb
 
 def main():
     f,ax1 = plt.subplots()
@@ -18,16 +19,18 @@ def main():
 
     Q = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/foldingcurve.npy'
     data = numpy.load(Q)
-    ax1.errorbar(data[0,:],data[1,:],data[2,:], color='k')
+    ln1 = ax1.errorbar(data[0,:],data[1,:],data[2,:], color='k',label='Q')
     ax1.set_ylabel('Q', fontdict = font)
     ax1.set_xlabel('temperature (K)', fontdict = font)
 
     ax2 = ax1.twinx()
     Cv = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/heatcap.npy'
     data = numpy.load(Cv)
-    ax2.errorbar(data[0,:],data[1,:],data[2,:], color='k',fmt='-')
+    ln2 = ax2.errorbar(data[0,:],data[1,:],data[2,:], color='k',ls='--',label=r'C_{v}')
     ax2.set_ylabel('C_{v}', fontdict = font)
 
+    ln = ln1 + ln2
+    plt.legend(ln,['Q',r'C_{v}'])#,prop={'size':11})
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig3_solution.pdf')
 
     plt.show()
