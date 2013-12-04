@@ -23,7 +23,7 @@ def main():
     direc = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/bootstrap' % str(x)[1::] for x in lam]
     
     # data w/o bootstrap first #
-    lam = [.1, .15, .2, .25]
+    lam = [.1, .15]
 #    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz.pkl' % str(x)[1::] for x in lam]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_noint_2.pkl' % str(x)[1::] for x in lam]
     plt.rc('text',usetex=True)
@@ -95,8 +95,8 @@ def main():
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
         lgd = ax2.legend(bbox_to_anchor=(1.39, 1.08), prop={'size':14})
  
-    lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55, .6]
-    for i in range(4,len(lam)):
+    lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55,.6]
+    for i in range(2,len(lam)):
         fig.subplots_adjust(hspace=0)
        
         target_temperatures,dGf,ddGf = read_boot('%s/dGf_boot.pkl' % direc[i]) 
@@ -114,7 +114,8 @@ def main():
         ax3.errorbar(temp_sub,dHf,ddHf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
         plt.xlabel(r'temperature (K)')
         plt.ylabel(r'$\Delta$H_{folding}$')
-        plt.yticks(numpy.arange(-100,-10,10))
+        plt.ylim((-100,-20))
+        plt.yticks(numpy.arange(-100,-20,20))
         box = ax3.get_position()
         ax3.set_position([box.x0,box.y0,box.width*.82,box.height])
        
@@ -123,10 +124,12 @@ def main():
         plt.xlim((300,350))
         ax2.errorbar(temp_sub,dSf,ddSf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
         plt.setp(ax2.get_xticklabels(), visible=False)
+        plt.ylim((-.3,-.1))
+        plt.yticks(numpy.arange(-.3,-.1,.04))
         plt.ylabel(r'$\Delta$S_{folding}$')
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.39, 1.08), prop={'size':14})
+        lgd = ax2.legend(bbox_to_anchor=(1.3, 1.08), prop={'size':11})
     
 
     fig.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig8_dGf_boot.pdf')

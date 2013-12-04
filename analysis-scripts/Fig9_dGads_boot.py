@@ -7,6 +7,7 @@ import matplotlib
 import cPickle
 import optparse
 import plot_dG_solution
+import pdb
 
 def read_boot(file):
     f = open(file,'rb')
@@ -41,7 +42,7 @@ def main():
     ddSu = numpy.zeros((len(lam),11))
 
     fig = plt.figure(10,(7,10))
-    for i in range(4):
+    for i in range(2):
         print 'Reading %s' % files[i]
         f = open(files[i],'rb')
         target_temperatures = cPickle.load(f)
@@ -122,7 +123,7 @@ def main():
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
         lgd = ax2.legend(bbox_to_anchor=(1.29,.98),prop={'size':10})
  
-    for i in range(4,len(lam)):
+    for i in range(2,len(lam)):
    
         target_temperature, dGf[i,:], ddGf[i,:] = read_boot('%s/dGadsf_boot.pkl' % direc[i])
         temp_sub, dSf[i,:], ddSf[i,:] = read_boot('%s/dSadsf_boot.pkl' % direc[i])
@@ -166,8 +167,8 @@ def main():
         lgd = ax2.legend(bbox_to_anchor=(1.39,1.08),prop={'size':14})
     
 
-    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.pdf')
-    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.png')
+   # plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.pdf')
+   # plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.png')
 
     f=plt.figure(9,(.85*7,10))
     f.subplots_adjust(hspace=0)
@@ -194,7 +195,8 @@ def main():
     plt.setp(ax2.get_xticklabels(), visible=False)
     plt.ylabel(r'$\Delta$S_{adsorption}$')
 #    plt.legend(prop={'size':9})
-    plt.yticks(numpy.arange(-.2,.05,.05))
+    plt.ylim((-.2,0))
+    plt.yticks(numpy.arange(-.2,0,.04))
 #    box = ax2.get_position()
 #    ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
     plt.xlim((.1,.6))
@@ -207,7 +209,8 @@ def main():
     plt.xlabel(r'$\lambda$')
     plt.ylabel(r'$\Delta$H_{adsorption}$')
 #    lgd = plt.legend(prop={'size':9})
-    plt.yticks(numpy.arange(-100,20,20))
+    plt.ylim((-100,0))
+    plt.yticks(numpy.arange(-100,0,20))
 #    lgd = ax2.legend(bbox_to_anchor=(.5,-.1),prop={'size':10},ncol=2)
 #    box = ax3.get_position()
 #    ax3.set_position([box.x0,box.y0,box.width*.82,box.height])
