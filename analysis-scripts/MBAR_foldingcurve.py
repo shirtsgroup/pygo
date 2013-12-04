@@ -67,7 +67,7 @@ def main():
        U_kn[k,0:N_k[k]] = U_kn[k,indices]
        Q_kn[k,0:N_k[k]] = Q_kn[k,indices]
 
-    insert = False
+    insert = True
     if insert: 
         #------------------------------------------------------------------------
         # Insert Intermediate T's and corresponding blank U's and E's
