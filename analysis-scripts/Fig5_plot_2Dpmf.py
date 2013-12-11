@@ -21,7 +21,8 @@ def plot_2D_PMF(subplot,temp,lam,bin_centers,f):
     Y = [data[1] for data in bin_centers]
     Z = f 
     plt.hexbin(X,Y,C=Z, gridsize=20)
-    plt.xticks(numpy.arange(5,55,10))
+    plt.xlim((10,50))
+    plt.xticks(numpy.arange(15,55,10))
 
 def main():
     fig = plt.figure(1,(10*.9,9*.8))
@@ -66,6 +67,7 @@ def main():
 #    cbar.ax.set_yticklabels(['300 K','325 K','350 K'])
     
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig5_plot_2DPMF.eps')
+    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig5_plot_2DPMF.pdf')
 
     plt.show()
 
