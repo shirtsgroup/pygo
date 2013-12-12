@@ -43,7 +43,7 @@ def main():
         df_i = pickle.load(f)
         f.close()
         plot_2D_PMF('33%i' %(i+1),temp,lam[i/3],bin_centers,f_i)
-    fig.text(.5,.04,'z', ha='center',va='center',fontdict=font)
+    fig.text(.5,.04,r'z (\AA)', ha='center',va='center',fontdict=font)
     fig.text(.06,.5,'Q',ha='center',va='center',rotation='vertical',fontdict=font)
     font = {'family' : 'serif'}
            # 'size'   : 'normal'}
