@@ -62,7 +62,8 @@ def solution(file):
     ax1 = plt.subplot(311)
     ax1.errorbar(target_temperatures,dGf,ddGf,color='k',label='solution')
     plt.xlim((300,350))
-    plt.ylabel(r'$\Delta$G_{folding}$')
+    plt.ylabel(r'$\Delta$G_{folding}')
+#    plt.ylabel(r'$\Delta$G_{folding} \textnormal{ (kcal/mol)}$')
     plt.setp(ax1.get_xticklabels(), visible=False)
  #   plt.legend(prop={'size':6})
  
@@ -70,14 +71,16 @@ def solution(file):
     plt.xlim((300,350))
     ax2.errorbar(temp_sub,dSf,ddSf,color='k',label='solution')
     plt.setp(ax2.get_xticklabels(), visible=False)
-    plt.ylabel(r'$\Delta$S_{folding}$')
+    plt.ylabel(r'$\Delta$S_{folding}')
+    #plt.ylabel(r'$\Delta$S_{folding} \textnormal{ (kcal/mol$\cdot$K)}$')
 #    plt.legend(prop={'size':6})
  
     ax3 = plt.subplot(313)
     plt.xlim((300,350))
     ax3.errorbar(temp_sub,dHf,ddHf,color='k',label='solution')
     plt.xlabel(r'temperature (K)')
-    plt.ylabel(r'$\Delta$H_{folding}$')
+    plt.ylabel(r'$\Delta$H_{folding}')
+    #plt.ylabel(r'$\Delta$H_{folding} \textnormal{ (kcal/mol)}$')
 #    plt.legend(prop={'size':6})
 
     f.subplots_adjust(hspace=0)

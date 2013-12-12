@@ -14,6 +14,7 @@ def main():
     f,ax1 = plt.subplots()
     plt.rc('text',usetex=True)
     matplotlib.rc('font', family = 'serif')
+    #plt.rc('text.latex', preamble='\usepackage{sfmath}')
     font = {'family' : 'serif',
             'size'   : 'larger'}
 
@@ -27,7 +28,7 @@ def main():
     Cv = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/heatcap.npy'
     data = numpy.load(Cv)
     ln2 = ax2.errorbar(data[0,:],data[1,:],data[2,:], color='k',ls='--',label=r'C_{v}')
-    ax2.set_ylabel('C_{v}', fontdict = font)
+    ax2.set_ylabel(r'C_{v}  \textnormal{ (kcal/mol$\cdot$K)}', fontdict = font)
 
     ln = ln1 + ln2
     plt.legend(ln,['Q',r'C_{v}'])#,prop={'size':11})

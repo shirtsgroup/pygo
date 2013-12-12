@@ -43,7 +43,7 @@ def main():
     f_i -= f_i[idx]
     plt.errorbar(bin_centers[1::],f_i[1::],numpy.array(df_i[0,:])[0,1::],label='solution', color='k')
  
-    plt.ylabel('PMF')
+    plt.ylabel('PMF (kcal/mol)')
     plt.xlabel('Q')
     plt.legend(prop={'size':10},loc=4)
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig7_pmfQ.pdf')

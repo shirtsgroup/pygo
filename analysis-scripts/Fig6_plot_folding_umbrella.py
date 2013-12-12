@@ -16,8 +16,8 @@ def main():
     Q_files[-2] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.65/foldingcurve.npy' 
     Q_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.7/foldingcurve.npy' 
     Cv_files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/heatcap_umbrella.npy' % str(x)[1::] for x in lam]
-    Cv_files[-2] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.65/foldingcurve.npy' 
-    Cv_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.7/foldingcurve.npy' 
+    Cv_files[-2] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.65/heatcap.npy' 
+    Cv_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.7/heatcap.npy' 
     colors = cm.cool(numpy.linspace(0,1,len(lam)))
     
     f = plt.figure(1,(6,8))
@@ -44,12 +44,15 @@ def main():
     ax2 = plt.subplot(212)
     for i in range(len(lam)):
         data = numpy.load(Cv_files[i])
-        x=30
-        ax2.errorbar(data[0,-x::],data[1,-x::],data[2,-x::],label=r'$\lambda$ = %s' % lam[i], color=colors[i])
+        if i < 11:
+            x=30
+            ax2.errorbar(data[0,-x::],data[1,-x::],data[2,-x::],label=r'$\lambda$ = %s' % lam[i], color=colors[i])
+        else:
+            ax2.errorbar(data[0,:],data[1,:],data[2,:],label=r'$\lambda$ = %s' % lam[i], color=colors[i])
     soln = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/heatcap.npy'
     data = numpy.load(soln)
     ax2.errorbar(data[0,:],data[1,:],data[2,:],label='solution', color='k')
-    plt.ylabel('Cv')
+    plt.ylabel(r'$C_{v}  \textnormal{ (kcal/mol$\cdot$K)}$',fontdict=font)
     plt.xlabel('temperature (K)')
     #plt.legend(prop={'size':8})
     plt.xlim((200,400))
