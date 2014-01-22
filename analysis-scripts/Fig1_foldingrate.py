@@ -51,7 +51,7 @@ def plot(fig,Q,idx,title):
     matplotlib.rc('text', usetex = True)
     matplotlib.rc('font', family = 'serif')
     font = {'family' : 'serif',
-            'size'   : 'larger'}
+            'size'   : 16}
     f = plt.figure(fig,(6,4))
     for i,index in enumerate(idx):
         plt.subplot(2,2,i+1) # 2 by 2 subplot
@@ -110,7 +110,7 @@ def main():
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1c_MD.eps')
     
     print '---------MC---------'
-    MC_file = '/home/edz3fz/proteinmontecarlo/results/1PGB/comparison/MC/Qtraj_singleprot.npy'
+    MC_file = '/home/edz3fz/proteinmontecarlo/results/1PGB/simlog145/Qtraj_singleprot.npy'
     MC_Q, MC_count, MC_count_smooth = get_rate(MC_file)
     print 'Number of transitions for raw data:'
     print MC_count

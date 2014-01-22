@@ -53,6 +53,6 @@ U_kn[1,0:len(indices_up)] = up[indices_up]
 #T_k=array([424.67492585,450])
 #T_k=array([437.99897735,450])
 N_k=[len(indices_up),len(indices_down)]
-ProbabilityAnalysis(N_k=N_k, T_k=T_k, U_kn=U_kn, kB=0.0019872041, eunits='kcal/mol', figname='figure',title='name')
+ProbabilityAnalysis(N_k=N_k, T_k=T_k, U_kn=U_kn, kB=0.0019872041, eunits='kcal/mol', figname='figure', title='name')
 #ProbabilityAnalysis(N_k=N_k, T_k=T_k, U_kn=U_kn, eunits='kcal/mol', figname='figure',title='name')
 plt.show()

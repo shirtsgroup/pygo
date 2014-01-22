@@ -48,7 +48,6 @@ fig.text(.06,.5,'Q fraction native',ha='center',va='center',rotation='vertical',
 
 pt = cPickle.load(open(options.datafile+'protein_location.pkl','rb'))
 pt = numpy.array(pt)
-pdb.set_trace()
 mixing_time = [[] for x in range(numrep)]
 for rep in range(numrep):
 	highQ_index = 0

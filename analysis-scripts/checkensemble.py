@@ -724,13 +724,13 @@ def PrintPicture(xaxis,true,y,dy,fit,type,name,figname,fittype,vunits='kT',show=
     plt.clf()
     plt.xlabel(varstring)
     if (fittype == 'linear'):
-        plt.title(vt + ' vs. log probability ratio \n for ' + name)
+        plt.title(vt + ' vs. log probability ratio')
         plt.errorbar(xaxis,y,fmt='b-',yerr=dy,label = pstringlntex)  # make this general!
         plt.errorbar(xaxis,true,fmt='k-',label = plinfit)
         plt.errorbar(xaxis,fit,fmt='r-',label = 'Fit to $y = b+aB$')
         plt.ylabel(pstringlntex)
     elif (fittype == 'nonlinear'):
-        plt.title(vt + ' vs. probability ratio \n for ' + name)
+        plt.title(vt + ' vs. probability ratio')
         plt.errorbar(xaxis,y,fmt='b-',yerr=dy,label = pstringtex) 
         plt.errorbar(xaxis,true,fmt='k-',label = pnlfit)
         plt.errorbar(xaxis,fit,fmt='r-',label = 'Fit to $y = \exp(b+aE)$')
