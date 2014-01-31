@@ -168,7 +168,7 @@ def getindex(res):
 	else:
 		print res
 
-def getsurfparam(file, numbeads, nsurf, numint, lam):
+def getsurfparam(file, spfile, numbeads, nsurf, numint, lam):
     """
 	Gets all surface-protein interaction parameters
 		Needs original .pdb file of protein to get sequence of residues
@@ -186,8 +186,7 @@ def getsurfparam(file, numbeads, nsurf, numint, lam):
     """ 
     assert((numint == nsurf * numbeads))
     try:
-        ep_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgep.txt')
-        sig_all = numpy.loadtxt('/home/edz3fz/proteinmontecarlo/avgsig.txt')
+        (ep_all,sig_all) = numpy.load(spfile)
         ep = -numpy.mean(ep_all[~numpy.isnan(ep_all[0:20,0:20])])
         sig = numpy.mean(sig_all[~numpy.isnan(sig_all[0:20,0:20])])
     except:

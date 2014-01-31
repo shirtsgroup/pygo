@@ -1,8 +1,32 @@
-from numpy import *
-from random import *
+import numpy
 import pdb
 
+'''This module contains various I/O helper methods'''
+
+def get_coord(filename):
+    f = file(filename,'r')
+    # first count number of atoms to instantiate coord array
+    n = 0
+    for line in f:
+        if 'ATOM' in line:
+            n += 1
+    coord = numpy.empty((n,3))
+    pdb_text = [] # will hold the pdb file text
+    i = 0
+    f.seek(0)
+    for line in f:
+        if 'ATOM' in line:
+            pdb_text.append(line)
+            coord[i,0] = float(line[31:38])
+            coord[i,1] = float(line[39:46])
+            coord[i,2] = float(line[47:54])
+            i += 1
+    f.close()
+    assert(i == n)
+    return coord, pdb_text
+
 def writeseqpdb(mpos,text,posline,move):
+    '''Deprecated'''
     # multi file pdb output
     j=0
     write=''
@@ -21,8 +45,8 @@ def writeseqpdb(mpos,text,posline,move):
     f.write(write)
     f.close
 
-
 def writepdb(mpos,text,posline,move,filename):
+    '''Deprecated'''
     # 1 file pdb output
     j=0
     for i in posline:
@@ -37,6 +61,7 @@ def writepdb(mpos,text,posline,move,filename):
     f.close
 
 def addtopdb(mpos,coordtext,move,filename):
+    '''Deprecated'''
     # 1 file pdb output
     for i in range(len(coordtext)):
         words=[coordtext[i][0:30],'%8.3f' %(mpos[i,0]),'%8.3f' %(mpos[i,1]),'%8.3f'%(mpos[i,2]),'\r\n']
@@ -67,42 +92,46 @@ def addconnect(filename,k):
 	f.close()
 	
 def getmovietransform(nativecoord):
+    '''Deprecated'''
 	nc=nativecoord.copy()
 	translate= nc[0,:]
 	nc -= translate
-	BC=nc[1,:]
-	x1=BC/dot(BC,BC)**.5
-	AB=array([.5,.5,.5]); #random, but constant for all simulations
-	y1=AB-dot(AB,BC)/dot(BC,BC)*BC
-	y1=y1/sum(y1**2)**.5
-	z1=cross(x1,y1)
-	return array([x1,y1,z1])
+	BC = nc[1,:]
+	x1 = BC/numpy.dot(BC,BC)**.5
+	AB = numpy.array([.5,.5,.5]); #random, but constant for all simulations
+	y1 = AB-numpy.dot(AB,BC)/numpy.dot(BC,BC)*BC
+	y1 = y1/numpy.sum(y1**2)**.5
+	z1 = numpy.cross(x1,y1)
+	return numpy.array([x1,y1,z1])
 
 def getmovietransform_old(nativecoord):
-	nc=nativecoord.copy()
-	center=len(nc)/2
-	translate= nc[center,:]
-	translate=translate.copy()
+    '''Deprecated'''
+	nc = nativecoord.copy()
+	center = len(nc)/2
+	translate = nc[center,:]
+	translate = translate.copy()
 	for i in range(len(nc)):
 		nc[i,:] -= translate
-	BC=nc[center+1,:]
-	x1=BC/dot(BC,BC)**.5
-	AB=[.5,.5,.5]; #random, but constant for all simulations
-	y1=AB-dot(AB,BC)/dot(BC,BC)*BC
-	y1=y1/dot(y1,y1)**.5
-	z1=cross(x1,y1)
+	BC = nc[center+1,:]
+	x1 = BC/numpy.dot(BC,BC)**.5
+	AB = [.5,.5,.5]; #random, but constant for all simulations
+	y1 = AB-numpy.dot(AB,BC)/numpy.dot(BC,BC)*BC
+	y1 = y1/numpy.dot(y1,y1)**.5
+	z1 = numpy.cross(x1,y1)
 	return [x1,y1,z1]
 
 def moviecoord(mpos123,transform):
-	mpos=mpos123.copy()
-	mpos[0,:]=zeros(3)
-	bond=mpos123[1:len(mpos123),:]-mpos123[0:-1,:]
-	bond=dot(bond,transform)
+    '''Deprecated'''
+	mpos = mpos123.copy()
+	mpos[0,:] = numpy.zeros(3)
+	bond = mpos123[1:len(mpos123),:]-mpos123[0:-1,:]
+	bond = numpy.dot(bond,transform)
 	for i in xrange(len(mpos)-1):
-		mpos[i+1,:]=mpos[i,:]+bond[i,:]
+		mpos[i+1,:] = mpos[i,:]+bond[i,:]
 	return mpos
 
 def moviecoord_old(mpos123,transform):
+    '''Deprecated'''
 	mpos=mpos123.copy()
 	center=len(mpos)/2
 	translate=mpos[center,:]
@@ -117,12 +146,3 @@ def moviecoord_old(mpos123,transform):
 		mpos[i-1,:]=mpos[i,:]+BCnew
 	return mpos
 	
-#def moviecoord(mpos123):
-	#mpos=mpos123.copy()
-	#center=len(mpos)/2
-	#translate=mpos[center,:]
-	#translate=translate.copy()
-	#for i in range(len(mpos)):
-		#mpos[i,:] -= translate
-	#return mpos
-

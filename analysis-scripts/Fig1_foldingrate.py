@@ -51,7 +51,7 @@ def plot(fig,Q,idx,title):
     matplotlib.rc('text', usetex = True)
     matplotlib.rc('font', family = 'serif')
     font = {'family' : 'serif',
-            'size'   : 16}
+            'size'   : 20}
     f = plt.figure(fig,(6,4))
     for i,index in enumerate(idx):
         plt.subplot(2,2,i+1) # 2 by 2 subplot
@@ -64,7 +64,6 @@ def plot(fig,Q,idx,title):
     #f.subplots_adjust(vspace=0)
     plt.setp([a.get_xticklabels() for a in f.axes], visible=False)
 #    plt.setp([a.get_yticklabels() for a in f.axes[::2]], visible=False)
-
 
 def main():
     print '---------HMD--------'

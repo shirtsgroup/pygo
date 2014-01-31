@@ -20,11 +20,17 @@ import os
 import pp
 import pdb
 import cPickle
+import random
+
+numpy.random.seed(10)
+random.seed(10)
 
 from writetopdb import *
 from moveset import *
 from energyfunc import *
-#from simulationobject import *
+from simulationobject import *
+
+
 
 t1=datetime.datetime.now()
 
@@ -36,11 +42,11 @@ parser.add_option("-r", "--replicas", default=8, type="int",dest="replicas", hel
 parser.add_option("-v", "--verbose", action="store_false", default=True, help="more verbosity")
 parser.add_option("-c", "--addconnect", action="store_true", default=False, help="add bonds to .pdb file")
 parser.add_option("-n", "--moves", dest="totmoves", type="int", default='10000', help="total number of moves")
-parser.add_option("-s", "--stepsize", dest="step", type="int", default='1000', help="number of moves between save operations")
+parser.add_option("-s", "--savesize", dest="save", type="int", default='1000', help="number of moves between save operations")
 parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', help="number of moves between swap moves")
 parser.add_option("-g", "--histogram", dest="histname", default='', help="name histogram of conformational energies, if desired")
 parser.add_option("-a", "--plot", action="store_true", default=False, help="plots energy, rmsd, fractional nativeness")
-parser.add_option("-b", "--writepdb", action="store_true", default=False, help="the output pdb file")
+parser.add_option("-b", "--writetraj", action="store_true", default=False, help="the output pdb file")
 parser.add_option("-e", "--swaps", nargs=1, dest="e", type="int",default=500, help="number of swaps to perform")
 parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number or umbrella id number")
 parser.add_option("--freq", nargs=6, dest="freq", type="float", default=[.2,.4,.7,1.,1.,1.], help="move frequencies")
@@ -49,7 +55,7 @@ parser.add_option("--umbrella", type="float", default=0., help="umbrella simulat
 parser.add_option("--scale", type="float", default=1, help="scaling of surface attraction strength")
 parser.add_option("--cluster", action="store_true", default=False, help="flag for running on cluster")
 parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
-parser.add_option("--md", nargs=2, default=[.05,360],type="float", dest="md", help="step size and nsteps for MD move")
+parser.add_option("--md", nargs=2, default=[.05,360],type="float", dest="md", help="save size and nsaves for MD move")
 parser.add_option("--tfile", dest="tfile", default="", help="file of temperatures")
 parser.add_option("--extend", nargs=1, dest="extend", type="int", default=0, help="id number of existing simulation to start simulation from")
 #parser.add_option("--random", type="int", dest="random", default=10, help="random seed for reproducability")
@@ -74,13 +80,13 @@ trange = options.temprange # Kelvin
 tfile = options.tfile
 numreplicas = options.replicas
 totmoves = options.totmoves
-step = options.step
+save = options.save
 swap = options.swap
 filename = options.datafile
 paramfile = options.paramfile
 plot = options.plot
 histname = options.histname
-pdbfile = options.writepdb
+writetraj = options.writetraj
 e=options.e
 addbonds = options.addconnect
 id = options.id # simlog id number, used to make directory for results
@@ -112,7 +118,7 @@ while 1:
 		numbeads += 1
 
 if (addbonds):
-	addconnect(pdbfile, numbeads)
+	addconnect(writetraj, numbeads)
 	
 # gets bead coordinates from .pdb file
 file.seek(0)
@@ -140,7 +146,7 @@ file.close()
 
 untransform = getmovietransform(coord)
 transform = transpose(untransform)
-#coord_nat = moviecoord(coord,transform)
+#coordat = moviecoord(coord,transform)
 
 #Get parameters from .param file
 angleparam = getangleparam(paramfile, numbeads)
@@ -152,40 +158,40 @@ numint = around(comb(numbeads, 2)) # number of interactions
 numint = numint - 2 * (numbeads - 2) - 1 # don't count 12 and 13 neighbors
 
 #native LJ parameter getting
-nativeparam_n = getnativefix_n(paramfile, numint, numbeads) # [ones and zeros, native epsilon, native sigma]
+nativeparam = getnativefix_n(paramfile, numint, numbeads) # [ones and zeros, native epsilon, native sigma]
 
-totnc = sum(nativeparam_n[:,0]) #total native contacts
-nsigma2 = nativecutoff2 * nativeparam_n[:,2] * nativeparam_n[:,2]
+totnc = sum(nativeparam[:,0]) #total native contacts
+nsigma2 = nativecutoff2 * nativeparam[:,2] * nativeparam[:,2]
 
 #nonnative LJ parameter getting
 [nonnativesig, nnepsil] = getLJparam_n(paramfile, numbeads, numint) #[nonnative sigmas for every interaction, epsilon (one value)]
-nonnatindex = -1 * (nativeparam_n[:,0] - 1) # array of ones and zeros
+nonnatindex = -1 * (nativeparam[:,0] - 1) # array of ones and zeros
 nonnativeparam = column_stack((nonnatindex, nonnativesig)) #[ones and zeros, nonnative sigma]
 
 # set Simulation class variables
 Simulation.angleparam = angleparam
 Simulation.torsparam = torsparam
 Simulation.totnc = totnc
-Simulation.nativeparam_n = nativeparam_n
+Simulation.nativeparam = nativeparam
 Simulation.nsigma2 = nsigma2
 Simulation.nonnativeparam = nonnativeparam
 Simulation.nnepsil = nnepsil
 Simulation.totmoves = totmoves
-Simulation.step = step
+Simulation.save = save
 Simulation.numbeads = numbeads
 Simulation.numint = numint
 Simulation.wordtemplate = wordtemplate
 Simulation.positiontemplate = positiontemplate
 Simulation.ATOMlinenum = ATOMlinenum
 Simulation.transform = transform
-#Simulation.coord_nat = coord_nat
+#Simulation.coordat = coordat
 Simulation.mass = mass
 Simulation.percentmove = percentmove
 Simulation.tsize = tsize
 Simulation.tsteps = tsteps
 
 # put class variables in a dictionary for pprun
-dict = {'tsize':tsize,'tsteps':tsteps,'percentmove':percentmove,'numbeads':numbeads, 'step':step, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam_n':nativeparam_n, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'positiontemplate':positiontemplate, 'pdbfile':pdbfile, 'mass':mass}
+dict = {'tsize':tsize,'tsteps':tsteps,'percentmove':percentmove,'numbeads':numbeads, 'save':save, 'totmoves':totmoves, 'numint':numint, 'angleparam':angleparam, 'torsparam':torsparam, 'nativeparam':nativeparam, 'nonnativeparam':nonnativeparam, 'nnepsil':nnepsil, 'nsigma2':nsigma2, 'transform':transform, 'positiontemplate':positiontemplate, 'writetraj':writetraj, 'mass':mass}
 
 # Calculate temperature distribution
 if numreplicas == 1:
@@ -209,7 +215,7 @@ if verbose:
 	print 'Running on a cluster'
     output = ['Verbosity is %s' %(str(verbose)),
     'The total number of moves is %d' %(totmoves),
-    'The save interval is %d moves' %(step),
+    'The save interval is %d moves' %(save),
     'The replica exchange interval is %d moves' %(swap),
     'There are %i swaps at each exchange point' %(e),
     'There are %d replicas at temperatures:' %(numreplicas),
@@ -218,8 +224,8 @@ if verbose:
     'Percent move is',
     str(Simulation.percentmove),'']
     print "\r\n".join(output)
-    print 'MD steps per move is '+str(Simulation.tsteps)
-    print 'MD time step is '+str(Simulation.tsize*100)+' fs'
+    print 'MD saves per move is '+str(Simulation.tsteps)
+    print 'MD time save is '+str(Simulation.tsize*100)+' fs'
 
 if surf:
     xlength = 135
@@ -304,7 +310,7 @@ def tryrepeatedswaps(Replicas, Swapaccepted, Swaprejected, protein_location):
 #def update_energy(self, torschange, angchange):
     #self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
     #self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
-    #self.u1 = sum(self.newtorsE)+sum(self.newangE) + energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam_n, Simulation.nonnativeparam, Simulation.nnepsil)
+    #self.u1 = sum(self.newtorsE)+sum(self.newangE) + energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam, Simulation.nonnativeparam, Simulation.nnepsil)
     #return self
 
 if not surf:
@@ -327,7 +333,7 @@ else:
         return newReplicas
 #def energy(mpos, rsquare, torsE, angE):
     #"""Returns the total energy of a configurat"""
-    #energy = sum(angE) + sum(torsE) + energyfunc.LJenergy_n(rsquare, Simulation.nativeparam_n,
+    #energy = sum(angE) + sum(torsE) + energyfunc.LJenergy(rsquare, Simulation.nativeparam,
              #Simulation.nonnativeparam, Simulation.nnepsil)
     #return energy
 
@@ -404,9 +410,9 @@ for i in range(len(T)):
 	else:
         	replicas.append(Simulation(name, os.path.abspath(direc), coord, T[i]))
         replicas[i].whoami = i
-        if pdbfile:
+        if writetraj:
            # mcoord = moviecoord(coord, transform)
-           # writepdb(replicas[i].coord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
+           # writetraj(replicas[i].coord, wordtemplate, ATOMlinenum, 0, '%s/trajectory%i.pdb' % (replicas[i].out, int(replicas[i].T)))
 	     f = open('%s/trajectory%i' %(replicas[i].out, int(replicas[i].T)), 'wb')
 	     numpy.save(f,replicas[i].coord)
 	     f.close()
@@ -518,9 +524,9 @@ output = open('%s/protein_location.pkl' % direc, 'wb')
 cPickle.dump(protein_location, output)
 output.close()
 for i in range(len(replicas)):
-    replicas[i].output(verbose)
-    replicas[i].saveenergy(plot)
-    replicas[i].savenc(plot)
+    replicas[i].output()
+    replicas[i].saveenergy()
+    replicas[i].savenc()
     print 'The average Q is %f' %(numpy.average(replicas[i].nc)/Simulation.totnc)
     replicas[i].savecoord()
 #    replicas[i].savermsd(plot)
@@ -531,14 +537,14 @@ for i in range(len(replicas)):
 	    replicas[i].save_z()
 
 if swap!=totmoves:
-    Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/step+1))
-    # assumes swap interval is larger than or equal to step (save interval)
-    # assumes swap/step is an integer
+    Q_trajec_singleprot = numpy.zeros((numreplicas, totmoves/save+1))
+    # assumes swap interval is larger than or equal to save (save interval)
+    # assumes swap/save is an integer
 #    for i in xrange(0, totmoves, swap):
  #           for j in range(numreplicas):
   #                  rep = protein_location[j][i/swap]
    #                 Q_trajec_singleprot[j,i:i+swap] = replicas[rep].nc[i:i+swap]
-    k=swap/step
+    k=swap/save
     for i in xrange(len(protein_location[0])):
             for j in range(numreplicas):
 		    rep = protein_location[j][i]
@@ -546,6 +552,7 @@ if swap!=totmoves:
     Q_trajec_singleprot[:,0] = totnc
     Q_trajec_singleprot = Q_trajec_singleprot/totnc
     numpy.save('%s/Qtraj_singleprot.npy' % direc, Q_trajec_singleprot)
+
 if verbose:
     for i in range(numreplicas-1):
         print 'Swaps accepted between replica%i and replica%i: %3.2f percent' % (i, i+1, (swapaccepted[i] / float(swapaccepted[i] + swaprejected[i]) * 100))
