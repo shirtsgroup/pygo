@@ -8,16 +8,6 @@ from sys import stdout
 import cPickle
 numpy.random.seed(10)
 
-#def energy(coord):
-#    r2, u0 = energyfunc.cgetLJenergy(coord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam, Simulation.nonnativeparam, Simulation.nnepsil)
-#    torsE = energyfunc.ctorsionenergy(coord, numpy.zeros(Simulation.numbeads - 3), Simulation.torsparam, numpy.arange(Simulation.numbeads - 3))
-#    angE = energyfunc.cangleenergy(coord, numpy.zeros(Simulation.numbeads - 2), Simulation.angleparam, numpy.arange(Simulation.numbeads - 2))
-#    energy = u0 + sum(torsE) + sum(angE)
-#    return energy
-
-#def energy(mpos, rsquare, torsE, angE):
-#    energy = numpy.sum(angE) + numpy.sum(torsE) + energyfunc.cLJenergy(rsquare, Simulation.nativeparam, Simulation.nonnativeparam, Simulation.nnepsil)
-#    return energy
 
 def update_energy(self, torschange, angchange):
     self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
@@ -38,7 +28,6 @@ def save(self):
 	numpy.save(f,self.coord)
 	f.close()
     return self
-
         
 class Simulation:
     kb = 0.0019872041 #kcal/mol/K
