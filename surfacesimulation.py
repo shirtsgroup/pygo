@@ -46,7 +46,7 @@ def update_energy(self, torschange, angchange):
     return self
 
 def save(self):
-    index = self.move/Simulation.step
+    index = self.move/Simulation.save
     self.energyarray[index] = self.u0
     self.surfE_array[index,:] = self.surfE
     self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam, Simulation.nsigma2)
@@ -64,7 +64,7 @@ class SurfaceSimulation(Simulation):
         Simulation.__init__(self, name, outputdirectory, coord, temp)
         self.addsurface(surf_coord)
         self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
-        self.surfE_array = numpy.empty((Simulation.totmoves/Simulation.step + 1,2))
+        self.surfE_array = numpy.empty((Simulation.totmoves/Simulation.save + 1,2))
         self.surfE_array[0,:] = self.surfE
         self.moveparam = numpy.array([2., # translation
                         2., # rotation
@@ -84,7 +84,7 @@ class SurfaceSimulation(Simulation):
     def addsurface(self, surf_coord):
         self.surface = surf_coord
         ## randomly orient protein
-        self.coord = moveset.rotation(self.coord,numpy.random.random())
+        self.coord = moveset.rotation(self.coord,numpy.random.random(3))
         self.coord[:,2] += 10 - numpy.min(self.coord[:,2]) # protein is minimum 1 nm from surface
         
     def output(self):
@@ -217,20 +217,20 @@ def run_surf(self, nummoves, dict):
                 jac = 1
             else:
                 self.newcoord, jac = moveset.parrot(self.coord, m, randdir, theta)
-            if numpy.any(numpy.isnan(self.newcoord)):
-                uncloseable = True
-                self.rejected += 1
-                self.pclosure += 1
-                self.move += 1
-                del self.newcoord
-                del jac
-            elif randdir < .5:
-                torschange = numpy.arange(m-2,m+2)
-                torschange = torschange[torschange<(Simulation.numbeads-3)]
-            else:
-                torschange = numpy.arange(Simulation.numbeads-m-5,Simulation.numbeads-m-1)
-                torschange = torschange[torschange>-1]
-                torschange = torschange[torschange<(Simulation.numbeads-3)]
+                if numpy.any(numpy.isnan(self.newcoord)):
+                    uncloseable = True
+                    self.rejected += 1
+                    self.pclosure += 1
+                    self.move += 1
+                    del self.newcoord
+                    del jac
+                elif randdir < .5:
+                    torschange = numpy.arange(m-2,m+2)
+                    torschange = torschange[torschange<(Simulation.numbeads-3)]
+                else:
+                    torschange = numpy.arange(Simulation.numbeads-m-5,Simulation.numbeads-m-1)
+                    torschange = torschange[torschange>-1]
+                    torschange = torschange[torschange<(Simulation.numbeads-3)]
 
         # run molecular dynamics
         else:

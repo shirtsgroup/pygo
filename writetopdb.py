@@ -93,56 +93,56 @@ def addconnect(filename,k):
 	
 def getmovietransform(nativecoord):
     '''Deprecated'''
-	nc=nativecoord.copy()
-	translate= nc[0,:]
-	nc -= translate
-	BC = nc[1,:]
-	x1 = BC/numpy.dot(BC,BC)**.5
-	AB = numpy.array([.5,.5,.5]); #random, but constant for all simulations
-	y1 = AB-numpy.dot(AB,BC)/numpy.dot(BC,BC)*BC
-	y1 = y1/numpy.sum(y1**2)**.5
-	z1 = numpy.cross(x1,y1)
-	return numpy.array([x1,y1,z1])
+    nc=nativecoord.copy()
+    translate= nc[0,:]
+    nc -= translate
+    BC = nc[1,:]
+    x1 = BC/numpy.dot(BC,BC)**.5
+    AB = numpy.array([.5,.5,.5]); #random, but constant for all simulations
+    y1 = AB-numpy.dot(AB,BC)/numpy.dot(BC,BC)*BC
+    y1 = y1/numpy.sum(y1**2)**.5
+    z1 = numpy.cross(x1,y1)
+    return numpy.array([x1,y1,z1])
 
 def getmovietransform_old(nativecoord):
     '''Deprecated'''
-	nc = nativecoord.copy()
-	center = len(nc)/2
-	translate = nc[center,:]
-	translate = translate.copy()
-	for i in range(len(nc)):
+    nc = nativecoord.copy()
+    center = len(nc)/2
+    translate = nc[center,:]
+    translate = translate.copy()
+    for i in range(len(nc)):
 		nc[i,:] -= translate
-	BC = nc[center+1,:]
-	x1 = BC/numpy.dot(BC,BC)**.5
-	AB = [.5,.5,.5]; #random, but constant for all simulations
-	y1 = AB-numpy.dot(AB,BC)/numpy.dot(BC,BC)*BC
-	y1 = y1/numpy.dot(y1,y1)**.5
-	z1 = numpy.cross(x1,y1)
-	return [x1,y1,z1]
+    BC = nc[center+1,:]
+    x1 = BC/numpy.dot(BC,BC)**.5
+    AB = [.5,.5,.5]; #random, but constant for all simulations
+    y1 = AB-numpy.dot(AB,BC)/numpy.dot(BC,BC)*BC
+    y1 = y1/numpy.dot(y1,y1)**.5
+    z1 = numpy.cross(x1,y1)
+    return [x1,y1,z1]
 
 def moviecoord(mpos123,transform):
     '''Deprecated'''
-	mpos = mpos123.copy()
-	mpos[0,:] = numpy.zeros(3)
-	bond = mpos123[1:len(mpos123),:]-mpos123[0:-1,:]
-	bond = numpy.dot(bond,transform)
-	for i in xrange(len(mpos)-1):
+    mpos = mpos123.copy()
+    mpos[0,:] = numpy.zeros(3)
+    bond = mpos123[1:len(mpos123),:]-mpos123[0:-1,:]
+    bond = numpy.dot(bond,transform)
+    for i in xrange(len(mpos)-1):
 		mpos[i+1,:] = mpos[i,:]+bond[i,:]
-	return mpos
+    return mpos
 
 def moviecoord_old(mpos123,transform):
     '''Deprecated'''
-	mpos=mpos123.copy()
-	center=len(mpos)/2
-	translate=mpos[center,:]
-	mpos-=translate
-	for i in range(center,len(mpos)-1):
-		BC=mpos123[i+1,:]-mpos123[i,:]
-		BCnew=dot(transform,BC.transpose())
-		mpos[i+1,:]=mpos[i,:]+BCnew
-	for i in range(center,0,-1):
-		BC=mpos123[i-1,:]-mpos123[i,:]
-		BCnew=dot(transform,BC.transpose())
-		mpos[i-1,:]=mpos[i,:]+BCnew
-	return mpos
+    mpos=mpos123.copy()
+    center=len(mpos)/2
+    translate=mpos[center,:]
+    mpos-=translate
+    for i in range(center,len(mpos)-1):
+        BC=mpos123[i+1,:]-mpos123[i,:]
+        BCnew=dot(transform,BC.transpose())
+        mpos[i+1,:]=mpos[i,:]+BCnew
+    for i in range(center,0,-1):
+        BC=mpos123[i-1,:]-mpos123[i,:]
+        BCnew=dot(transform,BC.transpose())
+        mpos[i-1,:]=mpos[i,:]+BCnew
+    return mpos
 	
