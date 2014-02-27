@@ -328,11 +328,11 @@ def main():
     	print '    Running on a cluster...'
     	if args.umbrella:
     		try:
-    			f = open('nodefile%i-%s.txt'% (id,umbrella),'r')
+    			f = open('nodefile%i-%s.txt'% (args.id, args.umbrella),'r')
     		except:
-    			f = open('nodefile%i-%i.txt'% (id,umbrella),'r')
+    			f = open('nodefile%i-%i.txt'% (args.id, args.umbrella),'r')
     	else:
-    		f = open('nodefile%i.txt'% id,'r')
+    		f = open('nodefile%i.txt'% args.id,'r')
     	ppservers = f.read().split("\n")
     	f.close()
     	ppservers = filter(None,ppservers)
