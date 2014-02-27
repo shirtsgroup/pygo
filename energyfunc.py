@@ -275,9 +275,9 @@ def getsurfparam_old(file, numbeads, nsurf, numint, scale):
 # ENERGY CALCULATION METHODS
 #==========================================
 
-def umbrellaenergy(prot_coord, z, mass, totmass, k):
+def umbrellaenergy(prot_coord, z, mass, totmass):
     com_z = numpy.sum(mass*prot_coord[:,2])/totmass
-    return k*(z-com_z)**2
+    return (z-com_z)**2
 
 def getr2surf(prot_coord, surf_coord, numbeads, numint):
     """Deprecated"""

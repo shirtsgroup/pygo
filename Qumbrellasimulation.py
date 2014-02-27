@@ -8,6 +8,27 @@ import moveset
 import writetopdb
 import cPickle
 
+def update_energy(self, torschange, angchange):
+    self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
+    self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
+    self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
+    self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam, Simulation.nonnativeparam, Simulation.nnepsil)
+    self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+numpy.sum(self.newsurfE)
+    self.u1 += energyfunc.umbrellaenergy(self.newcoord, self.z_pin, self.mass, self.totmass)
+    return self
+
+def save(self):
+    index = self.move/Simulation.save
+    self.energyarray[index] = self.u0
+    self.surfE_array[index,:] = self.surfE
+    self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam, Simulation.nsigma2)
+    self.z_array[index] = numpy.sum(self.mass*self.coord[:,2])/self.totmass
+    if (Simulation.writetraj):
+        f = open('%s/trajectory%i' %(self.out, int(self.T)), 'ab')
+        numpy.save(f,self.coord)
+        f.close()
+    return self
+
 class UmbrellaSimulation(SurfaceSimulation):
     def __init__(self, name, outputdirectory, coord, temp, surf_coord, z_pin, mass):
         self.z_pin = z_pin
@@ -38,12 +59,4 @@ class UmbrellaSimulation(SurfaceSimulation):
         self.z_array[0] = numpy.sum(self.mass*self.coord[:,2])/self.totmass
         self.u0 += energyfunc.umbrellaenergy(self.coord, self.z_pin, self.mass, self.totmass)
         self.energyarray[0] = self.u0
-    
-    def update_energy(self, torschange, angchange, dict):
-        SurfaceSimulation.update_energy(self, torschange, angchange, dict)
-        self.u1 += energyfunc.umbrellaenergy(self.newcoord, self.z_pin, self.mass, self.totmass)
-    
-    def save_state(self, dict):
-        Simulation.save = dict['save']
-        SurfaceSimulation.save_state(self, dict)
-        self.z_array[self.move/Simulation.save] = numpy.sum(self.mass*self.coord[:,2])/self.totmass
+	

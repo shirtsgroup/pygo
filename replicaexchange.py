@@ -5,11 +5,15 @@ def Q_reweight(replica, k_Qpin, Qpin_new):
         return replica.u0 - k_Qpin*(replica.Q - replica.Qpin)**2 + k_Qpin*(replica.Q - Qpin_new)**2
 
 def tryswap(args, replicas, swapaccepted, swaprejected, start, beta, Q, wiw):
-    ''' helper function for tryrepeatedswaps_naive '''
+    ''' helper function in tryrepeatedswaps() '''
     for i in xrange(start, args.nreplicas-1, 2):
-        if Q:
+        if args.Qfile:
+            # I believe form is correct
             P = numpy.exp((replicas[i].u0 - Q_reweight(replicas[i+1], args.k_Qpin, Q[i]))*beta[i]
                         - (Q_reweight(replicas[i], args.k_Qpin, Q[i+1]) - replicas[i+1].u0)*beta[i+1])
+            # incorrect:
+            #P = numpy.exp((replicas[i].u0 - Q_reweight(replicas[i], args.k_Qpin, Q[i+1]))*beta[i]
+            #            - (Q_reweight(replicas[i+1], args.k_Qpin, Q[i]) - replicas[i+1].u0)*beta[i+1])
         else:
             P = numpy.exp((replicas[wiw[i]].u0-replicas[wiw[i+1]].u0)*(beta[i]-beta[i+1]))
         if numpy.random.random() < P:
@@ -36,17 +40,18 @@ def swap(args, replicas, wiw):
                 replicas[i].surfE, replicas[X].surfE = replicas[X].surfE, replicas[i].surfE
             if args.umbrella:
                 replicas[i].z_array, replicas[X].z_array = replicas[X].z_array, replicas[i].z_array
+            if args.Qfile:
+                replicas[i].Q, replicas[X].Q = replicas[X].Q, replicas[i].Q
     assert numpy.all(wiw_start == wiw)     
 
 def tryrepeatedswaps(args, replicas, swapaccepted, swaprejected, protein_location, beta, Q=''):
-    ''' naive implementation of RE '''
     if args.nreplicas == 1:
 		return swapaccepted, swaprejected, protein_location
     wiw = range(args.nreplicas)
     switch = 0
     for k in range(args.swapsper):
 		if switch:
-			swapaccepted, swaprejected, wiw= tryswap(args, replicas, swapaccepted, swaprejected, 0, beta, Q, wiw) #type 1 swap
+			swapaccepted, swaprejected, wiw = tryswap(args, replicas, swapaccepted, swaprejected, 0, beta, Q, wiw) #type 1 swap
 		else:	
 			swapaccepted, swaprejected, wiw = tryswap(args, replicas, swapaccepted, swaprejected, 1, beta, Q, wiw) #type 2 swap
 		switch = -(switch-1)

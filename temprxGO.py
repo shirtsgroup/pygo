@@ -145,7 +145,7 @@ while 1:
 file.close()
 
 untransform = getmovietransform(coord)
-transform = transpose(untransform)
+transform = numpy.transpose(untransform)
 #coordat = moviecoord(coord,transform)
 
 #Get parameters from .param file

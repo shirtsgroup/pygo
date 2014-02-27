@@ -30,17 +30,21 @@ files = ['%s/energy%i.npy' % (direc, T[-2]), '%s/energy%i.npy' % (direc, T[-1])]
 #file = ['/home/edz3fz/surface_replica_exchange/replica0/energy300.txt', '/home/edz3fz/surface_replica_exchange/replica3/energy356.txt']
 down=load(files[0])
 up=load(files[1])
-print len(down)
-up=up[-50000::]
-down=down[-50000::]
+length = len(down)
+down = down[length/2::]
+up = up[length/2::]
+#up=up[-50000::]
+#down=down[-50000::]
 #up=up[::100]
 #down=down[::100]
 
 g_up = timeseries.statisticalInefficiency(up)
 indices_up = numpy.array(timeseries.subsampleCorrelatedData(up,g=g_up))
+print len(indices_up), 'samples'
 
 g_down = timeseries.statisticalInefficiency(down)
 indices_down = numpy.array(timeseries.subsampleCorrelatedData(up,g=g_down))
+print len(indices_down), 'samples'
 
 
 

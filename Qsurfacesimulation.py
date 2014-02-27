@@ -1,12 +1,13 @@
-from simulationobject import Simulation
+from Qsimulationobject import QSimulation
+import surfacesimulation
 import cPickle
 import numpy
 import pdb
-#random.seed(10)
-#numpy.random.seed(10)
 import energyfunc
 import moveset
 import writetopdb
+
+numpy.random.seed(10)
 
 def getsurf(xsize, ysize, spacing):
     """Generates coordinates for a surface given surface parameters; uses hexangonal packing"""
@@ -34,11 +35,11 @@ def writesurf(filename, surf_coord):
         fout.write("".join(line))
     fout.close()
 
-class SurfaceSimulation(Simulation):
+class QSurfaceSimulation(QSimulation, SurfaceSimulation):
     kb = 0.0019872041 #kcal/mol/K
 
     def __init__(self, name, outputdirectory, coord, temp, surf_coord):
-        Simulation.__init__(self, name, outputdirectory, coord, temp)
+        QSimulation.__init__(self, name, outputdirectory, coord, temp)
         self.addsurface(surf_coord)
         self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
         self.surfE_array = numpy.empty((Simulation.totmoves/Simulation.save + 1,2))
@@ -52,6 +53,7 @@ class SurfaceSimulation(Simulation):
         self.moveparam = self.moveparam * numpy.pi / 180 * self.T / 300 * 50 / Simulation.numbeads
         self.u0 += numpy.sum(self.surfE)
         self.energyarray[0] = self.u0
+        self.nc[0] = Simulation.totnc 
         self.trmoves = 0
         self.rmoves = 0
         self.acceptedtr = 0
@@ -89,23 +91,37 @@ class SurfaceSimulation(Simulation):
 
     def update_energy(self, torschange, angchange, dict):
         Simulation.numbeads = dict['numbeads']
+        Simulation.numint = dict['numint']
+        Simulation.angleparam = dict['angleparam']
+        Simulation.torsparam = dict['torsparam']
+        Simulation.nativeparam = dict['nativeparam']
+        Simulation.nonnativeparam = dict['nonnativeparam']
+        Simulation.nnepsil = dict['nnepsil']
         SurfaceSimulation.surface = dict['surface']
         SurfaceSimulation.nspint = dict['nspint']
         SurfaceSimulation.surfparam = dict['surfparam']
         SurfaceSimulation.scale = dict['scale']
-        Simulation.update_energy(self, torschange, angchange, dict)
+        self.newtorsE = energyfunc.ctorsionenergy(self.newcoord, self.torsE, Simulation.torsparam, torschange)
+        self.newangE = energyfunc.cangleenergy(self.newcoord, self.angE, Simulation.angleparam, angchange)
         self.newsurfE = energyfunc.csurfenergy(self.newcoord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
-        self.u1 += numpy.sum(self.newsurfE)
+        self.r2new, self.u1 = energyfunc.cgetLJenergy(self.newcoord, Simulation.numint, Simulation.numbeads, Simulation.nativeparam, Simulation.nonnativeparam, Simulation.nnepsil)
+        self.u1 += numpy.sum(self.newtorsE)+numpy.sum(self.newangE)+numpy.sum(self.newsurfE)
 
-    def save_state(self, dict):
+    def save(self, dict):
         Simulation.save = dict['save']
-        Simulation.save_state(self, dict)
-        self.surfE_array[self.move/Simulation.save,:] = self.surfE
-
-    def accept_state(self):
-        Simulation.accept_state(self) 
-        self.surfE = self.newsurfE
-
+        Simulation.nativeparam = dict['nativeparam']
+        Simulation.nsigma2 = dict['nsigma2']
+        Simulation.writetraj = dict['writetraj']
+        
+        index = self.move/Simulation.save
+        self.energyarray[index] = self.u0
+        self.surfE_array[index,:] = self.surfE
+        self.nc[index] = energyfunc.nativecontact(self.r2, Simulation.nativeparam, Simulation.nsigma2)
+        if (Simulation.writetraj):  
+            f = open('%s/trajectory%i' %(self.out, int(self.T)), 'ab')
+            numpy.save(f,self.coord)
+            f.close()
+ 
     def run(self, nummoves, dict):
         Simulation.numbeads = dict['numbeads']
         Simulation.percentmove = dict['percentmove']   
@@ -260,9 +276,14 @@ class SurfaceSimulation(Simulation):
                 self.move += 1
                 boltz = numpy.exp(-(self.newH-self.oldH)/(Simulation.kb*self.T))
                 if numpy.random.random() < boltz:
-                    self.accept_state()
                     self.accepted += 1
                     self.acceptedmd += 1
+                    self.r2 = self.r2new
+                    self.surfE = self.newsurfE
+                    self.coord = self.newcoord
+                    self.torsE = self.newtorsE
+                    self.angE = self.newangE
+                    self.u0 = self.u1
                 else:
                     self.rejected += 1
             elif not uncloseable:
@@ -270,7 +291,6 @@ class SurfaceSimulation(Simulation):
                 self.move += 1
                 boltz = jac*numpy.exp(-(self.u1-self.u0)/(Simulation.kb*self.T))
                 if numpy.random.random() < boltz:
-                    self.accept_state()
                     self.accepted += 1
                     if movetype == 'tr':
                         self.acceptedtr += 1
@@ -284,10 +304,16 @@ class SurfaceSimulation(Simulation):
                         self.acceptedgc += 1
                     else:
                         self.acceptedp += 1
+                    self.r2 = self.r2new
+                    self.surfE = self.newsurfE
+                    self.coord = self.newcoord
+                    self.torsE = self.newtorsE
+                    self.angE = self.newangE
+                    self.u0 = self.u1
                 else:
                     self.rejected += 1
             if self.move % Simulation.save == 0:
-                self.save_state(dict)
+                self.save(dict)
         return self 
     
 

@@ -23,7 +23,7 @@ import umbrellasimulation
 from simulationobject import Simulation
 from surfacesimulation import SurfaceSimulation
 from umbrellasimulation import UmbrellaSimulation
-
+from Qsimulationobject import QSimulation
 t1=datetime.datetime.now()
 kb = 0.0019872041 #kcal/mol/K
 
@@ -51,8 +51,8 @@ def parse_args():
     parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag and distance of pinning")
     parser.add_option("--umbrellak", type="float", default=1, help="umbrella spring constant (default: 1)")
 
-    parser.add_option("--Qumbrella", default='', help="Q umbrella simulation flag and file of Q_pins")
-    parser.add_option("--Qumbrellak", type="float", default=10, help="Q umbrella spring constant (default: 10)")
+    parser.add_option('-Q', "--Qumbrella", dest='Qfile', default='', help="Q umbrella simulation flag and file of Q_pins")
+    parser.add_option("--k_Qpin", type="float", default=10, help="Q umbrella spring constant (default: 10)")
 
     parser.add_option("--cluster", action="store_true", default=False, help="flag for running on cluster")
     parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
@@ -68,9 +68,9 @@ def get_temperature(args):
     elif args.nreplicas == 1:
         if args.temprange[0] != args.temprange[1]:
             print 'WARNING: using lower temperature bound for one replica simulation'
-        T = [args.temprange[0]]
+        T = numpy.array([args.temprange[0]])
     elif args.nreplicas == 2:
-        T = args.temprange
+        T = numpy.array(args.temprange)
     else:
         # Calculate temperature distribution
         T = numpy.empty(args.nreplicas)
@@ -123,59 +123,34 @@ def set_up_dir(args):
 def pprun(job_server, replicas, moves, dict):
     '''parallel python run'''
     if len(replicas) == 1:
-        newreplicas = [simulationobject.run(replicas[0], moves, dict)]
+        newreplicas = [replicas[0].run(moves, dict)]
     else:
-        jobs = [job_server.submit(simulationobject.run, (replica, moves, dict), 
-                (simulationobject.update_energy, simulationobject.save), 
+        jobs = [job_server.submit(replica.run, (moves, dict), 
+                (), #(simulationobject.update_energy, simulationobject.save), 
                 ("numpy","energyfunc", "moveset", "writetopdb","cPickle")) for replica in replicas]
         newreplicas = [job() for job in jobs]
     return newreplicas
 
-def pprun_surf(job_server, replicas, moves, dict):
-    '''parallel python run with surface'''
-    if len(replicas) == 1:
-        newreplicas = [surfacesimulation.run_surf(replicas[0], moves, dict)]
-    else:
-        jobs = [job_server.submit(surfacesimulation.run_surf, (replica, moves, dict), 
-                (surfacesimulation.update_energy, surfacesimulation.save), 
-                ("numpy","energyfunc", "moveset", "writetopdb","cPickle")) for replica in replicas]
-        newreplicas = [job() for job in jobs]
-    return newreplicas
-
-def pprun_Q(job_server, replicas, moves, dict):
-    jobs = [job_server.submit(surfacesimulation.run_surf, (replica, moves, dict), 
-                (update_energy_Q, surfacesimulation.save), 
-                ("numpy","energyfunc", "moveset", "writetopdb","cPickle")) for replica in replicas]
-    newreplicas = [job() for job in jobs]
-    return newreplicas
-
-def pprun_Q_surf(job_server, replicas, moves, dict):
-    jobs = [job_server.submit(surfacesimulation.run_surf, (replica, moves, dict), 
-                (surfacesimulation.update_energy, surfacesimulation.save), 
-                ("numpy","energyfunc", "moveset", "writetopdb","cPickle")) for replica in replicas]
-    newreplicas = [job() for job in jobs]
-    return newreplicas
-
-def savestate(args, replicas, protein_location):
-    output = open('%s/cptstate.pkl' % args.direc, 'wb')
+def savestate(args, direc, replicas, protein_location):
+    output = open('%s/cptstate.pkl' % direc, 'wb')
     cPickle.dump(replicas[0].move, output)
     cPickle.dump(protein_location, output)
     output.close()
     for i in range(args.nreplicas):
-        replicas[i].saveenergy(False)
-        replicas[i].savenc(False)
+        replicas[i].saveenergy()
+        replicas[i].savenc()
         replicas[i].savecoord()
         if args.surf:
-            replicas[i].savesurfenergy(False)
-        if umbrella:
+            replicas[i].savesurfenergy()
+        if args.umbrella:
             replicas[i].save_z()
 
-def loadstate(args, replicas, protein_location):
-    input = open('%s/cptstate.pkl' % args.direc, 'rb')
+def loadstate(direc, replicas, protein_location):
+    input = open('%s/cptstate.pkl' % direc, 'rb')
     move = cPickle.load(input)
     protein_location = cPickle.load(input)
     input.close()
-    for i in range(args.nreplicas):
+    for i in range(len(replicas)):
        	replicas[i].loadstate()
         replicas[i].move = move
         replicas[protein_location[i][-1]].whoami = i 
@@ -197,12 +172,18 @@ def main():
     tsize /= 100. # input is in fs
     tsteps = int(tsteps)
     direc = set_up_dir(args)
+    if args.Qfile:
+        Q = numpy.loadtxt(args.Qfile)
+    else:
+        Q = ''
 
     # --- report inputs --- #
     print ''
     print '-----Inputs-----'
     print 'Output directory:', os.path.abspath(direc)
     print 'System:', args.filename
+    if args.Qfile:
+        print '    Running Q umbrella sampling with restraints at:', Q
     if args.umbrella:
         print '    Running surface umbrella sampling simulation with pinning at %f A' % args.umbrella
         assert(args.surf == True)
@@ -215,10 +196,10 @@ def main():
     print 'Total number of moves:', args.totmoves
     print 'Save interval:', args.save
     print 'Replica exchange interval:', args.swap
-    print 'There are %i swaps at each exchange point' %(args.swapsper)
-    print 'Ratio of moves frequencies (tr:rot:ang:dih:crank:parrot:MD) is', args.freq
-    print 'MD steps per move is', args.md[1]
-    print 'MD time step is', args.md[0],' fs'
+    print 'Swaps at each exchange point:', args.swapsper
+    print 'Ratio of moves frequencies (tr:rot:ang:dih:crank:parrot:MD):', args.freq
+    print 'MD time step:', args.md[0],' fs'
+    print 'MD steps per move:', args.md[1]
     print ''
 
     # --- get parameters from .param file --- #
@@ -272,7 +253,8 @@ def main():
             'nnepsil':nnepsil, 
             'nsigma2':nsigma2, 
             'writetraj':args.writetraj, 
-            'mass':mass}
+            'mass':mass,
+            'totnc':totnc}
 
     # --- set up surface --- #
     if args.surf:
@@ -306,6 +288,9 @@ def main():
         print 'Surface energy parameters scaled by %f' % args.scale
         print ''
 
+    if args.Qfile:
+        QSimulation.k_Qpin = args.k_Qpin
+        dict.update({'k_Qpin':args.k_Qpin})
 
     # --- instantiate replicas --- #
     replicas = []
@@ -316,7 +301,10 @@ def main():
         elif args.surf:
             replicas.append(SurfaceSimulation(name, os.path.abspath(direc), coord, T[i], surface))
         else:
-            replicas.append(Simulation(name, os.path.abspath(direc), coord, T[i]))
+            if args.Qfile:
+                replicas.append(QSimulation(name, os.path.abspath(direc), coord, T[i], Q[i]))
+            else:
+                replicas.append(Simulation(name, os.path.abspath(direc), coord, T[i]))
         replicas[i].whoami = i
         if args.writetraj:
             f = open('%s/trajectory%i' %(replicas[i].out, int(replicas[i].T)), 'wb')
@@ -326,13 +314,10 @@ def main():
     # --- begin simulation --- #
     if args.umbrella:
     	print 'Starting umbrella simulation... at %f A' % args.umbrella
-        PPRUN = pprun_surf
     elif args.surf:
     	print 'Starting surface simulation...'
-        PPRUN = pprun_surf
     else:
     	print 'Starting simulation...'
-        PPRUN = pprun
     move = 0
     swapaccepted = numpy.zeros(args.nreplicas-1)
     swaprejected = numpy.zeros(args.nreplicas-1)
@@ -382,15 +367,15 @@ def main():
     # --- load existing simulation --- #
     if args.restart:
     	print '    Restarting from last checkpoint...'
-    	move = loadstate()
+    	move, replicas, protein_location = loadstate(direc, replicas, protein_location)
 
     ti = datetime.datetime.now()
     tcheck = ti
     for i in xrange(move/args.swap,args.totmoves/args.swap):
-        replicas = PPRUN(job_server,replicas, args.swap, dict)
+        replicas = pprun(job_server,replicas, args.swap, dict)
         job_server.wait()
         if args.swap!=args.totmoves:
-        	swapaccepted, swaprejected, protein_location = replicaexchange.tryrepeatedswaps(args, replicas, swapaccepted, swaprejected, protein_location, beta)
+        	swapaccepted, swaprejected, protein_location = replicaexchange.tryrepeatedswaps(args, replicas, swapaccepted, swaprejected, protein_location, beta, Q)
         tnow = datetime.datetime.now()
         t_remain = (tnow - ti)/(i+1)*(args.totmoves/args.swap - i - 1)
         if not args.cluster:
@@ -398,7 +383,7 @@ def main():
     	    stdout.flush()
         # checkpoint
         if tnow-tcheck > datetime.timedelta(seconds=900): #every 15 minutes
-            savestate()
+            savestate(args, direc, replicas, protein_location)
             f = open('%s/status.txt' % direc, 'w')
             f.write('Completed %i moves out of %i moves\n' %(replicas[0].move, args.totmoves))
             f.write('%i swaps performed in %s\n' %(i, str(tnow-ti))) #useful for the MD vs. MC comparison
@@ -414,7 +399,7 @@ def main():
         replicas[i].output()
         replicas[i].saveenergy()
         replicas[i].savenc()
-        print 'The average Q is %f' %(numpy.average(replicas[i].nc)/Simulation.totnc)
+        print 'The average Q is %f' %(numpy.average(replicas[i].nc))
         replicas[i].savecoord()
         if args.surf:
                 replicas[i].savesurfenergy()
@@ -428,8 +413,7 @@ def main():
                 for j in range(args.nreplicas):
                     rep = protein_location[j][i]
                     Q_trajec_singleprot[j,k*i+1:k*(i+1)+1] = replicas[rep].nc[k*i+1:k*(i+1)+1]
-        Q_trajec_singleprot[:,0] = totnc
-        Q_trajec_singleprot = Q_trajec_singleprot/totnc
+        #Q_trajec_singleprot[:,0] = totnc
         numpy.save('%s/Qtraj_singleprot.npy' % direc, Q_trajec_singleprot)
     for i in range(args.nreplicas-1):
         print 'swaps accepted between replica%i and replica%i: %3.2f percent' % (i, i+1, (swapaccepted[i] / float(swapaccepted[i] + swaprejected[i]) * 100))
