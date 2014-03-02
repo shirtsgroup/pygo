@@ -3,10 +3,11 @@ import cPickle
 import numpy
 import pdb
 #random.seed(10)
-#numpy.random.seed(10)
 import energyfunc
 import moveset
 import writetopdb
+
+numpy.random.seed(10)
 
 def getsurf(xsize, ysize, spacing):
     """Generates coordinates for a surface given surface parameters; uses hexangonal packing"""

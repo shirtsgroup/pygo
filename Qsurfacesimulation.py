@@ -9,32 +9,6 @@ import writetopdb
 
 numpy.random.seed(10)
 
-def getsurf(xsize, ysize, spacing):
-    """Generates coordinates for a surface given surface parameters; uses hexangonal packing"""
-    xlen = xsize / spacing
-    ylen = ysize / (spacing * 3.**.5 / 2.) # more dense from hexagonal packing
-    surfcoord = numpy.zeros((int(xlen)*int(ylen),3))
-    for j in range(1,xlen):
-        surfcoord[j,:] = surfcoord[j-1,:] + numpy.array([spacing,0,0])
-    k = 0
-    for i in range(xlen,len(surfcoord),xlen):
-        surfcoord[i,:] = surfcoord[i-xlen,:] + numpy.array([(-1)**k*spacing/2., spacing*3.**.5/2., 0]) 
-        k += 1
-        for j in range(1,xlen):
-            surfcoord[i+j,:] = surfcoord[i+j-1,:] + numpy.array([spacing,0,0])
-    com = numpy.sum(surfcoord, axis=0)/len(surfcoord)
-    surfcoord -= com # centers surface at (0,0,0)
-    return surfcoord
-
-def writesurf(filename, surf_coord):
-    fout = open(filename, 'w')
-    fout.write('HEADER   This pdb file contains the coordinates for a Go model of surface\r\n')
-    whitespace = "".join([" " for i in range(25)])
-    for row in surf_coord:
-        line = ['ATOM', whitespace, '%8.3f' % row[0], '%8.3f' % row[1], '%8.3f' % row[2], '\r\n']
-        fout.write("".join(line))
-    fout.close()
-
 class QSurfaceSimulation(QSimulation, SurfaceSimulation):
     kb = 0.0019872041 #kcal/mol/K
 

@@ -15,6 +15,7 @@ class Simulation:
     def __init__(self, name, outputdirectory, coord, temp):
         self.name = name
         self.out = outputdirectory
+        self.suffix = str(int(temp)) # affixed at end of file names
         self.coord = coord
         self.energyarray = numpy.empty(Simulation.totmoves/Simulation.save + 1)
         self.nc = numpy.empty(Simulation.totmoves/Simulation.save + 1) #native contacts
@@ -72,33 +73,33 @@ class Simulation:
             print 'MD:                %d percent acceptance (%i/%i)' %(float(self.acceptedmd)/float(self.mdmoves)*100, self.acceptedmd, self.mdmoves)
 
     def loadstate(self):
-        self.coord = numpy.load('%s/coord%i.npy' %(self.out, int(self.T)))
+        self.coord = numpy.load('%s/coord%s.npy' %(self.out, self.suffix))
         self.setenergy()
-        self.energyarray = numpy.load('%s/energy%i.npy' %(self.out, int(self.T)))
-        self.nc = numpy.load('%s/fractionnative%i.npy' %(self.out, int(self.T)))
+        self.energyarray = numpy.load('%s/energy%s.npy' %(self.out, self.suffix))
+        self.nc = numpy.load('%s/fractionnative%s.npy' %(self.out, self.suffix))
 
     def loadextend(self,extenddirec):
-        self.coord = numpy.load('%s/coord%i.npy' %(extenddirec, int(self.T)))
+        self.coord = numpy.load('%s/coord%s.npy' %(extenddirec, self.suffix))
         self.setenergy()
         self.energyarray[0]=self.u0
         self.nc[0] = energyfunc.nativecontact(self.r2, Simulation.nativeparam, Simulation.nsigma2) / Simulation.totnc
 
     def savecoord(self):
-        filename = '%s/coord%i' % (self.out, int(self.T))
+        filename = '%s/coord%s' % (self.out, self.suffix)
         numpy.save(filename, self.coord)
 
     def saveenergy(self):
-        filename = '%s/energy%i' % (self.out, int(self.T))
+        filename = '%s/energy%s' % (self.out, self.suffix)
         numpy.save(filename, self.energyarray)
         #print 'wrote every %d conformation energies to %s' %(Simulation.step,filename)
 
     def savermsd(self):
-        filename='%s/rmsd%i' % (self.out, int(self.T))
+        filename='%s/rmsd%s' % (self.out, self.suffix)
         numpy.save(filename, self.rmsd_array)
         #print 'wrote every %d rmsd values to %s' %(Simulation.step,filename)
 
     def savenc(self):
-        filename = '%s/fractionnative%i' % (self.out, int(self.T))
+        filename = '%s/fractionnative%s' % (self.out, self.suffix)
         numpy.save(filename, self.nc)
         #print 'wrote every %d fractional nativeness values to %s' %(Simulation.step,fractionfile)
 
@@ -124,7 +125,7 @@ class Simulation:
         self.energyarray[self.move/Simulation.save] = self.u0
         self.nc[self.move/Simulation.save] = energyfunc.nativecontact(self.r2, Simulation.nativeparam, Simulation.nsigma2) / Simulation.totnc
         if (Simulation.writetraj):
-            f = open('%s/trajectory%i' %(self.out, int(self.T)), 'ab')
+            f = open('%s/trajectory%s' %(self.out, self.suffix), 'ab')
             numpy.save(f,self.coord)
             f.close()
 
