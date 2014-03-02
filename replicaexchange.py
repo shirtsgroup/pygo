@@ -9,8 +9,8 @@ def tryswap(args, replicas, swapaccepted, swaprejected, start, beta, Q, wiw):
     for i in xrange(start, args.nreplicas-1, 2):
         if args.Qfile:
             # I believe form is correct
-            P = numpy.exp((replicas[i].u0 - Q_reweight(replicas[i+1], args.k_Qpin, Q[i]))*beta[i]
-                        - (Q_reweight(replicas[i], args.k_Qpin, Q[i+1]) - replicas[i+1].u0)*beta[i+1])
+            P = numpy.exp((replicas[wiw[i]].u0 - Q_reweight(replicas[wiw[i+1]], args.k_Qpin, Q[i]))*beta[i]
+                        - (Q_reweight(replicas[wiw[i]], args.k_Qpin, Q[i+1]) - replicas[wiw[i+1]].u0)*beta[i+1])
             # incorrect:
             #P = numpy.exp((replicas[i].u0 - Q_reweight(replicas[i], args.k_Qpin, Q[i+1]))*beta[i]
             #            - (Q_reweight(replicas[i+1], args.k_Qpin, Q[i]) - replicas[i+1].u0)*beta[i+1])
@@ -59,4 +59,3 @@ def tryrepeatedswaps(args, replicas, swapaccepted, swaprejected, protein_locatio
     for i in range(args.nreplicas):
 		protein_location[replicas[i].whoami].append(i) #extracts which protein went where
     return swapaccepted, swaprejected, protein_location
-

@@ -44,7 +44,7 @@ class QSimulation(Simulation):
         Simulation.nsigma2 = dict['nsigma2']
         Simulation.totnc = dict['totnc']
         Simulation.update_energy(self, torschange, angchange, dict)
-        self.newQ = energyfunc.nativecontact(self.r2, Simulation.nativeparam, Simulation.nsigma2) / Simulation.totnc
+        self.newQ = energyfunc.nativecontact(self.r2new, Simulation.nativeparam, Simulation.nsigma2) / Simulation.totnc
         self.u1 += QSimulation.k_Qpin*(self.newQ - self.Qpin)**2
     
     def save_state(self, dict):
