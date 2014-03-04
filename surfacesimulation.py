@@ -39,9 +39,9 @@ class SurfaceSimulation(Simulation):
     kb = 0.0019872041 #kcal/mol/K
 
     def __init__(self, name, outputdirectory, coord, temp, surf_coord):
-        Simulation.__init__(self, name, outputdirectory, coord, temp)
-        self.addsurface(surf_coord)
-        self.surfE = energyfunc.csurfenergy(self.coord, surf_coord, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
+        self.coord = coord
+        self.addsurface(surf_coord) # translates self.coord
+        Simulation.__init__(self, name, outputdirectory, self.coord, temp) # self.coord != coord anymore
         self.surfE_array = numpy.empty((Simulation.totmoves/Simulation.save + 1,2))
         self.surfE_array[0,:] = self.surfE
         self.moveparam = numpy.array([2., # translation
@@ -51,13 +51,17 @@ class SurfaceSimulation(Simulation):
                         1., # global crankshaft
                         5.]) # ParRot move
         self.moveparam = self.moveparam * numpy.pi / 180 * self.T / 300 * 50 / Simulation.numbeads
-        self.u0 += numpy.sum(self.surfE)
         self.energyarray[0] = self.u0
         self.trmoves = 0
         self.rmoves = 0
         self.acceptedtr = 0
         self.acceptedr = 0
-    
+
+    def setenergy(self):
+        Simulation.setenergy(self)
+        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam, SurfaceSimulation.scale)
+        self.u0 += sum(self.surfE)
+
     def addsurface(self, surf_coord):
         self.surface = surf_coord
         ## randomly orient protein
@@ -73,19 +77,15 @@ class SurfaceSimulation(Simulation):
       
     def loadstate(self):
         Simulation.loadstate(self)
-        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
-        self.u0 += sum(self.surfE)
-        self.surfE_array = numpy.load('%s/surfenergy%i.npy' %(self.out, int(self.T)))
+        self.surfE_array = numpy.load('%s/surfenergy%s.npy' %(self.out, self.suffix))
 
-    def loadextend(self,extenddirec):
-        Simulation.loadextend(self,extenddirec) # u0 is reset
-        self.surfE = energyfunc.csurfenergy(self.coord, SurfaceSimulation.surface, Simulation.numbeads, SurfaceSimulation.nspint, SurfaceSimulation.surfparam,SurfaceSimulation.scale)
-        self.u0 += sum(self.surfE) # include surface energy
+    def loadextend(self, extenddirec):
+        Simulation.loadextend(self, extenddirec) # u0 is reset
         self.energyarray[0] = self.u0
         self.surfE_array[0,:] = self.surfE
 
     def savesurfenergy(self):
-        filename='%s/surfenergy%i' % (self.out, int(self.T))
+        filename='%s/surfenergy%s' % (self.out, self.suffix)
         numpy.save(filename, self.surfE_array)
 
     def update_energy(self, torschange, angchange, dict):
@@ -140,7 +140,7 @@ class SurfaceSimulation(Simulation):
             uncloseable = False
     
             # translation
-            if randmove < SurfaceSimulation.percentmove[0]:
+            if randmove < Simulation.percentmove[0]:
                 jac = 1
                 [x,y,z] = numpy.random.normal(0, self.moveparam[0], 3)
                 self.newcoord = moveset.translation(self.coord, x, y, z)
@@ -150,7 +150,7 @@ class SurfaceSimulation(Simulation):
                 angchange = numpy.array([])
             
             # rotation
-            elif randmove < SurfaceSimulation.percentmove[1]:
+            elif randmove < Simulation.percentmove[1]:
                 jac = 1
                 rand = numpy.random.random(3)
                 rand[0] = 0.5 + self.moveparam[1] - 2*self.moveparam[1]*rand[0]
@@ -162,7 +162,7 @@ class SurfaceSimulation(Simulation):
                 angchange = numpy.array([])
                 
             # angle bend
-            elif randmove < SurfaceSimulation.percentmove[2]:
+            elif randmove < Simulation.percentmove[2]:
                 theta = numpy.random.normal(0, self.moveparam[2])
                 self.newcoord, jac = moveset.canglebend(self.coord, m, randdir, theta)
                 self.amoves += 1
@@ -171,7 +171,7 @@ class SurfaceSimulation(Simulation):
                 angchange = numpy.array([m-1])
     
             # axis torsion
-            elif randmove < SurfaceSimulation.percentmove[3]:
+            elif randmove < Simulation.percentmove[3]:
                 jac = 1
                 theta = numpy.random.normal(0, self.moveparam[3])
                 self.newcoord = moveset.caxistorsion(self.coord, m, randdir, theta)
@@ -188,7 +188,7 @@ class SurfaceSimulation(Simulation):
                     torschange = numpy.array([m-1])
     
             # global crankshaft
-            elif randmove < SurfaceSimulation.percentmove[4]:
+            elif randmove < Simulation.percentmove[4]:
                 jac = 1
                 theta = numpy.random.normal(0,self.moveparam[4],Simulation.numbeads-2)
                 self.newcoord = moveset.cglobalcrank(self.coord,theta)
@@ -198,7 +198,7 @@ class SurfaceSimulation(Simulation):
                 angchange = numpy.arange(Simulation.numbeads-2)
     
         	# parrot move
-            elif randmove < SurfaceSimulation.percentmove[5]:
+            elif randmove < Simulation.percentmove[5]:
                 theta = numpy.random.normal(0, self.moveparam[5])
                 movetype = 'p'
                 self.pmoves += 1

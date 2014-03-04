@@ -78,7 +78,7 @@ class Simulation:
         self.energyarray = numpy.load('%s/energy%s.npy' %(self.out, self.suffix))
         self.nc = numpy.load('%s/fractionnative%s.npy' %(self.out, self.suffix))
 
-    def loadextend(self,extenddirec):
+    def loadextend(self, extenddirec):
         self.coord = numpy.load('%s/coord%s.npy' %(extenddirec, self.suffix))
         self.setenergy()
         self.energyarray[0]=self.u0

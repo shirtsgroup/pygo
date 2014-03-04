@@ -24,6 +24,8 @@ from simulationobject import Simulation
 from surfacesimulation import SurfaceSimulation
 from umbrellasimulation import UmbrellaSimulation
 from Qsimulationobject import QSimulation
+from Qsurfacesimulation import QSurfaceSimulation
+
 t1=datetime.datetime.now()
 kb = 0.0019872041 #kcal/mol/K
 
@@ -299,7 +301,10 @@ def main():
         if args.umbrella:
             replicas.append(UmbrellaSimulation(name, os.path.abspath(direc), coord, T[i], surface, args.umbrella, mass, args.umbrellak))
         elif args.surf:
-            replicas.append(SurfaceSimulation(name, os.path.abspath(direc), coord, T[i], surface))
+            if args.Qfile:
+                replicas.append(QSurfaceSimulation(name, os.path.abspath(direc), coord, T[i], surface, Q[i]))
+            else:
+                replicas.append(SurfaceSimulation(name, os.path.abspath(direc), coord, T[i], surface))
         else:
             if args.Qfile:
                 replicas.append(QSimulation(name, os.path.abspath(direc), coord, T[i], Q[i]))
@@ -371,10 +376,10 @@ def main():
 
     ti = datetime.datetime.now()
     tcheck = ti
-    for i in xrange(move/args.swap,args.totmoves/args.swap):
-        replicas = pprun(job_server,replicas, args.swap, dict)
+    for i in xrange(move/args.swap, args.totmoves/args.swap):
+        replicas = pprun(job_server, replicas, args.swap, dict)
         job_server.wait()
-        if args.swap!=args.totmoves:
+        if args.swap != args.totmoves:
         	swapaccepted, swaprejected, protein_location = replicaexchange.tryrepeatedswaps(args, replicas, swapaccepted, swaprejected, protein_location, beta, Q)
         tnow = datetime.datetime.now()
         t_remain = (tnow - ti)/(i+1)*(args.totmoves/args.swap - i - 1)
