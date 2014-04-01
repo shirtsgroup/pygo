@@ -162,7 +162,7 @@ def main():
         plt.yticks(numpy.arange(-.05,.15,.05))
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.39,1.17),prop={'size':14})
+        lgd = ax2.legend(bbox_to_anchor=(1.39,1.10),prop={'size':14})
     
 
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.pdf')

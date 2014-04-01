@@ -129,7 +129,7 @@ def main():
         plt.ylabel(r'$\Delta$S_{folding}$')
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.35, 1.15), prop={'size':12})
+        lgd = ax2.legend(bbox_to_anchor=(1.35, 1.05), prop={'size':12})
     
 
     fig.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig8_dGf_boot.pdf')
