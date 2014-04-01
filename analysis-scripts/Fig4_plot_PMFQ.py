@@ -9,9 +9,7 @@ import matplotlib
 def plot_solution_pmf(direc):
     # differs from plot_dG_solution method only by the color 
     matplotlib.rc('text', usetex = True)
-    matplotlib.rc('font', family = 'serif')
-    font = {'family' : 'serif',
-            'size'   : 'larger'}
+    matplotlib.rc('font', family = 'serif', size=20)
     T = numpy.arange(300,355,5)
     colors = cm.cool(numpy.linspace(0,1,len(T)))
     fig = plt.figure(1)

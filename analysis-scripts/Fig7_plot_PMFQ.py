@@ -16,11 +16,9 @@ def main():
     #PMF_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.6/pmf_325.pkl'
     colors = cm.cool(numpy.linspace(0,1,len(lam)))
     
-    f = plt.figure(1)
+    fig = plt.figure(1,(8.5,6.5))
     plt.rc('text',usetex=True)
-    matplotlib.rc('font', family = 'serif')
-    font = {'family' : 'serif',
-            'size'   : 'larger'}
+    matplotlib.rc('font', family = 'serif', size=20)
     for i in range(len(lam)):
         f = open(PMF_files[i],'rb')
         temp = cPickle.load(f)
@@ -42,10 +40,12 @@ def main():
     idx = numpy.argmin(f_i[int(.7*len(f_i))::]) + int(.7*len(f_i))
     f_i -= f_i[idx]
     plt.errorbar(bin_centers[1::],f_i[1::],numpy.array(df_i[0,:])[0,1::],label='solution', color='k')
+
+    fig.subplots_adjust(right=.8)
  
     plt.ylabel('PMF (kcal/mol)')
     plt.xlabel('Q')
-    plt.legend(prop={'size':10},loc=4)
+    plt.legend(bbox_to_anchor=(1.29,.79),prop={'size':14})
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig7_pmfQ.pdf')
     plt.show()
  

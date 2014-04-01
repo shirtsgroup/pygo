@@ -1,5 +1,3 @@
-#!/usr/bin/python2.4
-
 # Ellen Zhong
 # ellen.zhong@virginia.edu
 # 10/10/2013

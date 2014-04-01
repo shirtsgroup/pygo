@@ -26,7 +26,8 @@ file = options.datafile+'/Qtraj_singleprot.npy'
 n = options.average
 
 Q = numpy.load(file)
-Q = Q - .5
+Q = Q - .6
+print len(Q[0,:])
 numrep = options.replicas
 save = options.save
 #swap = options.swap
@@ -66,10 +67,12 @@ for rep in range(numrep):
 print 'Original data'
 print count
 print numpy.average(count)
+print numpy.std(count)/(len(count)-1)**.5
 
 print 'Average every '+str(n)+' data points'
 print count_new
 print numpy.average(count_new)
+print numpy.std(count_new)/(len(count_new)-1)**.5
 passed = [x for x in count_new if x]
 print '%i replicas passed Q = 0.6' % len(passed)
 

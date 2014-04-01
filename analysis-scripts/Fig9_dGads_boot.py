@@ -24,9 +24,7 @@ def main():
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_noint_2.pkl' % str(x)[1::] for x in lam]
     direc = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/bootstrap' % str(x)[1::] for x in lam]
     colors = cm.cool(numpy.linspace(0,1,len(lam)))
-    matplotlib.rc('font', family = 'serif')
-    font = {'family' : 'serif',
-            'size'   : 'larger'}
+    matplotlib.rc('font', family = 'serif', size=20)
 
     dGf = numpy.zeros((len(lam),13))
     dHf = numpy.zeros((len(lam),11))
@@ -94,7 +92,7 @@ def main():
 
         plt.rc('text',usetex=True)
         
-        fig.subplots_adjust(hspace=0)
+        fig.subplots_adjust(hspace=0,left=.2)
         
         ax1 = plt.subplot(311)
         ax1.errorbar(target_temperatures,dGads_folded-dGads_unfolded,ddGads_unfolded,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
@@ -121,7 +119,7 @@ def main():
         plt.yticks(numpy.arange(-.05,.15,.05))
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.29,.98),prop={'size':10})
+        #lgd = ax2.legend(bbox_to_anchor=(1.29,.98),prop={'size':10})
  
     for i in range(2,len(lam)):
    
@@ -137,7 +135,7 @@ def main():
         temp_sub, dHrel, ddHrel = read_boot('%s/ddHads_boot.pkl' % direc[i])
         plt.rc('text',usetex=True)
         
-        fig.subplots_adjust(hspace=0)
+        fig.subplots_adjust(hspace=0,left=.2)
         
         ax1 = plt.subplot(311)
         ax1.errorbar(target_temperatures,dGrel,ddGrel,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
@@ -164,14 +162,14 @@ def main():
         plt.yticks(numpy.arange(-.05,.15,.05))
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.39,1.08),prop={'size':14})
+        lgd = ax2.legend(bbox_to_anchor=(1.39,1.17),prop={'size':14})
     
 
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.pdf')
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig10_ddGads_boot.png')
 
     f=plt.figure(9,(.85*7,10))
-    f.subplots_adjust(hspace=0)
+    f.subplots_adjust(hspace=0, left=.2)
     plt.rc('text',usetex=True)
     
     ax1 = plt.subplot(311)

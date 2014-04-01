@@ -1,5 +1,3 @@
-#!/usr/bin/python2.4
-
 # Ellen Zhong
 # ellen.zhong@virginia.edu
 # 10/10/2013
@@ -93,4 +91,4 @@ def main_noargs():
         numpy.save('%s/localQ%s.npy' %(direc,T[i]),localQ_kn)
 
 if __name__ == '__main__':
-    main_noargs()
+    main()

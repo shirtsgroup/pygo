@@ -77,8 +77,8 @@ def main():
     print numpy.average(HMD_count_smooth)
     print numpy.std(HMD_count_smooth)
     HMD_index = get_4_index(HMD_count_smooth)
-    plot(1,HMD_Q,HMD_index,'HMD')
-    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1a_HMD.eps')
+    plot(1,HMD_Q,HMD_index,'HMC')
+    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1a_HMC.eps')
 
     print '---------HMC--------'
     HMC_file = '/home/edz3fz/proteinmontecarlo/results/1PGB/comparison/HMC/Qtraj_singleprot.npy'
@@ -91,8 +91,8 @@ def main():
     print numpy.average(HMC_count_smooth)
     print numpy.std(HMC_count_smooth)
     HMC_index = get_4_index(HMC_count_smooth)
-    plot(2,HMC_Q,HMC_index,'HMC')
-    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1b_HMC.eps')
+    plot(2,HMC_Q,HMC_index,'HMC/MC')
+    plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig1b_HMCMC.eps')
     
     print '---------MD---------'
     MD_file = '/home/edz3fz/proteinmontecarlo/results/1PGB/comparison/MD/Qtraj_singleprot.npy'

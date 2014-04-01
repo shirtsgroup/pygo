@@ -25,11 +25,11 @@ def plot_2D_PMF(subplot,temp,lam,bin_centers,f):
     plt.xticks(numpy.arange(15,55,10))
 
 def main():
-    fig = plt.figure(1,(10*.9,9*.8))
+    fig = plt.figure(1,(11*.9,9*.8))
     matplotlib.rc('text', usetex = True)
     matplotlib.rc('font', family = 'serif')
     font = {'family' : 'serif',
-            'size'   : 'larger'}
+            'size'   : 20}
     files = []
     lam = numpy.array([.1,.35,.6])
     for l in lam:
@@ -43,24 +43,24 @@ def main():
         df_i = pickle.load(f)
         f.close()
         plot_2D_PMF('33%i' %(i+1),temp,lam[i/3],bin_centers,f_i)
-    fig.text(.5,.04,r'z (\AA)', ha='center',va='center',fontdict=font)
+    fig.text(.42,.04,r'z (\AA)', ha='center',va='center',fontdict=font)
     fig.text(.06,.5,'Q',ha='center',va='center',rotation='vertical',fontdict=font)
-    font = {'family' : 'serif'}
-           # 'size'   : 'normal'}
-    fig.text(.23,.93, '300 K', ha='center',va='center',fontdict=font)
-    fig.text(.47,.93, '325 K', ha='center',va='center',fontdict=font)
-    fig.text(.70,.93, '350 K', ha='center',va='center',fontdict=font)
-    fig.text(.87,.2, r'$\lambda$ = 0.6', ha='right',va='center',fontdict=font)
-    fig.text(.88,.5, r'$\lambda$ = 0.35', ha='right',va='center',fontdict=font)
-    fig.text(.87,.8, r'$\lambda$ = 0.1', ha='right',va='center',fontdict=font)
+    font = {'family' : 'serif',
+            'size'   : 20}
+    fig.text(.22,.93, '300 K', ha='center',va='center',fontdict=font)
+    fig.text(.43,.93, '325 K', ha='center',va='center',fontdict=font)
+    fig.text(.64,.93, '350 K', ha='center',va='center',fontdict=font)
+    fig.text(.83,.2, r'$\lambda$ = 0.6', ha='right',va='center',fontdict=font)
+    fig.text(.84,.5, r'$\lambda$ = 0.35', ha='right',va='center',fontdict=font)
+    fig.text(.83,.8, r'$\lambda$ = 0.1', ha='right',va='center',fontdict=font)
     #file = options.file[0:options.file.rfind('/')]
     #plt.savefig('%s/%i.png' % (file,temp))	
     
-    fig.subplots_adjust(right=0.8)
-    cbar_ax = fig.add_axes([.89,.15,.035,.7])
+    fig.subplots_adjust(right=0.72)
+    cbar_ax = fig.add_axes([.85,.15,.035,.7])
     #matplotlib.colorbar.ColorbarBase(cbar_ax)
     cb = plt.colorbar(cax=cbar_ax)
-    cb.set_label('kcal/mol')
+    cb.set_label('kcal/mol', size=20)
     
 #    cax,_ = matplotlib.colorbar.make_axes(ax,fraction=.05,pad=.025,shrink=1.8)
 #    cbar = matplotlib.colorbar.ColorbarBase(cax)#, ticks = [0,.5,1])

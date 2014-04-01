@@ -27,7 +27,7 @@ def main():
 #    files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_varz.pkl' % str(x)[1::] for x in lam]
     files = ['/home/edz3fz/proteinmontecarlo/results/1PGB/surface/umbrella_lambda%s/dG_raw_noint_2.pkl' % str(x)[1::] for x in lam]
     plt.rc('text',usetex=True)
-    matplotlib.rc('font', family = 'serif')
+    matplotlib.rc('font', family = 'serif', size=20)
     fig=plt.figure(1,(7,10))
     soln = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/dG_raw.pkl'
     plot_dG_solution.solution(soln)
@@ -67,7 +67,7 @@ def main():
         ddSf_des = (ddGf_des[0:-2]**2 + ddGf_des[2::]**2)**.5/10
         ddHf_des = (ddGf_des[1:-1]**2 + (temp_sub*ddSf_des)**2)**.5
      
-        fig.subplots_adjust(hspace=0)
+        fig.subplots_adjust(hspace=0,left=.2)
         
         ax1 = plt.subplot(311)
         ax1.errorbar(target_temperatures,dGf,ddGf,label=r'$\lambda$ = %s' % lam[i], color=colors[i])
@@ -93,7 +93,7 @@ def main():
         plt.ylabel(r'$\Delta$S_{folding}$')
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.39, 1.08), prop={'size':14})
+#        lgd = ax2.legend(bbox_to_anchor=(1.4, 1.08), prop={'size':14})
  
     lam = [.1, .15, .2, .25, .3, .35, .4, .45, .5, .55,.6]
     for i in range(2,len(lam)):
@@ -129,7 +129,7 @@ def main():
         plt.ylabel(r'$\Delta$S_{folding}$')
         box = ax2.get_position()
         ax2.set_position([box.x0,box.y0,box.width*.82,box.height])
-        lgd = ax2.legend(bbox_to_anchor=(1.3, 1.08), prop={'size':11})
+        lgd = ax2.legend(bbox_to_anchor=(1.35, 1.15), prop={'size':12})
     
 
     fig.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig8_dGf_boot.pdf')

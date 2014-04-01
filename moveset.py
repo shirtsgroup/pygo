@@ -494,8 +494,10 @@ def runMD(self,nsteps,h,dict):
     self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
     self.oldH=self.u0+.5/4.184*numpy.sum(m*numpy.sum(self.vel**2,axis=1)) # in kcal/mol
     for e in range(nsteps):
+        pdb.set_trace()
         v_half = self.vel + h / 2 * numpy.transpose(a) # unconstrained v(t+dt/2)
         v_half, conv = HMCforce.cshake(bonds, v_half, h, m, d2, maxloop, numbeads, tol) # 
+        v_half2, conv = HMCforce.crattle(bonds, v_half, m, d2, maxloop, numbeads, tol)
         if not conv:
 			print 'MD not converging, reject'
 			self.uncloseable=True
@@ -507,6 +509,7 @@ def runMD(self,nsteps,h,dict):
         a = numpy.transpose(force)/m
         self.vel = v_half + h/2*numpy.transpose(a) # unconstrained v(t+dt)
         self.vel, conv = HMCforce.crattle(bonds, self.vel, m, d2, maxloop, numbeads, tol)
+        vel2, conv = HMCforce.cshake(bonds, self.vel, h, m, d2, maxloop, numbeads, tol) # 
         if not conv:
 			print 'MD not converging, reject'
 			self.uncloseable=True

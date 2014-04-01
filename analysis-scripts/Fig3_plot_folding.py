@@ -16,7 +16,7 @@ def main():
     matplotlib.rc('font', family = 'serif')
     #plt.rc('text.latex', preamble='\usepackage{sfmath}')
     font = {'family' : 'serif',
-            'size'   : 'larger'}
+            'fontsize'   : 20}
 
     Q = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/foldingcurve.npy'
     data = numpy.load(Q)
@@ -31,7 +31,7 @@ def main():
     ax2.set_ylabel(r'C_{v}  \textnormal{ (kcal/mol$\cdot$K)}', fontdict = font)
 
     ln = ln1 + ln2
-    plt.legend(ln,['Q',r'C_{v}'])#,prop={'size':11})
+    plt.legend(ln,['Q',r'C_{v}'], fontsize=20)#,prop={'size':14})
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig3_solution.pdf')
 
     plt.show()

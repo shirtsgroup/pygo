@@ -20,11 +20,11 @@ def main():
     Cv_files[-1] = '/home/edz3fz/proteinmontecarlo/results/1PGB/surface/lambda.7/heatcap.npy' 
     colors = cm.cool(numpy.linspace(0,1,len(lam)))
     
-    f = plt.figure(1,(6,8))
+    f = plt.figure(1,(7,8))
     plt.rc('text',usetex=True)
-    matplotlib.rc('font', family = 'serif')
+    matplotlib.rc('font', family = 'serif',size=20)
     font = {'family' : 'serif',
-            'size'   : 'larger'}
+            'size'   : 20}
     ax1 = plt.subplot(211)
     for i in range(len(lam)):
         data = numpy.load(Q_files[i])
@@ -38,7 +38,7 @@ def main():
     ax1.errorbar(data[0,:],data[1,:],data[2,:],label='solution', color='k')
     plt.ylabel('Q')
     plt.setp(ax1.get_xticklabels(), visible = False)
-    plt.legend(prop={'size':9})
+    plt.legend(bbox_to_anchor=(1.37,.5),prop={'size':12})
     plt.xlim((200,400))
 
     ax2 = plt.subplot(212)
@@ -52,13 +52,14 @@ def main():
     soln = '/home/edz3fz/proteinmontecarlo/results/1PGB/solution/heatcap.npy'
     data = numpy.load(soln)
     ax2.errorbar(data[0,:],data[1,:],data[2,:],label='solution', color='k')
-    plt.ylabel(r'$C_{v}  \textnormal{ (kcal/mol$\cdot$K)}$',fontdict=font)
+    #plt.ylabel(r'$C_{v}  \textnormal{ (kcal/mol$\cdot$K)}$')
+    f.text(.06,.3,r'$C_{v}  \textnormal{ (kcal/mol$\cdot$K)}$',ha='center',va='center',rotation='vertical')
     plt.xlabel('temperature (K)')
     #plt.legend(prop={'size':8})
     plt.xlim((200,400))
     plt.yticks(numpy.arange(0,4.5,.5))
 
-    f.subplots_adjust(hspace=0)
+    f.subplots_adjust(hspace=0, right=.75, left=.15)
     plt.savefig('/home/edz3fz/proteinmontecarlo/manuscripts/figures/Fig6_foldingcurve.eps')
     plt.show()
  
