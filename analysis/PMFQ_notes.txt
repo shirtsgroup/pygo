@@ -1,2 +1,0 @@
-./MBAR_pmfQ_new.py -t 325 330 --tfile ../T.txt --direc ../results/1PGB/comparison/HMC/ -n 100000 -s 5
-

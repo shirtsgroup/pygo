@@ -1,8 +1,0 @@
-
-Generated mixing times by running:
-
-/home/edz3fz/proteinmontecarlo/analysis-scripts/mixingtime_Q.py -n 15 -s 105 --direc /home/edz3fz/proteinmontecarlo/results/1PGB/comparison/HMC/
-/home/edz3fz/proteinmontecarlo/analysis-scripts/mixingtime_Q.py -n 15 -s 50 --direc /home/edz3fz/proteinmontecarlo/results/1PGB/comparison/HMD/
-/home/edz3fz/proteinmontecarlo/analysis-scripts/mixingtime_Q.py -n 15 -s 2300 --direc /home/edz3fz/proteinmontecarlo/results/1PGB/comparison/MD/
-/home/edz3fz/proteinmontecarlo/analysis-scripts/mixingtime_Q.py -n 15 -s 10 --direc /home/edz3fz/proteinmontecarlo/results/1PGB/comparison/MC/
-
