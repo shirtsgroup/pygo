@@ -38,7 +38,7 @@ def swap(args, replicas, wiw):
             replicas[i].whoami, replicas[X].whoami = replicas[X].whoami, replicas[i].whoami # whoami keeps track of the individual protein in each Replica 
             if args.surf:
                 replicas[i].surfE, replicas[X].surfE = replicas[X].surfE, replicas[i].surfE
-            if args.umbrella:
+            if args.Zumbrella:
                 replicas[i].z_array, replicas[X].z_array = replicas[X].z_array, replicas[i].z_array
             if args.Qfile:
                 replicas[i].Q, replicas[X].Q = replicas[X].Q, replicas[i].Q
@@ -49,7 +49,7 @@ def tryrepeatedswaps(args, replicas, swapaccepted, swaprejected, protein_locatio
 		return swapaccepted, swaprejected, protein_location
     wiw = range(args.nreplicas)
     switch = 0
-    for k in range(args.swapsper):
+    for k in range(args.nswap):
 		if switch:
 			swapaccepted, swaprejected, wiw = tryswap(args, replicas, swapaccepted, swaprejected, 0, beta, Q, wiw) #type 1 swap
 		else:	

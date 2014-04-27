@@ -1,6 +1,9 @@
+#! /usr/bin/env python
+
 import datetime
 import numpy
 from optparse import OptionParser
+import argparse
 from sys import stdout, exit
 import profile
 import scipy.linalg
@@ -30,36 +33,41 @@ t1=datetime.datetime.now()
 kb = 0.0019872041 #kcal/mol/K
 
 def parse_args():
-    parser=OptionParser()
-    
-    parser.add_option("-f", "--files", dest="filename", default="GO_1PGB.pdb", help="protein .pdb file")
-    parser.add_option("-p", "--paramfile", dest="paramfile", default='GO_1PGB.param', help="protein .param file")
-    parser.add_option("-t", "--temprange", nargs=2, default=[200.,400.], type="float", dest="temprange", help="temperature range of replicas")
-    parser.add_option("--tfile", dest="tfile", default="", help="file of temperatures")
-    parser.add_option("-r", "--nreplicas", default=8, type="int",dest="nreplicas", help="number of replicas")
-    parser.add_option("-n", "--moves", dest="totmoves", type="int", default='10000', help="total number of moves")
-    parser.add_option("-s", "--save", dest="save", type="int", default='1000', help="number of moves between save operations")
-    parser.add_option("-k", "--swapstep", dest="swap", type="int", default='1000', help="number of moves between swap moves")
-    parser.add_option("-w", "--writetraj", dest="writetraj", action="store_true", default=False, help="flag to write out trajectory (default: False)")
-    parser.add_option("--swapsper", nargs=1, dest="swapsper", type="int",default=500, help="number of swaps to perform (default: 500)")
-    parser.add_option("--id", nargs=1, dest="id", type="int", default=0, help="the simlog id number or umbrella id number")
-    parser.add_option("--freq", nargs=7, dest="freq", type="float", default=[0,0,1,3,3,3,10], help="ratio of move frequencies (tr:ro:an:di:gc:pr:md)")
-    parser.add_option("--md", nargs=2, default=[45,50],type="float", dest="md", help="step size (fs) and nsteps for MD move")
+    parser = argparse.ArgumentParser(description = 'Run a simulation')
+
+    group_in = parser.add_argument_group('Input files and parameters')
+    group_in.add_argument('-f', dest='filename', help='protein GO_xxxx.pdb file')
+    group_in.add_argument('-p', dest='paramfile', help='protein GO_xxxx.param file')
+    group_in.add_argument('-t', nargs=2, default=[200.,400.], type=float, dest='temprange', help='temperature range of replicas (default: 200, 400)')
+    group_in.add_argument('--tfile', dest='tfile', default='', help='file of temperatures')
+    group_in.add_argument('-r', '--nreplicas', default=8, type=int,dest='nreplicas', help='number of replicas (default: 8)')
+    group_in.add_argument('-n', '--nmoves', dest='totmoves', type=int, default='10000', help='total number of moves (default: 10000)')
+    group_in.add_argument('-s', '--save', type=int, default='1000', help='save interval in number of moves (default: 1000)')
+    group_in.add_argument('-k', '--swap', type=int, default='1000', help='replica exchange interval in number of moves (default: 1000)')
+    group_in.add_argument('--nswap', type=int,default=500, help='number of attempted exchanges at each (default: 500)')
+    group_in.add_argument('-w', '--writetraj', dest='writetraj', action='store_true', default=False, help='flag to write out trajectory (default: False)')
+    group_in.add_argument('--id', nargs=1, dest='id', type=int, default=0, help='the simlog id number or umbrella id number (default: 0)')
+    group_in.add_argument('--freq', nargs=7, dest='freq', metavar='x', type=float, default=[0,0,1,3,3,3,10], help='ratio of move frequencies (tr:ro:an:di:gc:pr:md) (default: 0:0:1:3:3:3:10)')
+    group_in.add_argument('--md', nargs=2, default=[45,50], type=float, dest='md', help='step size (fs) and number of steps for MD move (default: 45 fs, 50 steps)')
+    group_in.add_argument('-o', '--odir', default='.', help='output directory (default: ./)')
  
-    parser.add_option("--surf", action="store_true", default=False, help="surface simulation flag")
-    parser.add_option("--surfparamfile", dest="surfparamfile", default='avgsurfparam.npy', help="surface param file")
-    parser.add_option("--scale", type="float", default=1, help="scaling of surface attraction strength")
+    group_surf = parser.add_argument_group('Surface simulation input files and parameters')
+    group_surf.add_argument('--surf', action='store_true', default=False, help='surface simulation flag (default: False)')
+    group_surf.add_argument('--surfparamfile', dest='surfparamfile', default='avgsurfparam.npy', help='surface param file (default: avgsurfparam.npy)')
+    group_surf.add_argument('--scale', type=float, default=1, help='scaling of surface attraction strength (default: 1)')
 
-    parser.add_option("--umbrella", type="float", default=0., help="umbrella simulation flag and distance of pinning")
-    parser.add_option("--umbrellak", type="float", default=1, help="umbrella spring constant (default: 1)")
+    group_umb = parser.add_argument_group('Umbrella simulation input files and parameters')
+    group_umb.add_argument('-Z', '--Zumbrella', type=float, default=0., help='umbrella simulation flag and distance of z pin (default=0)')
+    group_umb.add_argument('--k_Zpin', type=float, default=1, help='Z umbrella spring constant (default: 1)')
+    group_umb.add_argument('-Q', '--Qumbrella', dest='Qfile', default='', help='Q umbrella simulation flag and file of Q_pins')
+    group_umb.add_argument('--k_Qpin', type=float, default=10, help='Q umbrella spring constant (default: 10)')
 
-    parser.add_option('-Q', "--Qumbrella", dest='Qfile', default='', help="Q umbrella simulation flag and file of Q_pins")
-    parser.add_option("--k_Qpin", type="float", default=10, help="Q umbrella spring constant (default: 10)")
+    group_misc = parser.add_argument_group('Other specifications')
+    group_misc.add_argument('--cluster', action='store_true', default=False, help='flag for running on cluster')
+    group_misc.add_argument('--restart', action='store_true', default=False, help='restart from checkpoint files')
+    group_misc.add_argument('--extend', nargs=1, metavar='ID', dest='extend', type=int, default=0, help='id number of existing simulation to extend')
 
-    parser.add_option("--cluster", action="store_true", default=False, help="flag for running on cluster")
-    parser.add_option("--restart", action="store_true", default=False, help="restart from a checkpoint")
-    parser.add_option("--extend", nargs=1, dest="extend", type="int", default=0, help="id number of existing simulation to start simulation from")
-    (args,_)=parser.parse_args()
+    args = parser.parse_args()
     return args
 
 def get_temperature(args):
@@ -105,19 +113,17 @@ def get_movefreq(args):
     return percentmove
 
 def set_up_dir(args):
-    # to do: change this before putting on github
-    parentdirc = './replicaexchange'
-    if not os.path.exists(parentdirc):
-        os.mkdir(parentdirc)
-    if args.umbrella:
-        direc = './replicaexchange/umbrella%i' % args.id
+    if not os.path.exists(args.odir):
+        os.mkdir(args.odir)
+    if args.Zumbrella:
+        direc = '%s/umbrella%i' % (args.odir, args.id)
         if not os.path.exists(direc):
             os.mkdir(direc)
-        direc = './replicaexchange/umbrella%i/%i' %(args.id,int(args.umbrella))
+        direc = '%s/umbrella%i/%i' %(args.odir, args.id, int(args.Zumbrella))
         if not os.path.exists(direc):
             os.mkdir(direc)
     else:
-        direc = './replicaexchange/simlog%i' % args.id
+        direc = '%s/simlog%i' % (args.odir, args.id)
         if not os.path.exists(direc):
             os.mkdir(direc)
     return direc
@@ -129,7 +135,7 @@ def pprun(job_server, replicas, moves, dict):
     else:
         jobs = [job_server.submit(replica.run, (moves, dict), 
                 (), #(simulationobject.update_energy, simulationobject.save), 
-                ("numpy","energyfunc", "moveset", "writetopdb","cPickle")) for replica in replicas]
+                ('numpy','energyfunc', 'moveset', 'writetopdb','cPickle')) for replica in replicas]
         newreplicas = [job() for job in jobs]
     return newreplicas
 
@@ -144,7 +150,7 @@ def savestate(args, direc, replicas, protein_location):
         replicas[i].savecoord()
         if args.surf:
             replicas[i].savesurfenergy()
-        if args.umbrella:
+        if args.Zumbrella:
             replicas[i].save_z()
 
 def loadstate(direc, replicas, protein_location):
@@ -163,6 +169,7 @@ def main():
     print ''
 
     # --- process inputs --- #
+    # to do: add some checks to input, e.g. files exist, nmoves > save
     args = parse_args()
     coord,_ = writetopdb.get_coord(args.filename)
     numbeads=len(coord)
@@ -186,7 +193,7 @@ def main():
     print 'System:', args.filename
     if args.Qfile:
         print '    Running Q umbrella sampling with restraints at:', Q
-    if args.umbrella:
+    if args.Zumbrella:
         print '    Running surface umbrella sampling simulation with pinning at %f A' % args.umbrella
         assert(args.surf == True)
     if args.surf:
@@ -198,7 +205,7 @@ def main():
     print 'Total number of moves:', args.totmoves
     print 'Save interval:', args.save
     print 'Replica exchange interval:', args.swap
-    print 'Swaps at each exchange point:', args.swapsper
+    print 'Swaps at each exchange point:', args.nswap
     print 'Ratio of moves frequencies (tr:rot:ang:dih:crank:parrot:MD):', args.freq
     print 'MD time step:', args.md[0],' fs'
     print 'MD steps per move:', args.md[1]
@@ -298,8 +305,8 @@ def main():
     replicas = []
     for i in range(args.nreplicas):
         name = 'replica%i' % i
-        if args.umbrella:
-            replicas.append(UmbrellaSimulation(name, os.path.abspath(direc), coord, T[i], surface, args.umbrella, mass, args.umbrellak))
+        if args.Zumbrella:
+            replicas.append(UmbrellaSimulation(name, os.path.abspath(direc), coord, T[i], surface, args.Zumbrella, mass, args.k_Zpin))
         elif args.surf:
             if args.Qfile:
                 replicas.append(QSurfaceSimulation(name, os.path.abspath(direc), coord, T[i], surface, Q[i]))
@@ -317,8 +324,8 @@ def main():
             f.close()
 
     # --- begin simulation --- #
-    if args.umbrella:
-    	print 'Starting umbrella simulation... at %f A' % args.umbrella
+    if args.Zumbrella:
+    	print 'Starting umbrella simulation... at %f A' % args.Zumbrella
     elif args.surf:
     	print 'Starting surface simulation...'
     else:
@@ -331,14 +338,14 @@ def main():
     # --- setup ppserver --- #
     if args.cluster:
     	print '    Running on a cluster...'
-    	if args.umbrella:
+    	if args.Zumbrella:
     		try:
-    			f = open('nodefile%i-%s.txt'% (args.id, args.umbrella),'r')
+    			f = open('nodefile%i-%s.txt'% (args.id, args.Zumbrella),'r')
     		except:
-    			f = open('nodefile%i-%i.txt'% (args.id, args.umbrella),'r')
+    			f = open('nodefile%i-%i.txt'% (args.id, args.Zumbrella),'r')
     	else:
     		f = open('nodefile%i.txt'% args.id,'r')
-    	ppservers = f.read().split("\n")
+    	ppservers = f.read().split('\n')
     	f.close()
     	ppservers = filter(None,ppservers)
     	ppservers = [x+':43334' for x in ppservers]
@@ -346,17 +353,17 @@ def main():
     	job_server = pp.Server(0,ppservers=ppservers)
     	print 'Running pp on: '
     	print ppservers
-    	print "Starting pp with", job_server.get_ncpus(), "workers"
+    	print 'Starting pp with', job_server.get_ncpus(), 'workers'
     else:
     	# running on one machine
     	job_server = pp.Server(ppservers=())
-    	print "Starting pp with", job_server.get_ncpus(), "workers"
+    	print 'Starting pp with', job_server.get_ncpus(), 'workers'
  
     # --- set up simulation extension --- #
     if args.extend:
     	print '    Extending simulation %i...' % args.extend
-    	if args.umbrella:
-    		extenddirec = os.getcwd()+'/replicaexchange/umbrella%i/%i' % (args.extend,int(args.umbrella))
+    	if args.Zumbrella:
+    		extenddirec = os.getcwd()+'/replicaexchange/umbrella%i/%i' % (args.extend,int(args.Zumbrella))
     	else:
     		extenddirec = os.getcwd()+'/replicaexchange/simlog%i' % args.extend
     	if not os.path.exists(extenddirec):
@@ -408,7 +415,7 @@ def main():
         replicas[i].savecoord()
         if args.surf:
                 replicas[i].savesurfenergy()
-        if args.umbrella:
+        if args.Zumbrella:
     	    replicas[i].save_z()
     
     if args.swap!=args.totmoves:
