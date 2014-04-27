@@ -8,6 +8,16 @@ Requirements:
 * numpy
 * matplotlib
 
+#Ad hoc installation:
+
+    git clone https://github.com/shirtsgroup/pygo.git
+
+Add the executables to your path, e.g.:
+
+    PATH=$PATH:$HOME/pygo/package
+
+# Usage 
+
 ````
 $ simulateGO.py -h
 
@@ -68,4 +78,4 @@ Other specifications:
   --extend ID           id number of existing simulation to extend
 ````
 
-See examples subdirectory for example usages.
+See examples subdirectory for example invocations.
